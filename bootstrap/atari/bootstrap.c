@@ -43,11 +43,14 @@
  *      19 Feb 1994 Changed everything so that it works? (rdv)
  *      14 Mar 1994 New mini-copy routine used (rdv)
  *
- * $Id: bootstrap.c,v 1.1 1997-07-15 09:45:38 rnhodek Exp $
+ * $Id: bootstrap.c,v 1.2 1997-07-30 21:41:28 rnhodek Exp $
  * 
  * $Log: bootstrap.c,v $
- * Revision 1.1  1997-07-15 09:45:38  rnhodek
- * Initial revision
+ * Revision 1.2  1997-07-30 21:41:28  rnhodek
+ * Only remove an ugly empty line
+ *
+ * Revision 1.1.1.1  1997/07/15 09:45:38  rnhodek
+ * Import sources into CVS
  *
  * 
  */
@@ -196,7 +199,6 @@ static unsigned long parse_size( const char *p )
     else if (islower(*end) == 'm')
 	size *= 1024*1024;
     return( size );
-
 }
 
 #define	MAXARGS		30
@@ -255,6 +257,20 @@ static void get_default_args( int *argc, char ***argv )
 	
     nargv[*argc] = 0;
 }    
+
+
+void boot_exit( int status )
+{
+    /* wait for a keypress, so error messages don't disapper without a chance
+     * to read them */
+    getchar();
+
+    /* go back to user mode; set usp to current sp before Super() call to keep
+     * the current stack */
+    __asm__ __volatile__ ( "movel sp,usp" );
+    (void)Super( userstk );
+    exit( status );
+}
 
 
 
