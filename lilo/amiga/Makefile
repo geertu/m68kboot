@@ -8,10 +8,13 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.4 1998-04-09 08:07:15 rnhodek Exp $
+# $Id: Makefile,v 1.5 2004-10-01 10:07:15 geert Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.4  1998-04-09 08:07:15  rnhodek
+# Revision 1.5  2004-10-01 10:07:15  geert
+# If CC is m68k-linux-gcc, LD should be m68k-linux-ld as well
+#
+# Revision 1.4  1998/04/09 08:07:15  rnhodek
 # Define ELF_LOADER for Amiga loader sources.
 #
 # Revision 1.3  1998/04/06 01:40:56  dorchain
@@ -34,7 +37,7 @@
 amiga/%.o: %.c
 	$(LINUX_COMPILE) -DELF_LOADER -c $< -o $@ -fpic
 
-LD = ld
+LD = m68k-linux-ld
 LLDFLAGS = -Ttext 0
 
 
