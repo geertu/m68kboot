@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: lilo.l.c,v 1.10 1998-03-10 10:26:01 rnhodek Exp $
+ * $Id: lilo.l.c,v 1.11 1998-03-17 12:31:42 rnhodek Exp $
  * 
  * $Log: lilo.l.c,v $
- * Revision 1.10  1998-03-10 10:26:01  rnhodek
+ * Revision 1.11  1998-03-17 12:31:42  rnhodek
+ * Set MaxVectorSector{Number,Count} to limits of DMAread().
+ *
+ * Revision 1.10  1998/03/10 10:26:01  rnhodek
  * CreateMapFile(): Also test if there are restricted images without a password.
  *
  * Revision 1.9  1998/03/06 09:49:45  rnhodek
@@ -598,6 +601,9 @@ int main( int argc, char *argv[] )
 #endif
 	
     ProgramName = argv[0];
+	/* set limits of DMAread(): 21 bit sector number, 8 bit sector count */
+	MaxVectorSectorNumber = 0x1fffff;
+	MaxVectorSectorCount  = 0xff;
 
     while (--argc > 0) {
 		argv++;
