@@ -1,0 +1,30 @@
+#!/bin/sh
+set -e
+
+version=`awk '/VERSION/ {print $3}' version.h | tr -d '"'`
+
+if [ -f bootstrap/amiga/amiboot ]; then
+	install -m644 bootstrap/amiga/amiboot ../amiboot-$version
+	gzip -9f ../amiboot-$version
+fi
+
+if [ -f bootstrap/atari/ataboot.ttp ]; then
+	install -m644 bootstrap/atari/ataboot.ttp ../ataboot-$version
+	gzip -9f ../ataboot-$version
+fi
+
+for mach in amiga atari; do
+	if [ -f lilo/$mach/lilo ]; then
+		rm -rf tmp
+		mkdir -p tmp/{etc,sbin,boot,man/man8}
+		install -m755 lilo/$mach/lilo tmp/sbin
+		install -m644 lilo/$mach/loader tmp/boot
+		install -m644 lilo/$mach/lilo.conf.example tmp/etc
+		install -m644 doc/lilo.8 tmp/man/man8
+		(cd tmp; tar cvf ../../$mach-lilo-$version.tar *)
+		gzip -9f ../$mach-lilo-$version.tar
+		mrm -rf tmp
+	fi
+done
+
+exit 0
