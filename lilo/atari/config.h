@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: config.h,v 1.4 1998-02-26 10:16:38 rnhodek Exp $
+ * $Id: config.h,v 1.5 1998-03-06 09:49:07 rnhodek Exp $
  * 
  * $Log: config.h,v $
- * Revision 1.4  1998-02-26 10:16:38  rnhodek
+ * Revision 1.5  1998-03-06 09:49:07  rnhodek
+ * New field 'modif_mask' in BootBlock.
+ *
+ * Revision 1.4  1998/02/26 10:16:38  rnhodek
  * New config vars WorkDir, Environ, and BootDrv (global)
  *
  * Revision 1.3  1997/09/19 09:06:56  geert
@@ -55,11 +58,12 @@ struct BootBlock {
     char		biosparam[34];	/* MSDOS-FS bootsector parameters */
     unsigned long	LiloID;		/* Magic for LILO */
     short		boot_device;	/* device to load the loader from */
+    short		modif_mask;	/* modifiers on which Lilo skips */
 #ifdef SECONDARY_ROOTSEC_NEEDED
     unsigned long	second_rootsec;	/* sector# of secondary rootsector */
 #endif
     unsigned long	map_sector;	/* sector# of map sector */
-    char		data[296];	/* boot loader code */
+    char		data[294];	/* boot loader code */
     struct partition	icdpart[8];	/* info for ICD-partitions 5..12 */
     char		unused[12];
     unsigned long	hd_size;	/* size of disk */
