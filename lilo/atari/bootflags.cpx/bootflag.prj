@@ -2,7 +2,7 @@ bootflag.cp
 =
 cpxstart.s
 bootflag.c
+testgpip.s
 tcstdlib.lib
 tcgemlib.lib
 tctoslib.lib
-

@@ -22,6 +22,7 @@ int flagval[NUM_FLAGS] = {
 };
 
 int pflag, tflag;
+int gpip_present;
 int errno;
 
 #define	SCU_GPIP1	  (*(unsigned char*)0xffff8e09L)
@@ -35,7 +36,10 @@ int  show_help( void );
 void extract_data( void );
 void get_data( void );
 void set_data( void );
+void test_gpip( void );
 
+/* defined in testgpip.s */
+extern test_register(  char *addr );
 
 XCPB    *xcpb;          /* XControl Parameter Block   */
 
@@ -52,7 +56,7 @@ CPXINFO * cdecl cpx_init( XCPB *Xcpb )
   appl_init();
         
   if (xcpb->booting) {
-    return( ( CPXINFO *)1 );  
+    return( (CPXINFO *)1 );  
   }
   else {
     if( !xcpb->SkipRshFix ) {
@@ -75,13 +79,16 @@ int cdecl cpx_call( GRECT *work )
   main_tree[0].ob_width = help_tree[0].ob_width = work->g_w;
   main_tree[0].ob_height = help_tree[0].ob_height = work->g_h;
 
+  test_gpip();
   get_data();
   for( i = 0; i < NUM_FLAGS; ++i ) {
     obstate( main_tree, pbuttons[i] ) &= ~SELECTED;
     obstate( main_tree, tbuttons[i] ) &= ~SELECTED;
 	if (pflag == flagval[i])
       obstate( main_tree, pbuttons[i] ) |= SELECTED;
-	if (tflag == flagval[i])
+	if (!gpip_present)
+	  obstate( main_tree, tbuttons[i] ) |= DISABLED;
+	else if (tflag == flagval[i])
       obstate( main_tree, tbuttons[i] ) |= SELECTED;
   }
 
@@ -211,9 +218,14 @@ void get_data( void )
 	}
 	pflag = (unsigned char)c & 0xf8;
 
-	savessp = Super(0L);
-	tflag = SCU_GPIP1 & 0xf8;
-	Super( savessp );
+	if (gpip_present) {
+		savessp = Super(0L);
+		tflag = SCU_GPIP1 & 0xf8;
+		Super( savessp );
+	}
+	else {
+		tflag = 0;
+	}
 }
 
 
@@ -246,10 +258,19 @@ void set_data( void )
 		form_alert( 1, buf );
 	}
 
-	savessp = Super(0L);
-	SCU_GPIP1 = (SCU_GPIP1 & 0x07) | (tflag & 0xf8);
-	Super( savessp );
+	if (gpip_present) {
+		savessp = Super(0L);
+		SCU_GPIP1 = (SCU_GPIP1 & 0x07) | (tflag & 0xf8);
+		Super( savessp );
+	}
 }
 
 
+void test_gpip( void )
 
+{	long savessp;
+
+	savessp = Super(0L);
+	gpip_present = test_register( &SCU_GPIP1 );
+	Super( savessp );
+}
