@@ -13,10 +13,14 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo.l.c,v 1.4 1998-03-04 09:12:53 rnhodek Exp $
+ * $Id: lilo.l.c,v 1.5 1998-03-31 11:40:46 rnhodek Exp $
  * 
  * $Log: lilo.l.c,v $
- * Revision 1.4  1998-03-04 09:12:53  rnhodek
+ * Revision 1.5  1998-03-31 11:40:46  rnhodek
+ * Replaced sizeof(u_long) by sizeof(struct vecent) in calculations based
+ * on LoaderNumBlocks.
+ *
+ * Revision 1.4  1998/03/04 09:12:53  rnhodek
  * CreateMapFile: Die if there are no boot records at all; check if
  * kernel file exists only if OSType is BOS_LINUX, and if it isn't a
  * BOOTP image.
@@ -178,7 +182,7 @@ static void CreateBootBlock(int reset)
     memcpy((void *)data, (void *)start, size);
 
     if (!reset) {
-	maxsize = (_LoaderVectorEnd-_LoaderVectorStart)/sizeof(u_long)-1;
+	maxsize = (_LoaderVectorEnd-_LoaderVectorStart)/sizeof(struct vecent)-1;
 	if (LoaderNumBlocks > maxsize)
 	    Die("Loader vector is too large for boot block (%ld entries too "
 		"much)\n", LoaderNumBlocks-maxsize);
@@ -186,7 +190,7 @@ static void CreateBootBlock(int reset)
 	    printf("%d entries for loader vector blocks, %lu entries free\n",
 		   LoaderNumBlocks, maxsize-LoaderNumBlocks);
 	memcpy((void *)(data+(u_long)_LoaderVectorStart-start), LoaderVector,
-	       (LoaderNumBlocks+1)*sizeof(u_long));
+	       (LoaderNumBlocks+1)*sizeof(struct vecent));
 	if (Config.AltDeviceName) {
 	    strcpy((void *)(data+(u_long)_AltDeviceName-start),
 		   Config.AltDeviceName);
