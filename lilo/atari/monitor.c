@@ -7,10 +7,13 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: monitor.c,v 1.6 1998-03-02 13:56:47 rnhodek Exp $
+ * $Id: monitor.c,v 1.7 1998-03-04 09:18:43 rnhodek Exp $
  * 
  * $Log: monitor.c,v $
- * Revision 1.6  1998-03-02 13:56:47  rnhodek
+ * Revision 1.7  1998-03-04 09:18:43  rnhodek
+ * do_exec: accept option -n for running prg without caches.
+ *
+ * Revision 1.6  1998/03/02 13:56:47  rnhodek
  * Add #ifdefs for NO_MONITOR
  * Don't call graf_init/deinit() if DontUseGUI is set.
  * New optional second arg to 'exec' (workdir).
@@ -115,27 +118,27 @@ static int isprefix( const char *a, const char *b );
 
 static const struct command commands[] = {
 	{ "help", show_help,
-	  "                        Display this help" },
+	  "                         Display this help" },
 	{ "version", show_version,
-	  "                     Display version info" },
+	  "                      Display version info" },
 	{ "list", show_list,
-	  " [records|files|mounts] List boot records or files" },
+	  " [records|files|mounts]  List boot records or files" },
 	{ "use", set_record,
-	  " [<label>]               Set current boot record" },
+	  " [<label>]                Set current boot record" },
 	{ "info", show_record_info,
-	  " [<label>]              Show infos from (curr.) boot record" },
+	  " [<label>]               Show infos from (curr.) boot record" },
 	{ "set", set_record_field,
-	  " <var> [<val>]           Set variables of curr. boot record" },
+	  " <var> [<val>]            Set variables of curr. boot record" },
 	{ "partition", show_partition,
-	  " <device>          Show partition table" },
+	  " <device>           Show partition table" },
 	{ "mount", do_mount,
-	  " <partit> <drv>        Mount TOS drive" },
+	  " <partit> <drv>         Mount TOS drive" },
 	{ "umount", do_umount,
-	  " [<drv>]              Unmount one (all) TOS drives" },
+	  " [<drv>]               Unmount one (all) TOS drives" },
 	{ "exec", do_exec,
-	  " <path> [<workdir>]     Execute a TOS program" },
+	  " [-n] <path> [<workdir>]  Execute a TOS program" },
 	{ "boot", do_boot,
-	  " <partit> [<driver>]    Boot bootsector or TOS (with driver)" }
+	  " <partit> [<driver>]     Boot bootsector or TOS (with driver)" }
 };
 
 
@@ -712,18 +715,24 @@ static void do_umount( int argc, const char *argv[] )
 static void do_exec( int argc, const char *argv[] )
 {
 	int rv;
+	int use_cache = 1;
 	
 	if (!argc) {
 		cprintf( "Need program to execute\n" );
 		return;
 	}
-	else if (argc > 2) {
+	if (strcmp( argv[0], "-n" ) == 0) {
+		use_cache = 0;
+		--argc;
+		++argv;
+	}
+	if (argc > 2) {
 		cprintf( "Write arguments to command into first arg (with quotes)\n" );
 		cprintf( "(Second arg is workdir!)\n" );
 		return;
 	}
 
-	rv = exec_tos_program( argv[0], argc == 2 ? argv[1] : NULL );
+	rv = exec_tos_program( argv[0], argc == 2 ? argv[1] : NULL, use_cache );
 	cprintf( "Return value: %d\n", rv );
 }
 
