@@ -11,10 +11,14 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.c,v 1.3 1997-07-16 11:43:22 rnhodek Exp $
+ * $Id: linuxboot.c,v 1.4 1997-07-16 14:05:08 rnhodek Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.3  1997-07-16 11:43:22  rnhodek
+ * Revision 1.4  1997-07-16 14:05:08  rnhodek
+ * Sorted out which headers to use and the like; Amiga bootstrap now compiles.
+ * Puts and other generic functions now defined in bootstrap.h
+ *
+ * Revision 1.3  1997/07/16 11:43:22  rnhodek
  * Removed (already commented-out) inclusion of bootinfo headers
  *
  * Revision 1.2  1997/07/16 09:10:37  rnhodek
@@ -177,9 +181,12 @@ void linux_boot( void )
 
     /* load the ramdisk */
     bi.ramdisk.size = rd_size = load_ramdisk( ramdisk_name );
+    if (!rd_size)
+	boot_exit( EXIT_FAILURE );
     
     /* open the kernel image and analyze it */
-    kernel_size = open_kernel( kernel_name );
+    if (!(kernel_size = open_kernel( kernel_name )))
+	boot_exit( EXIT_FAILURE );
 
     /* Locate ramdisk in dest. memory */
     if (rd_size) {
@@ -215,7 +222,8 @@ void linux_boot( void )
     /* move ramdisk image to its final resting place */
     move_ramdisk( memptr+memreq-rd_size, rd_size );
     /* read the text and data segments from the kernel image */
-    load_kernel( memptr );
+    if (!load_kernel( memptr ))
+	boot_exit( EXIT_FAILURE );
 
     /* Check kernel's bootinfo version */
     switch (check_bootinfo_version( memptr, MACH_ATARI, ATARI_BOOTI_VERSION,

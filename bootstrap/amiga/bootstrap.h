@@ -17,10 +17,14 @@
 ** License.  See the file COPYING in the main directory of this archive
 ** for more details.
 **
-** $Id: bootstrap.h,v 1.2 1997-07-16 12:59:13 rnhodek Exp $
+** $Id: bootstrap.h,v 1.3 1997-07-16 14:05:01 rnhodek Exp $
 ** 
 ** $Log: bootstrap.h,v $
-** Revision 1.2  1997-07-16 12:59:13  rnhodek
+** Revision 1.3  1997-07-16 14:05:01  rnhodek
+** Sorted out which headers to use and the like; Amiga bootstrap now compiles.
+** Puts and other generic functions now defined in bootstrap.h
+**
+** Revision 1.2  1997/07/16 12:59:13  rnhodek
 ** Add definitions for generic output and memory allocation
 **
 ** Revision 1.1.1.1  1997/07/15 09:45:38  rnhodek
@@ -164,9 +168,11 @@ static __inline void DeleteMsgPort(struct MsgPort *port)
 
 /* generic output and memory allocation */
 
-#define Puts(str)			(puts((str),stderr), fflush(stderr))
+#include <stdio.h>
+
+#define Puts(str)			(fputs((str),stderr), fflush(stderr))
 #define	GetChar				getchar
-#define	PutChar(c)			putchar((c),stderr)
+#define	PutChar(c)			fputc((c),stderr)
 #define	Printf(fmt,rest...)	(fprintf(stderr,fmt,##rest), fflush(stderr))
 #define Alloc(size)			AllocVec((size),MEMF_FAST|MEMF_PUBLIC)
 #define Free(p)				FreeVec(p)

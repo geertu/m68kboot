@@ -28,11 +28,15 @@
 ** License.  See the file COPYING in the main directory of this archive
 ** for more details.
 **
-** $Id: bootstrap.c,v 1.1 1997-07-15 09:45:38 rnhodek Exp $
+** $Id: bootstrap.c,v 1.2 1997-07-16 14:05:00 rnhodek Exp $
 ** 
 ** $Log: bootstrap.c,v $
-** Revision 1.1  1997-07-15 09:45:38  rnhodek
-** Initial revision
+** Revision 1.2  1997-07-16 14:05:00  rnhodek
+** Sorted out which headers to use and the like; Amiga bootstrap now compiles.
+** Puts and other generic functions now defined in bootstrap.h
+**
+** Revision 1.1.1.1  1997/07/15 09:45:38  rnhodek
+** Import sources into CVS
 **
 ** 
 */
@@ -47,10 +51,7 @@
 #include <unistd.h>
 
 /* required Linux/m68k include files */
-#include <linux/a.out.h>
-#include <linux/elf.h>
 #include <asm/amigahw.h>
-#include <asm/page.h>
 
 /* Amiga bootstrap include files */
 #include "linuxboot.h"
@@ -76,10 +77,6 @@ struct linuxboot_args args;
 
 static void Usage(void) __attribute__ ((noreturn));
 int main(int argc, char *argv[]);
-static void Puts(const char *str);
-static long GetChar(void);
-static void PutChar(char c);
-static void Printf(const char *fmt, ...);
 static int Open(const char *path);
 static int Seek(int fd, int offset);
 static int Read(int fd, char *buf, int count);
@@ -234,10 +231,6 @@ int main(int argc, char *argv[])
     args.keep_video = keep_video;
     args.reset_boards = 1;
     args.baud = baud;
-    args.puts = Puts;
-    args.getchar = GetChar;
-    args.putchar = PutChar;
-    args.printf = Printf;
     args.open = Open;
     args.seek = Seek;
     args.read = Read;
@@ -256,33 +249,6 @@ int main(int argc, char *argv[])
     /*
      *  Routines needed by linuxboot
      */
-
-static void Puts(const char *str)
-{
-    fputs(str, stderr);
-    fflush(stderr);
-}
-
-static long GetChar(void)
-{
-    return(getchar());
-}
-
-static void PutChar(char c)
-{
-    fputc(c, stderr);
-    fflush(stderr);
-}
-
-static void Printf(const char *fmt, ...)
-{
-    va_list args;
-
-    va_start(args, fmt);
-    vfprintf(stderr, fmt, args);
-    va_end(args);
-    fflush(stderr);
-}
 
 static int Open(const char *path)
 {

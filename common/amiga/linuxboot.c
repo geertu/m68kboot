@@ -41,10 +41,14 @@
  *	31 May 1994 Memory thrash problem solved (Geert)
  *	11 May 1994 A3640 MapROM check (Geert)
  * 
- * $Id: linuxboot.c,v 1.2 1997-07-16 09:11:00 rnhodek Exp $
+ * $Id: linuxboot.c,v 1.3 1997-07-16 14:05:06 rnhodek Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.2  1997-07-16 09:11:00  rnhodek
+ * Revision 1.3  1997-07-16 14:05:06  rnhodek
+ * Sorted out which headers to use and the like; Amiga bootstrap now compiles.
+ * Puts and other generic functions now defined in bootstrap.h
+ *
+ * Revision 1.2  1997/07/16 09:11:00  rnhodek
  * Made compat_create_machspec_bootinfo return void
  *
  * Revision 1.1.1.1  1997/07/15 09:45:38  rnhodek
@@ -59,22 +63,17 @@
 #endif /* __GNUC__ */
 
 
-#define BOOTINFO_COMPAT_1_0	/* bootinfo interface version 1.0 compatible */
-/* support compressed kernels? */
-#define ZKERNEL
-
 #include <stddef.h>
 #include <string.h>
 #include <errno.h>
 #include <sys/types.h>
 
-#include <linux/a.out.h>
-#include <linux/elf.h>
 #include <linux/linkage.h>
-#include <asm/bootinfo.h>
+/*#include <asm/bootinfo.h>*/
 #include <asm/amigahw.h>
 #include <asm/page.h>
 
+#include "bootstrap.h"
 #include "linuxboot.h"
 #include "loadkernel.h"
 #include "bootinf.h"
@@ -82,6 +81,10 @@
 
 #undef custom
 #define custom ((*(volatile struct CUSTOM *)(CUSTOM_PHYSADDR)))
+
+/* a.out linkage conventions */
+#undef SYMBOL_NAME_STR
+#define SYMBOL_NAME_STR(X) "_"#X
 
 /* temporary stack size */
 #define TEMP_STACKSIZE	(256)
@@ -108,10 +111,6 @@ struct compat_bootinfo compat_bootinfo;
 #define reset_boards	linuxboot_args->reset_boards
 #define baud		linuxboot_args->baud
 
-#define Puts		linuxboot_args->puts
-#define GetChar		linuxboot_args->getchar
-#define PutChar		linuxboot_args->putchar
-#define Printf		linuxboot_args->printf
 #define Open		linuxboot_args->open
 #define Seek		linuxboot_args->seek
 #define Read		linuxboot_args->read
@@ -128,29 +127,11 @@ static void get_processor(u_long *cpu, u_long *fpu, u_long *mmu);
 static u_long get_model(u_long chipset);
 static int probe_resident(const char *name);
 static int probe_resource(const char *name);
-static int create_bootinfo(void);
-#ifdef BOOTINFO_COMPAT_1_0
-static int create_compat_bootinfo(void);
-#endif /* BOOTINFO_COMPAT_1_0 */
-static int add_bi_record(u_short tag, u_short size, const void *data);
-static int add_bi_string(u_short tag, const u_char *s);
-static int check_bootinfo_version(const char *memptr);
 static void start_kernel(void (*startfunc)(), char *stackp, char *memptr,
 			 u_long start_mem, u_long mem_size, u_long rd_size,
 			 u_long kernel_size) __attribute__ ((noreturn));
 asmlinkage u_long maprommed(void);
 asmlinkage u_long check346(void);
-#ifdef ZKERNEL
-static int load_zkernel(int fd);
-static int KRead(int fd, void *buf, int cnt);
-static int KSeek(int fd, int offset);
-static int KClose(int fd);
-#else
-#define KRead		Read
-#define KSeek		Seek
-#define KClose		Close
-#endif
-
 
     /*
      *	Reset functions for nasty Zorro boards
@@ -209,7 +190,7 @@ const u_long last_amiga_model = AMI_DRACO;
 
 u_long linuxboot(const struct linuxboot_args *args)
 {
-    int kfd = -1, rfd = -1, do_fast, do_chip;
+    int do_fast, do_chip;
     int i, j;
     const struct MemHeader *mnp;
     struct ConfigDev *cdp = NULL;
@@ -218,8 +199,7 @@ u_long linuxboot(const struct linuxboot_args *args)
     u_long fast_total, model_mask, startcodesize, start_mem, mem_size, rd_size;
     u_long kernel_size;
     u_int realbaud;
-    u_long memreq = 0, text_offset = 0;
-    Elf32_Phdr *kernel_phdrs = NULL;
+    u_long memreq = 0;
     void (*startfunc)(void);
     u_short manuf;
     u_char prod;
@@ -262,7 +242,7 @@ u_long linuxboot(const struct linuxboot_args *args)
 		       sizeof(struct ConfigDev));
 	    else
 		Printf("Warning: too many AutoConfig devices. Ignoring device at "
-		       "0x%08lx\n", cdp->cd_BoardAddr);
+		       "0x%08lx\n", (u_long)cdp->cd_BoardAddr);
 
     do_fast = bi.num_memory ? 0 : 1;
     do_chip = bi.chip_size ? 0 : 1;
@@ -318,7 +298,7 @@ u_long linuxboot(const struct linuxboot_args *args)
 		    bi.num_memory++;
 		} else
 		    Printf("Warning: too many memory blocks. Ignoring block "
-		    	   "of %ldK at 0x%08x\n", size>>10,
+		    	   "of %ldK at 0x%08lx\n", size>>10,
 			   (u_long)mh.mh_Lower);
 	} else if (do_chip && mh.mh_Attributes & MEMF_CHIP)
 	    /* if CHIP memory, record the size */
@@ -362,7 +342,7 @@ u_long linuxboot(const struct linuxboot_args *args)
 	    break;
 	default:
 	    Puts("Insufficient for Linux.  Aborting...\n");
-	    Printf("SysBase->AttnFlags = 0x%08lx\n", SysBase->AttnFlags);
+	    Printf("SysBase->AttnFlags = 0x%08x\n", SysBase->AttnFlags);
 	    goto Fail;
     }
     switch (bi.fputype) {
@@ -403,16 +383,16 @@ u_long linuxboot(const struct linuxboot_args *args)
     Printf("Command line is '%s'\n", bi.command_line);
 
     /* display the clock statistics */
-    Printf("Vertical Blank Frequency: %ldHz\n", bi.vblank);
-    Printf("Power Supply Frequency: %ldHz\n", bi.psfreq);
+    Printf("Vertical Blank Frequency: %dHz\n", bi.vblank);
+    Printf("Power Supply Frequency: %dHz\n", bi.psfreq);
     Printf("EClock Frequency: %ldHz\n\n", bi.eclock);
 
     /* display autoconfig devices */
     if (bi.num_autocon) {
-	Printf("Found %ld AutoConfig Device%s\n", bi.num_autocon,
+	Printf("Found %d AutoConfig Device%s\n", bi.num_autocon,
 	       bi.num_autocon > 1 ? "s" : "");
 	for (i = 0; i < bi.num_autocon; i++) {
-	    Printf("Device %ld: addr = 0x%08lx", i,
+	    Printf("Device %d: addr = 0x%08lx", i,
 		   (u_long)bi.autocon[i].cd_BoardAddr);
 	    boardresetfuncs[i] = NULL;
 	    if (reset_boards) {
@@ -434,10 +414,10 @@ u_long linuxboot(const struct linuxboot_args *args)
 
     /* display memory */
     if (bi.num_memory) {
-	Printf("\nFound %ld Block%sof Memory\n", bi.num_memory,
+	Printf("\nFound %d Block%sof Memory\n", bi.num_memory,
 	       bi.num_memory > 1 ? "s " : " ");
 	for (i = 0; i < bi.num_memory; i++)
-	    Printf("Block %ld: 0x%08lx to 0x%08lx (%ldK)\n", i,
+	    Printf("Block %d: 0x%08lx to 0x%08lx (%ldK)\n", i,
 		   bi.memory[i].addr, bi.memory[i].addr+bi.memory[i].size,
 		   bi.memory[i].size>>10);
     } else {
@@ -469,7 +449,9 @@ u_long linuxboot(const struct linuxboot_args *args)
     }
 
     /* load the ramdisk */
-    bi.ramdisk.size = rd_size = load_ramdisk( ramdisk_name );
+    bi.ramdisk.size = rd_size = load_ramdisk( ramdiskname );
+    if (!rd_size)
+	goto Fail;
     bi.ramdisk.addr = (u_long)start_mem+mem_size-rd_size;
 
     /* create the bootinfo structure */
@@ -477,7 +459,8 @@ u_long linuxboot(const struct linuxboot_args *args)
 	goto Fail;
 
     /* open kernel executable and read exec header */
-    kernel_size = open_kernel( kernel_name );
+    if (!(kernel_size = open_kernel( kernelname )))
+	goto Fail;
 
     /* Load the kernel at one page after start of mem */
     start_mem += PAGE_SIZE;
@@ -495,7 +478,8 @@ u_long linuxboot(const struct linuxboot_args *args)
     }
 
     /* read the text and data segments from the kernel image */
-    load_kernel( memptr );
+    if (!load_kernel( memptr ))
+	goto Fail;
 
     /* Check kernel's bootinfo version */
     switch (check_bootinfo_version( memptr, MACH_AMIGA, AMIGA_BOOTI_VERSION,
@@ -591,16 +575,10 @@ u_long linuxboot(const struct linuxboot_args *args)
 
     /* Clean up and exit in case of a failure */
 Fail:
-    if (kfd != -1)
-	KClose(kfd);
-    if (rfd != -1)
-	Close(rfd);
     if (memptr)
 	FreeMem((void *)memptr, memreq);
     if (stack)
 	FreeMem((void *)stack, TEMP_STACKSIZE);
-    if (kernel_phdrs)
-	FreeMem((void *)kernel_phdrs, kexec_elf.e_phnum*sizeof(Elf32_Phdr));
     return(FALSE);
 }
 
@@ -744,7 +722,7 @@ static int probe_resident(const char *name)
     res = FindResident(name);
     if (debugflag)
 	if (res)
-	    Printf("0x%08lx\n", res);
+	    Printf("0x%08lx\n", (u_long)res);
 	else
 	    Puts("not present\n");
     return(res ? TRUE : FALSE);
@@ -764,7 +742,7 @@ static int probe_resource(const char *name)
     res = OpenResource(name);
     if (debugflag)
 	if (res)
-	    Printf("0x%08lx\n", res);
+	    Printf("0x%08lx\n", (u_long)res);
 	else
 	    Puts("not present\n");
     return(res ? TRUE : FALSE);
@@ -809,7 +787,7 @@ void compat_create_machspec_bootinfo(void)
     compat_bootinfo.bi_amiga.model = bi.model;
     compat_bootinfo.bi_amiga.num_autocon = bi.num_autocon;
     if (compat_bootinfo.bi_amiga.num_autocon > COMPAT_NUM_AUTO) {
-	Printf("Warning: using only %ld AutoConfig devices\n",
+	Printf("Warning: using only %d AutoConfig devices\n",
 	       COMPAT_NUM_AUTO);
 	compat_bootinfo.bi_amiga.num_autocon = COMPAT_NUM_AUTO;
     }
@@ -821,7 +799,6 @@ void compat_create_machspec_bootinfo(void)
     compat_bootinfo.bi_amiga.eclock = bi.eclock;
     compat_bootinfo.bi_amiga.chipset = bi.chipset;
     compat_bootinfo.bi_amiga.hw_present = 0;
-    return(1);
 }
 #endif /* BOOTINFO_COMPAT_1_0 */
 

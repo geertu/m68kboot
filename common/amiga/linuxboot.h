@@ -21,10 +21,14 @@
  *  License.  See the file COPYING in the main directory of this archive
  *  for more details.
  * 
- * $Id: linuxboot.h,v 1.2 1997-07-16 09:11:01 rnhodek Exp $
+ * $Id: linuxboot.h,v 1.3 1997-07-16 14:05:08 rnhodek Exp $
  * 
  * $Log: linuxboot.h,v $
- * Revision 1.2  1997-07-16 09:11:01  rnhodek
+ * Revision 1.3  1997-07-16 14:05:08  rnhodek
+ * Sorted out which headers to use and the like; Amiga bootstrap now compiles.
+ * Puts and other generic functions now defined in bootstrap.h
+ *
+ * Revision 1.2  1997/07/16 09:11:01  rnhodek
  * Made compat_create_machspec_bootinfo return void
  *
  * Revision 1.1.1.1  1997/07/15 09:45:38  rnhodek
@@ -33,7 +37,13 @@
  * 
  */
 
+#ifndef _linuxboot_h
+#define _linuxboot_h
 
+
+#include <sys/types.h>
+#define _LINUX_TYPES_H		/* Hack to prevent including <linux/types.h> */
+#include <asm/bootinfo.h>
 #include <asm/setup.h>
 #include <linux/zorro.h>
 
@@ -103,10 +113,6 @@ struct linuxboot_args {
     int keep_video;
     int reset_boards;
     u_int baud;
-    void (*puts)(const char *str);
-    long (*getchar)(void);
-    void (*putchar)(char c);
-    void (*printf)(const char *fmt, ...);
     int (*open)(const char *path);
     int (*seek)(int fd, int offset);
     int (*read)(int fd, char *buf, int count);
@@ -482,3 +488,6 @@ static __inline void disable_mmu(void)
 			      "addql #4,sp");
     }
 }
+
+#endif  /* _linuxboot_h */
+
