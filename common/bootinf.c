@@ -10,10 +10,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: bootinf.c,v 1.3 1997-07-16 14:00:32 rnhodek Exp $
+ * $Id: bootinf.c,v 1.4 1997-07-16 14:22:11 rnhodek Exp $
  * 
  * $Log: bootinf.c,v $
- * Revision 1.3  1997-07-16 14:00:32  rnhodek
+ * Revision 1.4  1997-07-16 14:22:11  rnhodek
+ * Corrected version to 2.1.13
+ *
+ * Revision 1.3  1997/07/16 14:00:32  rnhodek
  * Forgot to include <linux/version.h>
  *
  * Revision 1.2  1997/07/16 13:57:05  rnhodek
@@ -33,14 +36,15 @@
 
 /* Check that kernel headers are sufficiently new */
 #include <linux/version.h>
-#if LINUX_VERSION_CODE < 0x02011a
-#error You need at least 2.1.26 kernel headers to compile m68kboot
+#if LINUX_VERSION_CODE < 0x02010d
+#error You need at least 2.1.13 kernel headers to compile m68kboot
 #endif
 
 #define _LINUX_TYPES_H		/* Hack to prevent including <linux/types.h> */
 #include <asm/bootinfo.h>
 #include <asm/setup.h>
 
+#include "bootstrap.h"
 #include "linuxboot.h"
 #include "bootinf.h"
 
@@ -52,7 +56,7 @@ int check_bootinfo_version( char *memptr, unsigned mach_type,
     unsigned long version = 0;
     int i, kernel_major, kernel_minor, boots_major, boots_minor;
 
-    printf( "\n" );
+    Printf( "\n" );
     if (bv->magic == BOOTINFOV_MAGIC) {
 	for( i = 0; bv->machversions[i].machtype != 0; ++i ) {
 	    if (bv->machversions[i].machtype == mach_type) {
@@ -62,31 +66,31 @@ int check_bootinfo_version( char *memptr, unsigned mach_type,
 	}
     }
     if (!version)
-	printf("Kernel has no bootinfo version info, assuming 0.0\n");
+	Printf("Kernel has no bootinfo version info, assuming 0.0\n");
 
     kernel_major = BI_VERSION_MAJOR(version);
     kernel_minor = BI_VERSION_MINOR(version);
     boots_major  = BI_VERSION_MAJOR(my_version);
     boots_minor  = BI_VERSION_MINOR(my_version);
-    printf("Bootstrap's bootinfo version: %d.%d\n",
+    Printf("Bootstrap's bootinfo version: %d.%d\n",
 	   boots_major, boots_minor);
-    printf("Kernel's bootinfo version   : %d.%d\n",
+    Printf("Kernel's bootinfo version   : %d.%d\n",
 	   kernel_major, kernel_minor);
     
     if (kernel_major == BI_VERSION_MAJOR(my_version)) {
 	if (kernel_minor > boots_minor) {
-	    printf("Warning: Bootinfo version of bootstrap and kernel "
+	    Printf("Warning: Bootinfo version of bootstrap and kernel "
 		   "differ!\n");
-	    printf("         Certain features may not work.\n");
+	    Printf("         Certain features may not work.\n");
 	}
     }
 #ifdef BOOTINFO_COMPAT_1_0
     else if (kernel_major == BI_VERSION_MAJOR(compat_version)) {
-	printf("(using backwards compatibility mode)\n");
+	Printf("(using backwards compatibility mode)\n");
     }
 #endif /* BOOTINFO_COMPAT_1_0 */
     else {
-	printf("\nThis bootstrap is too %s for this kernel!\n",
+	Printf("\nThis bootstrap is too %s for this kernel!\n",
 	       boots_major < kernel_major ? "old" : "new");
 	return 0;
     }
@@ -145,7 +149,7 @@ int add_bi_record(u_short tag, u_short size, const void *data)
 
     size2 = (sizeof(struct bi_record)+size+3)&-4;
     if (bi_size+size2+sizeof(bi_union.record.tag) > MAX_BI_SIZE) {
-	fprintf (stderr, "Can't add bootinfo record. Ask a wizard to enlarge me.\n");
+	Printf ("Can't add bootinfo record. Ask a wizard to enlarge me.\n");
 	return(0);
     }
     record = (struct bi_record *)((u_long)&bi_union.record+bi_size);
@@ -186,7 +190,7 @@ int create_compat_bootinfo(void)
     else if (bi.cputype & CPU_68060)
 	compat_bootinfo.cputype = COMPAT_CPU_68060;
     else {
-	printf("CPU type 0x%08lx not supported by kernel\n", bi.cputype);
+	Printf("CPU type 0x%08lx not supported by kernel\n", bi.cputype);
 	return(0);
     }
     if (bi.fputype & FPU_68881)
@@ -198,12 +202,12 @@ int create_compat_bootinfo(void)
     else if (bi.fputype & FPU_68060)
 	compat_bootinfo.cputype |= COMPAT_FPU_68060;
     else if (bi.fputype) {
-	printf("FPU type 0x%08lx not supported by kernel\n", bi.fputype);
+	Printf("FPU type 0x%08lx not supported by kernel\n", bi.fputype);
 	return(0);
     }
     compat_bootinfo.num_memory = bi.num_memory;
     if (compat_bootinfo.num_memory > COMPAT_NUM_MEMINFO) {
-	printf("Warning: using only %d blocks of memory\n",
+	Printf("Warning: using only %d blocks of memory\n",
 	       COMPAT_NUM_MEMINFO);
 	compat_bootinfo.num_memory = COMPAT_NUM_MEMINFO;
     }
