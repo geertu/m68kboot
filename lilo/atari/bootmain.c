@@ -7,10 +7,27 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: bootmain.c,v 1.8 1998-02-27 10:19:03 rnhodek Exp $
+ * $Id: bootmain.c,v 1.9 1998-03-02 13:06:45 rnhodek Exp $
  * 
  * $Log: bootmain.c,v $
- * Revision 1.8  1998-02-27 10:19:03  rnhodek
+ * Revision 1.9  1998-03-02 13:06:45  rnhodek
+ * Introduce #ifdefs for NO_GUI and NO_MONITOR compile time options.
+ * NoGUI renamed to DontUseGUI.
+ * Initialize serial port earlier (before autoboot).
+ * Show a banner (Lilo version and authors).
+ * Do bing also on serial terminal.
+ * Show "countdown" during autoboot.
+ * Call setup_environ() after mounting TOS drives. Otherwise the selected
+ * boot-drive may not be available yet.
+ * New function goto_last_line() replaces going to last line in
+ * graf_deinit(), which was called at wrong times for that job.
+ * In boot_tos, initialize _bootdev later (after HD driver installed);
+ * check that selected drive is valid and also select it as current drive.
+ * boot_linux(): Separate parts of command line with a space.
+ * exec_tos_program(): no need to save old cwd; check that drive is
+ * available before setting it.
+ *
+ * Revision 1.8  1998/02/27 10:19:03  rnhodek
  * Include call to experimental strace_tos (for debugging).
  * Removed #ifdef DEBUG_RW_SECTORS.
  *
@@ -78,6 +95,7 @@
 #include "sysvars.h"
 #include "strace_tos.h"
 #include "minmax.h"
+#include "lilo_common.h" /* for LILO_VERSION */
 
 const struct FileVectorData MapVectorData = {
     { LILO_ID, LILO_MAPVECTORID }, MAXVECTORSIZE
@@ -89,7 +107,9 @@ int Debug = 0;
 unsigned int SerialPort = 0;
 unsigned int AutoBoot = 0;
 const char *Prompt = NULL;
-unsigned int NoGUI = 0;
+#ifndef NO_GUI
+unsigned int DontUseGUI = 0;
+#endif
 const struct BootRecord *dflt_os = NULL;
 
 u_char *MapData = NULL;
@@ -162,58 +182,6 @@ int main( int argc, char *argv[] )
 	/* If the user directed us to change cookie values, do so now */
 	patch_cookies();
 
-	/* set up _bootdev and environment */
-	setup_environ();
-
-	/* acustic signal if not disabled */
-	if (!(BootOptions->NoBing && *BootOptions->NoBing))
-		Cconout( 7 );
-
-	/* If 'auto' option is set and no modifier key is pressed, go on booting
-	 * the default OS */
-	boot_os = dflt_os = FindBootRecord(NULL);
-	if (Debug)
-		cprintf( "Default OS is %s\n", dflt_os->Label );
-	if (is_available( boot_os )) {
-		if (BootOptions->Auto && *BootOptions->Auto && !dflt_os->Password) {
-			unsigned long timeout = _hz_200;
-			if (BootOptions->Delay && *BootOptions->Delay) {
-				timeout += *BootOptions->Delay * HZ;
-				cprintf( "Auto boot waiting for %ld seconds -- "
-						 "waiting for shift key\n", *BootOptions->Delay );
-			}
-			while( _hz_200 < timeout) {
-				if (Kbshift( -1 ) & 0xff)
-					/* any modifier or mouse button pressed */
-					goto no_auto_boot;
-			}
-			AutoBoot = 1;
-			goto boot_default;
-		}
-	}
-	else
-		printf( "Can't use default OS %s, because record is incomplete\n",
-				dflt_os->Label );
-	
-  no_auto_boot:
-	/* do global temp. mounts and programs */
-	if (Debug)
-		cprintf( "mounting and executing\n" );
-	for( i = 0; i < MAX_TMPMNT; ++i ) {
-		if (BootOptions->TmpMnt[i])
-			mount( &MountPoints[*BootOptions->TmpMnt[i]] );
-	}
-	for( i = 0; i < MAX_EXECPROG; ++i ) {
-		if (BootOptions->ExecProg[i])
-			exec_tos_program( BootOptions->ExecProg[i],
-							  BootOptions->WorkDir[i] );
-	}
-
-	/* now initialize the VDI, after we executed the TOS programs (which could
-	 * have been gfx board drivers) */
-	if (!NoGUI)
-		graf_init( BootOptions->VideoRes );
-	
 	/* initialize serial port */
 	if (BootOptions->Serial) {
 		int oldserial;
@@ -239,12 +207,78 @@ int main( int argc, char *argv[] )
 		Bconmap( oldserial );
 	}
 
+	/* print banner */
+	cprintf( LILO_VERSION );
+	
+	/* acustic signal if not disabled */
+	if (!(BootOptions->NoBing && *BootOptions->NoBing))
+		cprintf( "\a" );
+
+	/* If 'auto' option is set and no modifier key is pressed, go on booting
+	 * the default OS */
+	boot_os = dflt_os = FindBootRecord(NULL);
+	if (Debug)
+		cprintf( "Default OS is %s\n", dflt_os->Label );
+	if (is_available( boot_os )) {
+		if (BootOptions->Auto && *BootOptions->Auto && !dflt_os->Password) {
+			unsigned long timebase = _hz_200;
+			unsigned long timeout = timebase;
+			unsigned long sec, oldsec = 0;
+			if (BootOptions->Delay && *BootOptions->Delay) {
+				timeout += *BootOptions->Delay * HZ;
+				cprintf( "Auto boot in progress.\n"
+						 "Waiting %ld seconds for shift key: ",
+						 *BootOptions->Delay );
+			}
+			while( _hz_200 < timeout) {
+				sec = (_hz_200 - timebase)/HZ;
+				if (sec != oldsec) {
+					cprintf( "." );
+					oldsec = sec;
+				}
+				if (Kbshift( -1 ) & 0xff) {
+					/* any modifier or mouse button pressed */
+					cprintf( "\nAuto boot canceled.\n" );
+					goto no_auto_boot;
+				}
+			}
+			cprintf( "\nDoing auto boot.\n" );
+			AutoBoot = 1;
+			goto boot_default;
+		}
+	}
+	else
+		printf( "Can't use default OS %s, because record is incomplete\n",
+				dflt_os->Label );
+	
+  no_auto_boot:
+	/* do global temp. mounts and programs */
+	if (Debug)
+		cprintf( "Mounting and executing\n" );
+	for( i = 0; i < MAX_TMPMNT; ++i ) {
+		if (BootOptions->TmpMnt[i])
+			mount( &MountPoints[*BootOptions->TmpMnt[i]] );
+	}
+	/* set up _bootdev and environment */
+	setup_environ();
+	for( i = 0; i < MAX_EXECPROG; ++i ) {
+		if (BootOptions->ExecProg[i])
+			exec_tos_program( BootOptions->ExecProg[i],
+							  BootOptions->WorkDir[i] );
+	}
+
+	/* now initialize the VDI, after we executed the TOS programs (which could
+	 * have been gfx board drivers) */
+	if (!DontUseGUI)
+		graf_init( BootOptions->VideoRes );
+	
 	for(;;) {
 		for(;;) {
 			if (cmdline)
 				free( cmdline );
 			AutoBoot = 0; /* set again on timeout */
 			cmdline = strdup( boot_menu( dflt_os->Label ) );
+#ifndef NO_MONITOR
 			if (strcmp( cmdline, "su" ) == 0) {
 				if (BootOptions->MasterPassword &&
 					strcmp( get_password(),BootOptions->MasterPassword ) !=0) {
@@ -254,6 +288,7 @@ int main( int argc, char *argv[] )
 				boot_monitor();
 				continue;
 			}
+#endif
 			label = firstword( &cmdline );
 			if ((boot_os = (*label ? FindBootRecord( label ) : dflt_os))) {
 				if (boot_os->Password &&
@@ -280,6 +315,7 @@ int main( int argc, char *argv[] )
 		}
 		else {
 			/* Unmount mounted TOS drives before booting */
+			goto_last_line();
 			umount();
 			
 			switch( *boot_os->OSType ) {
@@ -365,10 +401,6 @@ void boot_tos( const struct BootRecord *rec )
 	if (Debug)
 		cprintf( "TOS HD driver loaded at 0x%08lx\n", basepage );
 	
-	/* set _bootdev variable, defines the drive from where AUTO folder progs
-	 * and accessories are loaded */
-	_bootdev = rec->BootDrv ? *rec->BootDrv : 2; /* use C: as default */
-
 	/* close VDI workstation */
 	graf_deinit();
 	/* turn off caches before starting the driver, it may assume caches are
@@ -385,7 +417,16 @@ void boot_tos( const struct BootRecord *rec )
 		return;
 	}
 	if (Debug)
-		cprintf( "ok, return value %ld\n", err );
+		cprintf( "OK, return value %ld\n", err );
+
+	/* set _bootdev variable, defines the drive from where AUTO folder progs
+	 * and accessories are loaded */
+	_bootdev = rec->BootDrv ? *rec->BootDrv : 2; /* use C: as default */
+	if (_drvbits & (1 << _bootdev))
+		Dsetdrv( _bootdev );
+	else
+		cprintf( "Warning: Can't set current drive to %c:, "
+				 "drive not available\n", _bootdev + 'A' );
 
 	/* we can now safely jump back to ROM code, since the hd driver should
 	 * have changed hdv_rw, which terminates the boot-try loop */
@@ -438,6 +479,8 @@ void boot_linux( const struct BootRecord *rec, const char *cmdline )
 	strncpy( command_line, cmdline, CL_SIZE );
 	command_line[CL_SIZE] = 0;
 	if (!override && rec->Args) {
+		if (command_line[0])
+			strcat( command_line, " " );
 		strncat( command_line, rec->Args, CL_SIZE - strlen(command_line) );
 		command_line[CL_SIZE] = 0;
 	}
@@ -499,7 +542,9 @@ static void ReadMapData(void)
     ParseTags();
 
 	Prompt = BootOptions->Prompt ? BootOptions->Prompt : "LILO boot: ";
-	NoGUI = BootOptions->NoGUI && *BootOptions->NoGUI;
+#ifndef NO_GUI
+	DontUseGUI = BootOptions->NoGUI && *BootOptions->NoGUI;
+#endif
 	
 	/* make an array of the tmpmnt list */
 	for( i = 0, tmnt = MountPointList; tmnt; tmnt = tmnt->next )
@@ -530,8 +575,6 @@ int exec_tos_program( const char *prog, const char *workdir )
 	const char *p;
 	char *cmd, *args;
 	long err;
-	int old_drv = 0;
-	char old_path[128];
 
 	/* extract program name */
 	cmdlen = strcspn( prog, " \t" );
@@ -552,15 +595,26 @@ int exec_tos_program( const char *prog, const char *workdir )
 
 	strace_on( TR_ALL );
 	if (workdir) {
-		old_drv = Dgetdrv();
-		Dgetpath( old_path, 0 );
-		if (Debug)
-			cprintf( "Changing directory to %s\n", workdir );
-		if (isalpha(workdir[0]) && workdir[1] == ':') {
-			Dsetdrv( toupper(workdir[0]) - 'A' );
-			workdir += 2;
+		int drv = -1;
+		const char *path = workdir;
+
+		if (isalpha(path[0]) && path[1] == ':') {
+			drv = toupper(path[0]) - 'A';
+			path += 2;
 		}
-		Dsetpath( workdir );
+
+		if (drv >= 0 && !(_drvbits & (1 << drv))) {
+			cprintf( "Warning: Can't chdir to %s: drive %c: doesn't exist\n",
+					 workdir, drv+'A' );
+		}
+		else {
+			if (Debug)
+				cprintf( "Changing directory to %s\n", workdir );
+			if (drv >= 0)
+				Dsetdrv( drv );
+			if ((err = Dsetpath( path )))
+				cprintf( "Dsetpath(%s): %s\n", path, tos_perror(err) );
+		}
 	}
 	
 	if (Debug)
@@ -568,9 +622,10 @@ int exec_tos_program( const char *prog, const char *workdir )
 
 	err = Pexec( 0, cmd, args, NULL );
 
-	if (workdir) {
-		Dsetdrv( old_drv );
-		Dsetpath( old_path );
+	if (workdir && (_drvbits & (1 << _bootdev))) {
+		/* reset cwd to <_bootdev>:\ */
+		Dsetdrv( _bootdev );
+		Dsetpath( "\\" );
 	}
 	strace_off();
 	
@@ -687,6 +742,14 @@ static void setup_environ( void )
 		putenv( "PATH=" );
 		env_path[0] = *BootOptions->BootDrv + 'A';
 		putenv( env_path );
+		/* change current dir to <_bootdrv>:\ */
+		if (_drvbits & (1 << _bootdev)) {
+			Dsetdrv( *BootOptions->BootDrv );
+			Dsetpath( "\\" );
+		}
+		else
+			cprintf( "Warning: Can't chdir to configured BootDrv %c:, "
+					 "not mounted\n", _bootdev + 'A' );
 	}
 
 	for( i = 0; i < MAX_ENVIRON; ++i ) {
