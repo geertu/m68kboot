@@ -11,10 +11,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.c,v 1.2 1997-07-16 09:10:37 rnhodek Exp $
+ * $Id: linuxboot.c,v 1.3 1997-07-16 11:43:22 rnhodek Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.2  1997-07-16 09:10:37  rnhodek
+ * Revision 1.3  1997-07-16 11:43:22  rnhodek
+ * Removed (already commented-out) inclusion of bootinfo headers
+ *
+ * Revision 1.2  1997/07/16 09:10:37  rnhodek
  * Made compat_create_machspec_bootinfo return void
  *
  * Revision 1.1.1.1  1997/07/15 09:45:38  rnhodek
@@ -33,11 +36,6 @@
 #include <sys/file.h>
 #include <sys/types.h>
 
-#if 0
-#define _LINUX_TYPES_H		/* Hack to prevent including <linux/types.h> */
-#include <asm/bootinfo.h>
-#include <asm/setup.h>
-#endif
 #include <asm/page.h>
 
 #include "linuxboot.h"
