@@ -7,10 +7,14 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  *
- * $Id: stream.c,v 1.7 1998-04-06 01:40:52 dorchain Exp $
+ * $Id: stream.c,v 1.8 1998-04-07 09:55:36 rnhodek Exp $
  * 
  * $Log: stream.c,v $
- * Revision 1.7  1998-04-06 01:40:52  dorchain
+ * Revision 1.8  1998-04-07 09:55:36  rnhodek
+ * Change logic which set of MOD_* macros is to be used:
+ * int_fkt_offset_jmp is only for Amiga Lilo.
+ *
+ * Revision 1.7  1998/04/06 01:40:52  dorchain
  * make loader linux-elf.
  * made amiga bootblock working again
  * compiled, but not tested bootstrap
@@ -196,23 +200,22 @@ void stream_push( MODULE *mod )
 		}														\
     } while(0)
 
-#ifndef IN_LILO
+#if defined(IN_LILO) && defined(amiga)
+/* need to adjust addresses from function tables */
+extern u_long int_fkt_offset_jmp(void *,...);
+#define MOD_OPEN(name)		(int_fkt_offset_jmp(currmod->open, (name)))
+#define MOD_FILLBUF(buf)	(int_fkt_offset_jmp(currmod->fillbuf, (buf) ))
+#define MOD_SKIP(off)		(int_fkt_offset_jmp(currmod->skip, (off) ))
+#define MOD_CLOSE()			(int_fkt_offset_jmp(currmod->close))
+#define	MOD_FILESIZE()		(int_fkt_offset_jmp(currmod->filesize))
+#else
 /* macros for accessing the methods of current module */
 #define MOD_OPEN(name)		((*currmod->open)( (name) ))
 #define MOD_FILLBUF(buf)	((*currmod->fillbuf)( (buf) ))
 #define MOD_SKIP(off)		((*currmod->skip)( (off) ))
 #define MOD_CLOSE()			((*currmod->close)())
 #define	MOD_FILESIZE()		((*currmod->filesize)())
-
-#else /* jump with adjusted offset */
-extern u_long int_fkt_offset_jmp(void *,...);
-#define MOD_OPEN(name)		(int_fkt_offset_jmp(currmod->open, (name)))
-#define MOD_FILLBUF(buf)	(int_fkt_offset_jmp(currmod->fillbuf, (buf) ))
-#define MOD_SKIP(off)		(int_fkt_offset_jmp(currmod->skip, (off) ))
-#define MOD_CLOSE()		(int_fkt_offset_jmp(currmod->close))
-#define	MOD_FILESIZE()		(int_fkt_offset_jmp(currmod->filesize))
-
-#endif /* IN_LILO */
+#endif
 
 #define ADJUST_USERBUF(len)						\
 	do {										\
