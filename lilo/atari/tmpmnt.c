@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: tmpmnt.c,v 1.5 1998-02-26 10:34:08 rnhodek Exp $
+ * $Id: tmpmnt.c,v 1.6 1998-02-27 10:22:00 rnhodek Exp $
  * 
  * $Log: tmpmnt.c,v $
- * Revision 1.5  1998-02-26 10:34:08  rnhodek
+ * Revision 1.6  1998-02-27 10:22:00  rnhodek
+ * Removed #ifdef DEBUG_RW_SECTORS.
+ *
+ * Revision 1.5  1998/02/26 10:34:08  rnhodek
  * my_drive and vector maintainance on umounting should be done by umount_drv(),
  * not umount().
  * umount_drv() should also clear bit in _drvbits.
@@ -347,13 +350,9 @@ static long do_rwabs( int first_arg )
 	if (sector == 0xffff)
 		sector = *(unsigned long *)argp;
 	
-#ifdef DEBUG_RW_SECTORS
 	bios_printf( "rwabs(rw=%u,cnt=%u,sect=%lu,dev=%u)\n",rwflag,cnt,sector,drv);
-#endif
 	if (dp->mediach && !(rwflag & 2)) {
-#ifdef DEBUG_RW_SECTORS
 		bios_printf( "rwabs: mediach=%d, returning -E_CHNG\n", dp->mediach );
-#endif
 		return( -E_CHNG );
 	}
 
@@ -369,12 +368,10 @@ static long do_rwabs( int first_arg )
 	else {
 		err = ReadSectors( buffer, dp->dev, sector, cnt );
 	}
-#ifdef DEBUG_RW_SECTORS
 	if (err)
 		bios_printf( "rwabs DMA%s(sec=%lu,dev=%u): error %s \n",
 					 (rwflag & 1) ? "write" : "read", sector, dp->dev,
 					 tos_perror(err) );
-#endif
 	
 	return( err );
 }
@@ -389,16 +386,12 @@ static _BPB *do_getbpb( unsigned int drv )
 	int secsize, clusize;
 	long err;
 	
-#ifdef DEBUG_RW_SECTORS
 	bios_printf( "getbpb(drv=%u)\n",drv);
-#endif
 	dp->mediach = 0;
 
 	if ((err = ReadSectors( _dskbuf, dp->dev, dp->start, 1 ))) {
-#ifdef DEBUG_RW_SECTORS
 		bios_printf( "getbpb DMAread(sec=%lu,dev=%u): error %s \n",
 					 dp->start, dp->dev, tos_perror(err) );
-#endif
 		return( NULL );
 	}
 	boot = (struct boot_sector *)_dskbuf;
@@ -406,22 +399,16 @@ static _BPB *do_getbpb( unsigned int drv )
 	secsize = (short)BOOTSEC_FIELD2(boot,sector_size);
 	if (secsize < 512 || (secsize & 0x1ff)) {
 		/* quick check for invalid sector size */
-#ifdef DEBUG_RW_SECTORS
 		bios_printf( "getbpb: invalid sector size %d\n", secsize);
-#endif
 		return( NULL );
 	}
 	clusize = (signed char)BOOTSEC_FIELD1(boot,cluster_size);
 	if (clusize <= 0) {
-#ifdef DEBUG_RW_SECTORS
 		bios_printf( "getbpb: invalid cluster size %d\n", clusize);
-#endif
 		return( NULL );
 	}
 	if (BOOTSEC_FIELD1(boot,nfats) != 2) {
-#ifdef DEBUG_RW_SECTORS
 		bios_printf( "getbpb: bat number of fats: %d\n", BOOTSEC_FIELD1(boot,nfats));
-#endif
 		return( NULL );
 	}
 
@@ -436,9 +423,7 @@ static _BPB *do_getbpb( unsigned int drv )
 	b->numcl  = (BOOTSEC_FIELD2(boot,sectors) - b->datrec) / clusize;
 	b->bflags = (dp->dev < 0) ? 0 /* 12 bit FAT */: 1 /* 16 bit FAT */;
 
-#ifdef DEBUG_RW_SECTORS
 	bios_printf( "getbpb: bootsector ok\n");
-#endif
 	return( b );
 }
 
@@ -447,9 +432,7 @@ static long do_mediach( unsigned int _drv )
 {
 	unsigned int drv = *(unsigned short *)&_drv;
 	
-#ifdef DEBUG_RW_SECTORS
 	bios_printf( "mediach(drv=%u) mediach=%d\n",drv,drv_param[drv].mediach);
-#endif
 	if (drv_param[drv].mediach) {
 		drv_param[drv].mediach++;
 		return( 2 );
