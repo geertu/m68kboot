@@ -11,10 +11,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.c,v 1.4 1997-07-16 14:05:08 rnhodek Exp $
+ * $Id: linuxboot.c,v 1.5 1997-07-16 17:32:02 rnhodek Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.4  1997-07-16 14:05:08  rnhodek
+ * Revision 1.5  1997-07-16 17:32:02  rnhodek
+ * Removed SERROR macro -- unnecessary here. Calls it were wrong.
+ *
+ * Revision 1.4  1997/07/16 14:05:08  rnhodek
  * Sorted out which headers to use and the like; Amiga bootstrap now compiles.
  * Puts and other generic functions now defined in bootstrap.h
  *
@@ -108,13 +111,6 @@ static void get_medusa_bank_sizes( u_long *bank1, u_long *bank2 );
 	boot_exit( EXIT_FAILURE );		\
     } while(0)
 
-#define SERROR(fmt,rest...)			\
-    do {					\
-	fprintf( stderr, fmt, ##rest );		\
-	sclose();				\
-	boot_exit( EXIT_FAILURE );		\
-    } while(0)
-
 
 void linux_boot( void )
 {
@@ -201,7 +197,7 @@ void linux_boot( void )
     
     /* create the bootinfo structure */
     if (!create_bootinfo())
-	SERROR( "Couldn't create bootinfo\n" );
+	ERROR( "Couldn't create bootinfo\n" );
 
     memreq = kernel_size + bi_size;
 #ifdef BOOTINFO_COMPAT_1_0
@@ -213,7 +209,7 @@ void linux_boot( void )
     
     /* allocate RAM for the kernel */
     if (!(memptr = malloc( memreq )))
-	SERROR( "Unable to allocate memory for kernel\n" );
+	ERROR( "Unable to allocate memory for kernel\n" );
 
     /* clearing the kernel's memory perhaps avoids "uninitialized bss"
      * types of bugs... */
