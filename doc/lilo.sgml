@@ -1,0 +1,1427 @@
+<!doctype linuxdoc system>
+
+<article>
+
+
+<!-- Title information -->
+
+<title>Amiga Linux/m68k Loader
+<author>Geert Uytterhoeven
+<date>Version 2.2, Febrary 4, 1997
+<abstract>
+This document describes the usage of the Amiga Linux/m68k Loader
+</abstract>
+
+
+<!-- Table of contents -->
+
+<toc>
+
+
+<!-- Begin the document -->
+
+<sect>Introduction
+
+<p>
+The <em>Amiga Linux/m68k Loader</em> (short: <em/Lilo/) allows you to load
+<em>Linux/m68k</em> from a disk boot block. You can choose among multiple kernel
+images --- without having to transport those kernels from a <em>Linux/m68k</em>
+partition to an <em/AmigaOS/ partition --- and can boot even <em/AmigaOS/
+itself. This greatly eases the boot process for normal users and provides a
+development boost for kernel hackers.
+
+
+<sect1>Features
+
+<p>
+<itemize>
+<item>Can boot <em>Linux/m68k</em> and <em/AmigaOS/.
+<item>Supports multiple kernel images.
+<item>Supports both <em/ELF/ and <em/a.out/ (<em/QMAGIC/ and
+<em/ZMAGIC/) kernels.
+<item>Supports multiple command lines.
+<item>Supports the standard <em/Amiga/ console and an <em/ANSI/ terminal
+connected to the builtin serial port.
+<item>Supports automatic and interactive booting, with an optional timeout.
+<item>Supports ramdisk images.
+<item>Boot code can be installed on <em/AmigaOS/ and <em>Linux/m68k</em> partitions.
+<item>Password protection on a per kernel base.
+<item>Boot monitor with a separate password.
+<item>Can backup and restore boot blocks.
+<item>Can load kernel images compressed with gzip.
+</itemize>
+
+
+<sect1>System requirements
+
+<p>
+<itemize>
+<item>An <em/Amiga/ that can run <em>Linux/m68k</em>.
+<item>A working installation of <em>Linux/m68k 2.0.x</em>, <em/2.1.x/ or
+higher (kernel bootinfo interface versions <em/1.x/ and <em/2.x/) (You need
+at least kernel version \name{2.1.21} to compile <em/Lilo/).
+<item>An <em/AmigaOs/ cross-compiler (e.g. the <em/ADE/ package).
+<item><em/Kickstart V36/ or higher.
+<item><em/HdToolBox/.
+</itemize>
+
+
+<sect1>Why <em/Lilo/ for <em/Amiga/?
+
+<p>
+I decided to write a version of <em/Lilo/ for the <em/Amiga/ because I was
+tired of putting <em>Linux/m68k</em> kernels on a floppy and read them back with
+the <em/FLAT-handler/ to test them. At that time this was the only decent way
+to transport files from a <em>Linux/m68k</em> partition to an <em/AmigaOS/
+partition, since you can't access files on an <em/ext2fs/ partition under
+<em/AmigaOS/ (However, this is going to change. For more information,
+take a look at
+<url url="http://theory.cs.bonn.edu/~fasten/" name="Ext2fs for AmigaOS">.).
+
+Now we have <em/Ethernet/ support file transport became much easier --- I
+usually <em/FTP/ my files to a <em/Sun SPARCstation 1/ or <em>Linux/i386</em>
+box, and get them back through <em>AmiTCP/IP</em> ---, but it's still a real
+hassle just to test a new kernel. And what with people who want to wipe
+<em/AmigaOS/ completely off of their hard disk? But here is <em/Lilo/!
+
+The support for a terminal connected to the builtin serial port
+was added when my <em/A1960/ monitor died (again) and I desperately needed
+such a feature.
+
+
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
+
+
+<sect>Installing <em/Lilo/
+
+<p>
+<bf/Important notes:/
+<itemize>
+<item>To perform the actions described below, you must be <em/root/ on your
+<em>Linux/m68k</em> system, unless noted otherwise.
+
+<item>Some of these actions might be dangerous for the integrity of your
+system.  Always think twice, ... then think again, and <bf/use this at
+your own risk!/
+</itemize>
+
+First you need to choose a partition to install the <em/Lilo/ boot block on.
+This can be any <em>Linux/m68k</em> partition or <em/bootable AmigaOS/
+partition. If you want to use <em/Lilo/ to boot <em/AmigaOS/ too, you must
+install the <em/Lilo/ boot block on the <em/AmigaOS/ partition you want to
+boot from.
+
+This boot partition is represented by a block special device file (created with
+<em/mknod/), which is usually located in the <tt>/dev</tt> directory. By
+convention block special device files for <em/SCSI/ drives are represented by
+entries of the kind <tt>/dev/sd*</tt>, while <em/IDE/ drives are associated
+with the <tt>/dev/hd*</tt> entries.
+
+I have e.g. 2 <em/IDE/ drives in my <em>A4000/040</em>: a <em/Conner
+CP30544/ (master) of 540 MB and the original <em/Seagate ST3144A/ (slave) of
+130 MB (This changed due to my (<em>Linux/m68k</em>'s? <em/X11R6.1/'s?)
+hunger for diskspace, but I left the original example for the sake of
+simplicity.).  The <em/Conner/ has six partitions, while the <em/Seagate/
+has only one partition.  So I have the following block special device files:
+
+<!-- TABLE -->
+<verb>
+Unit - Unit & Block special device file - File system - Usage
+</verb>
+<!-- TABLE -->
+
+Since I wanted to use <em/Lilo/ to boot both <em/AmigaOS/ (from
+<tt>/dev/hda1</tt>) and <em>Linux/m68k</em> (from <tt>/dev/hda3</tt>), I had to
+install <em/Lilo/ on <tt>/dev/hda1</tt>.
+
+
+<sect1>Installing the <em/Lilo/ boot block
+
+<p>
+Now edit the file <tt>/etc/lilo.conf</tt>. Refer to Section <ref id="sec:conf"
+name="<tt>/etc/lilo.conf</tt>"> for the configuration file syntax.
+
+Then install the <em/Lilo/ boot block with the following command line:
+<tscreen>
+<tt/lilo [--force]/
+</tscreen>
+with
+<descrip>
+<tag/<tt>--force</tt>/ To prevent data loss in case of a mistake, <em/Lilo/ will
+never overwrite an unknown boot block, unless you use this force option.
+</descrip>
+
+If there exists no backup of the boot block yet --- i.e. if you're installing
+<em/Lilo/ for the first time --- it will automatically create a backup of the
+old boot block in the file <tt>/boot/backup.xx.yy</tt> with <tt/xx/ and
+<tt/yy/ the major and minor numbers of the device you installed the
+boot block on. This will allow you to uninstall <em/Lilo/ completely or
+to recover from mistakes.
+
+In most cases you can just enter
+<tscreen>
+<tt/lilo/
+</tscreen>
+or
+<tscreen>
+<tt/lilo --force/
+</tscreen>
+if you're installing a <em/Lilo/ boot block on a partition with an
+<em/ext2fs/ or <em/minix/ file system for the first time because those
+partitions don't have a known boot block at that moment.
+
+<bf>Warning: Every time you change or move any kernel image or config file
+you <em/must/ rerun <tt/lilo/</bf>!  Just enter
+<tscreen>
+<tt/lilo/
+</tscreen>
+to update all important data.
+
+
+<sect1>Updating the <em/Rigid Disk Block/
+
+<p>
+If this is the first time you install <em/Lilo/ you need to use
+<em/HdToolBox/ (under <em/AmigaOS/) to update the <em/Rigid Disk Block/ of
+the device your boot partition is located on. Make sure to remember the
+original values of all options you change, in case you might want to uninstall
+<em/Lilo/!
+
+Start <em/HdToolBox/ and perform the following actions (This list
+reflects the <em/AmigaOS/ 3.1 version of <em/HdToolBox/. Other versions are
+slightly different.):
+<itemize>
+<item>Select the corresponding device for your boot partition and click on
+<tt/Partition Drive/ to get the <tt/Partitioning/ menu.
+
+<item>Choose the partition and enable <tt/Advanced Options/.
+
+<item>If the partition isn't already bootable, make it bootable by enabling
+<tt/Bootable/. You may want to change the <tt/Boot Priority/ too.
+
+<item>Click on <tt/Change.../ to get the <tt/File System Characteristics/
+menu.
+
+<item>If you did <em/not/ install the <em/Lilo/ boot block on an
+<em/AmigaOS/ partition:
+<itemize>
+<item>Set <tt/File System/ to <tt/Custom File System/.
+
+<item>Fill in an appropriate value after <tt/Identifier =/.  I suggest
+<tt/0x45585432/ (<tt/EXT2/ in <em/HEX ASCII/) for a partition
+with <em/ext2fs/ and <tt/0x4D494E49/ (<tt/MINI/ in <em/HEX ASCII/) for a
+partition with the <em/minix/ file system.  Alternatively you could use
+<tt/0x554E4901/ (<tt/UNI\01/ (This value was originally
+reserved for a <em/UNIX/ boot file system, i.e. for the boot partition of
+<em/Amiga UNIX System V Release 4/, also known as <em/AMIX/.) in <em/HEX
+ASCII/) if you do not intend to access the partition under <em/AmigaOS/.
+
+<item>Don't worry about the warning you will get later that tells you the data
+on the partition will be lost. <em/HdToolBox/ doesn't know that <em/ext2fs/
+and the <em/minix/ file system don't use the <tt/File System/ field in the
+<em/Rigid Disk Block/.
+</itemize>
+
+<item>Enable <tt/Use custom boot code/ and set <tt/Number of custom boot
+blocks/ to <tt/2/.  This value assumes the <tt/File system block size/ is set
+to it's default value of <tt/512/.  <em/Never/ enable this for an <em/AmigaOS/
+partition that contains the <em/original AmigaOS/ boot block, since this
+is definitely not bootable!.
+
+<item>Click on <tt/OK/, on <tt/OK/ and on <tt/Save Changes to Drive/.
+</itemize>
+
+If you installed the <em/Lilo/ boot block on another partition than the
+previous time, you also need to use <em/HdToolBox/ to update your <em/Rigid Disk Block/.
+
+
+<sect1>Uninstalling <em/Lilo/
+
+<p>
+To uninstall a <em/Lilo/ boot block, just restore the <em/Rigid Disk Block/
+options for that partition to their original values (using <em/HdToolBox/),
+and use the <tt/--uninstall/ option of <em/Lilo/:
+<tscreen>
+<tt/lilo --uninstall/
+</tscreen>
+This will automatically restore the boot block that was backed up during the
+first time installation.
+
+
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
+
+
+<sect>Files used by <em/Lilo/
+
+<sect1><tt>/boot/loader</tt>
+
+<p>
+This is a template for an <em/AmigaOS/ executable that displays the boot menu
+and loads the desired operating system on booting.
+
+<sect1><tt>/boot/loader.patched</tt>
+
+<p>
+This is the actual raw PC-relative executable that displays the boot
+menu and loads the desired operating system on booting. It is created by
+<em/Lilo/ by patching <tt>/boot/loader</tt> and by adding a PC-relative
+header that decodes the <em/AmigaOS/ executable file format.
+
+<sect1><tt>/boot/map</tt>
+
+<p>
+This file contains all configuration options and all necessary information to
+find all files, as defined by <tt>/etc/lilo.conf</tt>. It is created by
+<em/Lilo/.
+
+For more information about the used file format, see section
+<ref id="sec:tags" name="The tagged map file format">.
+
+<sect1><tt>/boot/backup.xx.yy</tt>
+
+<p>
+This file contains a backup of the original boot block on the device with major
+number <tt/xx/ and minor number <tt/yy/. It's created by <em/Lilo/ if you
+install a boot block on the corresponding device and no backup exists yet.
+
+<sect1><tt>/sbin/lilo</tt>
+
+<p>
+This is the <em>Linux/m68k</em> executable that installs <em/Lilo/.
+
+
+<sect1><tt>/etc/lilo.conf</tt><label id="sec:conf">
+
+<p>
+This is the <em/Lilo/ configuration file, an <em/ASCII/ file which defines
+the boot configuration for <em/Lilo/.  It contains a header with global
+options, one or more boot records, and zero or more file definitions.
+
+The character <tt/&num;/ indicates that the rest of the line is a comment and thus to be ignored. All numbers in this file can be entered in decimal (e.g.
+<tt/53270/), hexadecimal (e.g. <tt/0xD016/) or octal (e.g. <tt/0150026/)
+form.
+
+
+<sect2>Header
+
+<p>
+The header looks like
+<tscreen><verb>
+header
+    options
+    ...
+endheader
+</verb></tscreen>
+
+Valid header options are:
+<descrip>
+<tag/<tt>bootdev "</tt><em>name</em><tt/"</tt>/ Specify the block special device to
+install the boot block on (e.g. <tt>/dev/hda1</tt>).
+
+<tag/<tt>altdev "</tt><em>device</em><tt>"</tt> <em>unit</em>/ Specify the <em/AmigaOS/ name
+and unit number for an alternate boot device (e.g. <tt/scsi.device/ and
+<tt/0/).
+
+In most cases you don't need this option, but if the device that contains your
+kernel images and the files <tt>/boot/loader.patched</tt> and <tt>/boot/map</tt> is
+different from the device you want to install the boot block on (specified with
+the <tt/bootdev/ option), you need to specify the <em/AmigaOS/ device name and
+unit number that corresponds with the device those files reside on.
+
+<tag/<tt>default "</tt><em>label</em><tt/"</tt>/ Specify that the boot record with
+label <em/label/ is the default boot operating system. Default is the first boot record.
+
+<tag/<tt>auto</tt> <em>flag</em>/ If <em/flag/ is <tt/true/, <em/Lilo/ will
+automatically boot the default operating system, unless you hold a qualifier (<tt/ALT/,
+<tt/AMIGA/, <tt/CTRL/, <tt/SHIFT/, <tt/CAPS LOCK/ or one of the
+mouse-buttons) or press a key on the auxiliary console during booting.
+If <em/flag/ is <tt/false/, a boot prompt will always appear.
+So use <tt/true/ if you think `Why do I need a boot menu? I already have one
+in ROM!'.  Default is <tt/false/.
+
+<tag/<tt>timeout</tt> <em>number</em>/ Specify the number of seconds to wait at the
+boot prompt before the default operating system is chosen automatically. Use <tt/0/ for an
+infinite timeout value. Default is <tt/20/.
+
+<tag/<tt>aux</tt> <em>flag</em>/ If <em/flag/ is <tt/true/, the loader will not
+only use the standard console, but also the auxiliary console (a terminal on
+the builtin serial port). Default is <tt/false/.
+
+<tag/<tt>baud</tt> <em>number</em>/ Specify the speed (in bps --- bits per second)
+for the auxiliary console (if enabled). Default is <tt/9600/ (<em/ROM/
+default).
+
+<tag/<tt>password "</tt><em>name</em><tt>"</tt>/ Specify the master password.  This
+password will be asked for if you want to enter the boot monitor on booting.
+Default is an empty string.
+
+<tag/<tt>debug</tt> <em>flag</em>/ If <em/flag/ is <tt/true/ the loader will enter
+debug mode and display additional information during startup. Default is
+<tt/false/.
+
+<tag/<tt>prompt "</tt><em>text</em><tt/"</tt>/ Specify the loader prompt. The
+following character sequences are interpreted specially:
+<descrip>
+<tag/<tt>\b</tt>/ <em/Backspace/
+<tag/<tt>\e</tt>/ <em/Escape/
+<tag/<tt>\n</tt>/ <em/Line Feed/
+<tag/<tt>\r</tt>/ <em/Carriage Return/
+<tag/<tt>\t</tt>/ <em/Tab/
+<tag/<tt>\\</tt>/ <tt/$\backslash$/
+</descrip>
+The default prompt is `<tt/Boot image: /'.
+
+<tag/<tt>kickrange</tt> <em>min max</em>/ If the current <em/Kickstart/
+version lies outside the range <em/min/--<em/max/, <em/Lilo/ will always
+boot <em/AmigaOS/ in case of a non-interactive boot. Use this if you have
+strange hardware that doesn't allow you to boot <em>Linux/m68k</em> from the
+`wrong' <em/Kickstart/ version. The default range is 0--65535, so all <em/Kickstart/
+versions will be accepted.
+
+<tag/<tt>chipram</tt> <em>size</em>/ Override the detected <em/Chip RAM/ size and
+set it to <em/number/ bytes.
+
+<tag/<tt>fastram</tt> <em>address size</em>/ Override the detected adresses
+and sizes of <em/Fast RAM/ chunks. Each entry defines a <em/Fast RAM/ chunk
+at adress <em/address/ containing <em/size/ bytes, thus you can specify
+multiple <em/Fast RAM/ chunks.
+
+<tag/<tt>model</tt> <em>type</em>/ Override the detected <em/Amiga/ model.
+<em/type/ can be any of
+<itemize>
+<item><tt/A500/
+<item><tt/A500+/
+<item><tt/A600/
+<item><tt/A1000/
+<item><tt/A1200/
+<item><tt/A2000/
+<item><tt/A2500/
+<item><item><tt/A3000/
+<item><tt/A3000T/
+<item><tt/A3000+/
+<item><item><tt/A4000/
+<item><tt/A4000T/
+<item><tt/CDTV/
+<item><tt/CD32/
+<item><tt/Draco/
+</itemize>
+or a number corresponding to one of the model definitions in
+<tt>&lt;asm/amigatypes.h&gt;</tt>.
+
+Note that <em/lilo/ can't distinguish among models that are very similar to each
+other (e.g. <em/A500//<em/A1000//<em/A2000//<em/A2500/ and
+<em/A3000//<em/A3000T/). Of course this is harmless and there's no real need to
+use this option in that case.
+
+<tag/<tt>processor</tt> <em>cfm</em>/ Override the detected processor type.
+<em/cfm/ must be a three-digit number with
+<descrip>
+<tag/<tt>c</tt>/ CPU (Central Processing Unit) type
+<tag/<tt>f</tt>/ FPU (Floating Point Unit) type
+<tag/<tt>m</tt>/ MMU (Memory Management Unit) type
+</descrip>
+from the table below:
+
+\begin{center} \begin{tabular}{|c||c|c|c|}
+\hline
+Value & CPU & FPU & MMU \\
+\hline \hline
+0 & --- & --- & --- \\
+1 & 68020 & 68881 & 68851 \\
+2 & 68030 & 68882 & 68030 \\
+3 & 68040 & 68040 & 68040 \\
+4 & 68060 & 68060 & 68060 \\
+\hline
+\end{tabular} \end{center}
+e.g. <tt/444/ if you have a <em/68060/ and <tt/303/ if you have a <em/68LC040/.
+
+Note that normally you don't have to use this option. It's only needed for some
+combinations of an old <em/kickstart ROM/ and a new processor (e.g. a
+<em/68060/). Use it only if you really need it!
+
+</descrip>
+
+
+<sect2>Boot records
+
+<p>
+The boot records define one or more {operating system/s you can select at
+boot time. Make sure all your kernel images and the files <tt>/boot/map</tt>,
+<tt>/boot/loader.patched</tt> are located on the same physical device.
+
+A boot record is defined by
+<tscreen><verb>
+bootrec "label"
+    options
+    ...
+endrec/
+</verb></tscreen>
+with <em/label/ the label of the boot record.
+
+Valid boot record options are:
+<descrip>
+<tag/<tt>alias "</tt><em>label</em><tt>"</tt>/ Specify an alias name for this boot
+record.
+<tag/<tt>type "</tt><em>name</em><tt>"</tt>/ Specify the operating system type for this boot
+record. Valid types are:
+<descrip>
+<tag/<tt>linux</tt>/ <em>Linux/m68k</em>. This is the default.
+<tag/<tt>amiga</tt>/ <em/AmigaOS/. This only works if you install the <em/Lilo/ boot
+block on a valid <em/AmigaOS/ boot partition.
+<tag/<tt>netbsd</tt>/ <em/NetBSD-Amiga/. This doesn't work yet~:-)
+</descrip>
+
+<tag/<tt>image "</tt><em>name</em><tt>"</tt>/ Specify the full qualified file
+name of the kernel image for this boot record. This file needs not to
+exist (except for the default boot record) --- this is useful for testing
+purposes ---, but if it exists, it must be located on the <tt/bootdev/ device,
+or on the <tt/altdev/ device, if the <tt/altdev/ option is specified. This
+option must not be used if <tt/type/ is set to <tt/amiga/.
+
+<tag/<tt>args "</tt><em>name</em><tt>"</tt>/ Specify the kernel command line for this
+boot record. This option must not be used if <tt/type/ is set to <tt/amiga/.
+Default is an empty string.
+
+<tag/<tt>password "</tt><em>name</em><tt>"</tt>/ If this option is defined, <em/name/
+is the password for this boot record.  It must be supplied if you want to boot
+from this record.  Default is no password.
+
+<tag/<tt>ramdisk "</tt><em>name</em><tt>"</tt>/ Specify the full qualified file name of
+a file containing a file system to be used a a ramdisk. This file needs
+not to exist but if it exists, it must be located on the <tt/bootdev/ device,
+or on the <tt/altdev/ device, if the <tt/altdev/ option is specified. This
+option must not be used if <tt/type/ is set to <tt/amiga/. Default is an
+empty string.
+
+<tag/<tt>chipram</tt> <em>size</em>/
+<tag/<tt>fastram</tt> <em>address size</em>/
+<tag/<tt>model</tt> <em>type</em>/
+<tag/<tt>processor</tt> <em>cfm</em>/ Override detected properties or global
+options for this boot record only. 
+
+</descrip>
+
+
+<sect2>File definitions
+
+<p>
+The file definitions allow you to specify some addional files to be added to
+the map file. These files can then be referenced from withing the boot monitor.
+Make sure all these files are located on the same physical device as the kernel
+images.
+
+A file definition looks like
+<tscreen>
+<tt/file "/<em/name/<tt/"/
+</tscreen>
+with <em/name/ the full qualified file name of the file.
+
+
+<sect2>Sample configuration file
+
+<p>
+This example assumes:
+<itemize>
+<item><tt>/dev/hda1</tt> is your main <em/AmigaOS/ partition,
+<item><tt>/dev/hdb1</tt> is your main <em>Linux/m68k</em> partition,
+<item><tt>/boot/*</tt>, <tt>/vmlinux</tt> and <tt>/usr/src/linux/vmlinux</tt> reside
+on <tt>/dev/hdb?</tt>,
+<item><tt>/dev/hdb</tt> under <em>Linux/m68k</em> is equivalent to <tt/scsi.device/ unit
+<tt/1/ under <em/AmigaOS/.
+</itemize>
+
+Note that in this case the <tt/altdev/ option is used because <tt>/dev/hda</tt>
+and <tt>/dev/hdb</tt> are two different physical devices.
+
+
+<tscreen><verb>
+#
+#   Amiga Linux/m68k Loader
+#
+#   Sample Configuration File
+#
+
+header
+    bootdev "/dev/hda1"
+#   altdev "scsi.device" 1
+    default "linux"
+    auto false
+    timeout 20
+    aux false
+    baud 9600
+    password "amiga"
+    debug false
+endheader
+
+bootrec "amiga"
+    type amiga
+endrec
+
+bootrec "linux"
+    type linux
+    image "/boot/vmlinux"
+    args "root=/dev/hdb1"
+endrec
+
+bootrec "single"
+    image "/boot/vmlinux"
+    args "root=/dev/hdb1 single"
+    password "single"
+endrec
+
+bootrec "emergency"
+    image "/boot/vmlinux"
+    args "root=/dev/hdb1 -b"
+    password "emergency"
+endrec
+
+bootrec "ramdisk"
+    image "/boot/vmlinux"
+    ramdisk "/boot/filesys-ELF-2.0.x.gz"
+    args "root=/dev/ram"
+    password "ramdisk"
+endrec
+
+bootrec "test1"
+    image "/usr/src/linux/vmlinux"
+endrec
+
+bootrec "test2"
+    image "/usr/src/linux/vmlinux"
+    args "root=/dev/hdb1"
+endrec
+
+file "/boot/filesys-ELF-2.0.x"
+</verb></tscreen>
+
+
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
+
+
+<sect>Command line options
+
+<p>
+<tt>/sbin/lilo</tt> is used to install a <em>Linux/m68k</em> boot block loader on a
+boot partition. It can also be used to save boot blocks to a file or restore
+boot blocks from a file.
+
+<tscreen>
+<tt/lilo/ <tt/[/<em/options .../<tt/]/
+</tscreen>
+
+Valid options are:
+<descrip>
+<tag/<tt>--help</tt>/ Display the usage information.
+<tag/<tt>--verbose</tt>/ Enable verbose mode.
+<tag/<tt>--force</tt>/ Force installation on a partition with an unknown boot
+block.
+<tag/<tt>--backup</tt>/ Force a boot block backup on installation, even if a
+backup already exists.
+<tag/<tt>--uninstall</tt>/ Uninstall <em/Lilo/ by restoring the backed up boot
+block.
+<tag/<tt>--root</tt> <em>prefix</em>/ Specify the prefix to be used for all
+path names, except for special device nodes. This is useful when creating boot
+floppies, or for debugging.
+<tag/<tt>--restore-from</tt> <em>file</em>/ Restore the boot block from <em/file/.
+<tag/<tt>--save-to</tt> <em>file</em>/ Save the boot block to <em/file/ first.
+<tag/<tt>--device</tt> <em>device</em>/ Override the block special device that's
+specified in <tt>/etc/lilo.conf</tt>.
+<tag/<tt>--dostype</tt> <em>id</em>/ Specify the <em/DosType/ for the boot
+block. Valid <em/DosTypes/ are:
+<descrip>
+<tag/<tt>BOOU</tt>/ Generic boot disk
+<tag/<tt>DOS0</tt>/ <em/OFS/ disk
+<tag/<tt>DOS1</tt>/ <em/FFS/ disk
+<tag/<tt>DOS2</tt>/ <em/OFS INTL/ disk
+<tag/<tt>DOS3</tt>/ <em/FFS INTL/ disk
+<tag/<tt>DOS4</tt>/ <em/OFS DC/ disk
+<tag/<tt>DOS5</tt>/ <em/FFS DC/ disk
+<tag/<tt>muFS</tt>/ <em/MultiUser FFS INTL/ disk
+<tag/<tt>muF0</tt>/ <em/MultiUser OFS/ disk
+<tag/<tt>muF1</tt>/ <em/MultiUser FFS/ disk
+<tag/<tt>muF2</tt>/ <em/MultiUser OFS INTL/ disk
+<tag/<tt>muF3</tt>/ <em/MultiUser FFS INTL/ disk
+<tag/<tt>muF4</tt>/ <em/MultiUser OFS DC/ disk
+<tag/<tt>muF5</tt>/ <em/MultiUser FFS DC/ disk
+</descrip>
+Default is the original <em/DosType/ of the partition, or <tt/BOOU/ for
+partitions with an unknown boot block (if <tt/--force/ is specified too).
+<tag/<tt>--checksum</tt>/ Fix the boot block checksum.
+<tag/<tt>--create-reset</tt>/ Write a boot block that reboots the computer if
+you boot from it. This option is useful if you have a hard disk that spins up
+too slowly to be detected after a cold reboot and that needs a manual reset,
+while you also have a faster disk. Put your main boot block on the slow disk
+and create a reset boot block (with a lower boot priority) on the fast disk.
+After a cold reboot, your system will be reset until the slow disk is
+available.
+<tag/<tt>--version</tt>/ Display the version information.
+</descrip>
+
+All options also have a short form:
+<descrip>
+<tag/<tt>-h</tt>/ <tt/--help/
+<tag/<tt>-v</tt>/ <tt/--verbose/
+<tag/<tt>-f</tt>/ <tt/--force/
+<tag/<tt>-b</tt>/ <tt/--backup/
+<tag/<tt>-u</tt>/ <tt/--uninstall/
+<tag/<tt>-w</tt>/ <tt/--root/
+<tag/<tt>-r</tt>/ <tt/--restore-from/
+<tag/<tt>-s</tt>/ <tt/--save-to/
+<tag/<tt>-d</tt>/ <tt/--device/
+<tag/<tt>-t</tt>/ <tt/--dostype/
+<tag/<tt>-c</tt>/ <tt/--checksum/
+<tag/<tt>-x</tt>/ <tt/--create-reset/
+<tag/<tt>-V</tt>/ <tt/--version/
+</descrip>
+Note: people who understand Dutch or German will probably easily
+remember that <tt/-w/ is short for <tt/--root/.
+
+
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
+
+
+<sect>The <em/Lilo/ boot prompt
+
+<p>
+If <em/Lilo/ is configured not to boot automatically, or if you do one of the
+following things during boot time:
+<itemize>
+<item>hold <tt/ALT/, <tt/AMIGA/, <tt/CTRL/, <tt/SHIFT/ or <tt/CAPS LOCK/,
+<item>hold one of the mouse-buttons,
+<item>press a key on the terminal connected to the builtin serial
+port if the auxiliary console is enabled,
+</itemize>
+a boot prompt will appear on the <em/Amiga/ console and, if enabled, on the
+terminal too.
+
+
+<sect1>Normal user prompt
+
+<p>
+You can perform the following actions:
+<itemize>
+<item>Hit <tt/ENTER/ to boot the default operating system.
+
+<item>Enter <tt/?/ or <tt/help/, or press <tt/TAB/ to get a list of valid
+commands and boot record labels.
+
+<item>Enter the label of a boot record to boot the corresponding operating system. If
+this record has a password attached to it, the loader will prompt
+for it first and will boot from this record only if you enter the correct
+password.
+
+<item>Enter <tt/su/ to enter the boot monitor.  The loader will prompt for the
+master password first and will enter the boot monitor only if you enter the
+correct password.
+
+<item>Sit and wait: after the specified timeout the loader will boot the
+default operating system automatically.
+</itemize>
+
+
+<sect1>The boot monitor
+
+<p>
+Once you're in the boot monitor, the timeout is disabled and you have advanced
+control over the booting process.
+
+You can enter one of the following commands:
+<descrip>
+<tag/<tt>help</tt> or <tt>?</tt>/ Display usage information.
+<tag/<tt>version</tt>/ Display version information.
+<tag/<tt>list records</tt> or <tt>list files</tt>/ List all available boot records
+and/or files.
+<tag/<tt>boot</tt> <em>label</em>/ Boot from boot record <em/label/. If <em/label/
+is omitted, the current boot settings are used.
+<tag/<tt>use</tt> <em>label</em>/ Copy the boot record <em/label/ to the current
+boot settings. If <em/label/ is omitted, the default boot record is assumed.
+<tag/<tt>info</tt> <em>label</em>/ Get information about the boot record
+<em/label/.  If <em/label/ is omitted, information about the current boot
+settings is dumped.
+<tag/<tt>set</tt> <em>var values</em> .../ Change a variable for the
+current boot settings. If <em/var/ is omitted, this command is equivalent to
+<tt/list/. If no values are specified, the behavior depends on the variable
+but tries to be intuitive. The following variables can be changed:
+<descrip>
+<tag/<tt>type</tt>/ The operating system type.
+<tag/<tt>kernel</tt>/ The full qualified file name of the kernel image. This file
+<em/must/ be available. Use the <tt/file/ option in the configuration file
+to add your own files.
+<tag/<tt>ramdisk</tt>/ The full qualified file name of the ramdisk image.  This
+file <em/must/ be available.  Use the <tt/file/ option in the configuration
+file to add your own files.
+<tag/<tt>args</tt>/ The kernel command line.
+<tag/<tt>debug</tt>/ The debug flag: <tt/true/ or <tt/false/.
+<tag/<tt>model</tt>/ The <em/Amiga/ model. Default is <tt/auto/, i.e.
+autodetect.
+<tag/<tt>proc</tt>/ The processor type. Default is <tt/auto/, i.e. autodetect.
+<tag/<tt>chip</tt>/ The amount of <em/Chip RAM/. Default is <tt/auto/, i.e.
+autodetect.
+<tag/<tt>nummem</tt>/ The number of <em/Fast RAM/ chunks. Default is
+<tt/auto/, i.e. autodetect.
+<tag/<tt>mem</tt>/ The address and size of a <em/Fast RAM/ chunk. The value
+syntax is <em/number address size/, with <em/number/ the number
+(1--<tt/nummem/) of the memory chunk.
+</descrip>
+</descrip>
+
+Commands are case insensitive, and can be abbreviated.
+
+
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
+
+
+<sect>Miscellaneous
+
+<sect1>Implicit kernel command line options
+
+<p>
+<em/Lilo/ automatically adds the following options to the kernel command line:
+<descrip>
+<tag/<tt>BOOT_IMAGE=</tt><em>label</em>/ <em/label/ is the label of the boot
+record that's used for booting.
+<tag/<tt>auto</tt>/ This is added only in case of an automatic boot, i.e. in one
+of the following cases:
+<itemize>
+<item>No boot prompt appeared.
+<item>You choose the default operating system by just hitting <tt/ENTER/.
+<item>The timeout was reached.
+</itemize>
+</descrip>
+
+Of course you can override this when you're in the boot monitor.
+
+
+<sect1>Keeping <em/Lilo/ up-to-date
+
+<p>
+<em/Lilo/ now uses the same bootstrap code as <em/Amiboot/ to ease code
+maintenance.  This also means that all you have to do to keep pace with the
+newest bootstrap code is to recompile <em/Lilo/ on every <em/Amiboot/
+update.
+
+
+<sect1>Creating boot floppies
+
+<p>
+If you want to create a boot floppy with a <em/Lilo/ boot block, use the
+<tt/--root/ option to tell <em/Lilo/ to use the file system on the floppy
+instead of your normal root file system, e.g.
+<tscreen>
+<tt/lilo --root /floppy/
+</tscreen>
+assuming you have mounted the floppy file system on <tt>/floppy</tt>.
+
+After running <em/Lilo/, you may want to remove the following files from the
+floppy file system to recover valuable space:
+<itemize>
+<item><tt>boot/loader</tt>
+<item><tt>boot/backup.*</tt>
+<item><tt>etc/lilo.conf</tt>
+</itemize>
+<em/Lilo/ only needs <tt>/boot/loader.patched</tt> and <tt>/boot/map</tt> (and
+a kernel image, of course) to boot.
+
+
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
+
+
+<sect>Theory of operation
+
+<p>
+If you're not familiar with the internals of the <em/Amiga/ boot process, you
+may want to read Appendix
+<ref id="apx:booting" name="The Amiga boot process"> first.
+
+
+<sect1>Program flow
+
+<p>
+If you install a special <em/Lilo/ boot block on a device, <em/Lilo/
+performs the following actions:
+
+<itemize>
+<item>First it reads and parses the configuration file <tt>/etc/lilo.conf</tt>.
+
+<item>Since <em/AmigaOS/ can't access files on an <em/ext2fs/ or
+<em/minix/ file system natively, it should know where the data blocks of the
+files are stored. Thus for every kernel image you may want to boot from,
+<em/Lilo/ looks up the data blocks of the images, using the <tt/FIBMAP/
+<em/ioctl()/ and stores them in the file <tt>/boot/map</tt>, together with the
+configuration options.
+
+<item>Then <em/Lilo/ reads the loader template executable
+<tt>/boot/loader</tt>, looks up where <tt>/boot/map</tt> is stored on the disk,
+patches the loader template executable so it knows where to find the data
+blocks of <tt>/boot/map</tt>, adds a PC-relative header that decodes the
+<em/AmigaOS/ executable file format and stores the result in
+<tt>/boot/loader.patched</tt>.
+
+<item>During the last step <em/Lilo/ looks up the data blocks for
+<tt>/boot/loader.patched</tt>, fills them in in the boot code and
+writes the boot code to the boot block of the device specified in
+<tt>/etc/lilo.conf</tt>.
+</itemize>
+
+If the <em/Amiga/ tries to boot from a partition you installed <em/Lilo/ on,
+the system loads the special boot code and executes it. The boot code loads the
+raw PC-relative executable <tt>/boot/loader.patched</tt> and executes it.
+Afterwards <tt>/boot/loader.patched</tt> reads <tt>/boot/map</tt>, eventually asks
+the user for a boot operating system, and loads the desired operating system.
+
+
+<sect1>The boot block code
+
+<p>
+The system calls the boot block code and passes it the <em/BootRequest/ (of
+type <tt/struct IOStdReq/) for the boot device. At that moment the system has
+not been initialized completely, e.g. <em/dos.library/ is still missing.
+This has the following consequences:
+<itemize>
+<item>We can't use files, so we need to use raw device I/O. Besides,
+<em/AmigaOS/ doesn't know <em/ext2fs/ or the <em/minix/ file system
+either.
+
+As an alternative a file is represented by an array of <tt/u_long/s (a
+<em/vector/).  The first <tt/u_long/ in this array contains the length of
+the file (in bytes); the following <tt/u_long/s are disk offsets for the data
+blocks, with holes (A hole is a place in a file where a whole block
+contains nothing but zeroes.  <em>Linux/m68k</em> doesn't store such a block on disk
+explicitly, but marks it specially, to save diskspace.) indicated by a disk
+offset of 0.  The data block size is 1024 bytes (This is the default
+block size for <em>Linux/m68k</em>.  <em/AmigaOS/ however uses a default block size of 512
+bytes.).  The data blocks can be read by using the <em/BootRequest/, or by
+opening the alternate boot device if the <tt/altev/ option was used in
+<tt>/etc/lilo.conf</tt>.
+
+<item>We can't use <em/DOS/ devices like <em/CON:/. Thus the loader opens a
+window and uses the <em/console.device/ for communication with the user.
+
+<item>The <em/serial.device/ resides on disk, so raw serial I/O (using the
+private <em/exec.library/ functions <em/RawMayGetChar()/ and
+<em/RawPutChar()/) is used instead to support the auxiliary console.
+</itemize>
+
+The boot block code loads and calls the loader. The loader should return
+<tt/FALSE/ in case of an error, and <tt/TRUE/ if the user wants to boot
+<em/AmigaOS/; in all other cases it shouldn't return.
+
+
+<sect1>The boot library
+
+<p>
+The boot block code exports some functions for file access and execution by
+passing a function table pointer to the loader.
+
+
+<sect2>File access functions
+
+<p>
+These functions provide basic file access.
+
+<itemize>
+<item><tt/void Open(u_long *vector)/
+
+Open a file. Only one file can be opened at the same time.
+
+<item><tt/void Close(void)/
+
+Close the file opened with <em/Open()/.
+
+<item><tt/void Read(void *dest, u_long length)/
+
+Read <em/length/ bytes of data from the file opened with <em/Open/ and store
+them in memory starting at <em/dest/. This routine does not check whether you
+try to read beyond the end of the file.
+
+<item><tt/void Seek(u_long offset)/
+
+Seek to the absolute position <em/offset/ in the file opened with <em/Open/.
+This routine does not check whether you try to seek beyond the end of the file.
+
+</itemize>
+
+
+<sect2>File execution functions
+
+<p>
+These functions provide for the loading and execution of files.
+
+<itemize>
+<item><tt/u_long *Load(u_long *vector)/
+
+Load a file and return a pointer to the loaded data. This function uses
+<em/Open()/, so it may not be called if there's already a file opened.
+
+<item><tt/void UnLoad(u_long *data)/
+
+Unload a file loaded with <em/Load()/.
+
+<item><tt/long Exec(u_long *data, long arg)/
+
+Execute a block of code pointed to by <em/data/. It pushes all caches first
+and passes the supplied <em/arg/ in register <em/D0/ and returns the return
+code after execution.
+</itemize>
+
+
+<sect1>The tagged map file format<label id="sec:tags">
+
+<p>
+The map file <tt>/boot/map</tt> consists of a concatenation of <em/tag
+records/.  A tag record contains a <em/Tag/, indicating its type, a
+<em/Size/ (must be a multiple of 4 bytes) and <em/Size/ bytes of data. This
+makes the file format very simple to understand and easy to parse and extend.
+
+<sect2>General structure
+
+<p>
+The general structure of the map file looks like:
+
+\begin{center/ \begin{tabular/{|l|r|l|l|/
+\hline
+Tag                 & Size & Data         & Info \
+\hline \hline
+\multicolumn{4/{|c|/{<bf/File identification// \
+\hline
+TAG_LILO            &    0 & ---          & \
+\hline \hline
+\multicolumn{4/{|c|/{<bf/Boot options// \
+\hline
+TAG_HEADER          &    0 & ---          & \
+\multicolumn{3/{|c|/{\vdots/  & <em/Boot option tags/ \
+TAG_HEADER_END      &    0 & ---          & \
+\hline \hline
+\multicolumn{4/{|c|/{<bf/One or more boot records// \
+\hline
+TAG_BOOT_RECORD     &    ? & char []      & Boot record label \
+\multicolumn{3/{|c|/{\vdots/  & <em/Boot record tags/ \
+TAG_BOOT_RECORD_END &    0 & ---          & \
+\hline
+\multicolumn{4/{c/{\vdots/ \
+\hline
+\multicolumn{4/{|c|/{<bf/Zero or more file definitions// \
+\hline
+TAG_FILE_DEF        &    ? & char []      & File name \
+\multicolumn{3/{|c|/{\vdots/  & <em/File definition tags/ \
+TAG_FILE_DEF_END    &    0 & ---          & \
+\hline
+\multicolumn{4/{c/{\vdots/ \
+\hline
+\multicolumn{4/{|c|/{<bf/End of file// \
+\hline
+TAG_EOF             &    0 & ---          & \
+\hline
+\end{tabular/ \end{center/
+
+<sect2>Boot option tags
+
+<p>
+\begin{center/ \begin{tabular/{|l|r|l|p{34mm/|/
+\hline
+Tag                 & Size & Data         & Info \
+\hline \hline
+TAG_DEFAULT         &    ? & char []      & Default boot image \
+TAG_AUTO            &    4 & u_long      & Automatic boot flag \
+TAG_TIME_OUT        &    4 & u_long      & Time out value \
+TAG_AUX             &    4 & u_long      & Auxiliary console \
+TAG_BAUD            &    4 & u_long      & Baud for auxiliary console \
+TAG_MASTER_PASSWORD &    ? & char []      & Master password \
+TAG_DEBUG           &    4 & u_long      & Debug flag \
+TAG_PROMPT          &    ? & char []      & Boot prompt \
+TAG_KICKRANGE       &    4 & u_short [2] & Valid <em/Kickstart/ version range \
+\hline
+\end{tabular/ \end{center/
+
+<sect2>Boot record tags
+
+<p>
+\begin{center/ \begin{tabular/{|l|r|l|l|/
+\hline
+Tag                 & Size & Data         & Info \
+\hline \hline
+TAG_ALIAS           &    ? & char []      & Alias label name \
+TAG_OS_TYPE         &    4 & u_long      & operating system type \
+TAG_KERNEL          &    ? & char []      & Kernel image \
+TAG_ARGUMENTS       &    ? & char []      & Boot arguments \
+TAG_PASSWORD        &    ? & char []      & Password \
+TAG_CHIP_RAM_SIZE   &    4 & u_long      & Chip RAM size \
+TAG_FAST_RAM_CHUNK  &    8 & u_long [2]  & Fast RAM chunk \
+TAG_MODEL           &    4 & u_long      & <em/Amiga/ model \
+TAG_PROCESSOR       &    4 & u_long      & Processor type \
+TAG_RAMDISK         &    ? & char []      & Ramdisk image \
+\hline
+\end{tabular/ \end{center/
+
+<sect2>File definition tags
+
+<p>
+\begin{center/ \begin{tabular/{|l|r|l|l|/
+\hline
+Tag                    & Size & Data         & Info \
+\hline \hline
+TAG_VECTOR            &    ? & u_long []   & File vector \
+\hline
+\end{tabular/ \end{center/
+
+<sect2>Debugging
+
+<p>
+You can examine the contents of a map file with the <tt/dumpmapfile/ utility.
+
+
+<sect1>Booting <em>Linux/m68k</em>
+
+<p>
+If the user wants to boot <em>Linux/m68k</em>, the loader calls an adapted
+version of the <em/Amiboot/ utility. If this fails, it returns <tt/FALSE/
+to the boot code.
+
+
+<sect1>Booting <em/AmigaOS/
+
+<p>
+If the user wants to boot <em/AmigaOS/, the loader just returns <tt/TRUE/
+and the boot code uses the default boot method.
+
+
+<sect1><em/Lilo/ alert codes
+
+<p>
+The following alert codes are used by <em/Lilo/:
+<descrip>
+<tag/<tt>30000001</tt>/ Boot error when automatic boot
+<tag/<tt>CC010000</tt>/ No memory
+<tag/<tt>CC010007</tt>/ No screen
+<tag/<tt>CC01000B</tt>/ No window
+<tag/<tt>CC038002</tt>/ No <em/graphics.library/
+<tag/<tt>CC038004</tt>/ No <em/intuition.library/
+<tag/<tt>CC03800A</tt>/ No <em/expansion.library/
+<tag/<tt>CC040000</tt>/ No alternate boot device
+<tag/<tt>CC048011</tt>/ No <em/console.device/
+<tag/<tt>CC048013</tt>/ No <em/keyboard.device/
+<tag/<tt>CC048015</tt>/ No <em/timer.device/
+<tag/<tt>CC048035</tt>/ No <em/input.device/
+<tag/<tt>CC060000</tt>/ Read error
+<tag/<tt>CC070000</tt>/ No signal
+<tag/<tt>CC4D4150</tt>/ Corrupt map file
+</descrip>
+Other alert codes (especially those of the form <tt/8000000x/, with <tt/x/
+equal to <tt/3/, <tt/4/, <tt/A/ or <tt/B/) may indicate that something went
+wrong with the <em/Lilo/ installation, e.g. you forgot to rerun <tt/lilo/ after
+you changed some important files.
+
+
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
+
+
+<sect>Credits
+
+<p>
+<itemize>
+<item>The <em>Amiga Linux/m68k Loader</em> was written by Geert Uytterhoeven
+(<htmlurl url="mailto:Geert.Uytterhoeven@cs.kuleuven.ac.be"
+name="Geert.Uytterhoeven@cs.kuleuven.ac.be">).
+
+<item>The following people inspired me with their comments and/or provided
+fixes:
+<itemize>
+<item>Janos Farkas (<htmlurl url="mailto:chexum@sparta.banki.hu"
+name="chexum@sparta.banki.hu">)
+<item>J&ouml;rg Mayer (<htmlurl url="mailto:jmayer@informatik.uni-kl.de"
+name="jmayer@informatik.uni-kl.de">)
+<item>J&ouml;rg Dorchain (<htmlurl url="mailto:dorchain@cscip.uni-sb.de"
+name="dorchain@cscip.uni-sb.de">)
+<item>Christof Damian (<htmlurl url="mailto:cdamian@mediaconsult.com"
+name="cdamian@mediaconsult.com">)
+<item>Kars de Jong (<htmlurl url="mailto:jongk@cs.utwente.nl"
+name="jongk@cs.utwente.nl">)
+</itemize>
+
+<item>The <em>Linux/m68k</em> bootstrap code was taken from:
+<quote>
+<em/Amiboot/: This program loads the <em>Linux/m68k</em> kernel into an
+<em/Amiga/ and launches it. &copy; Copyright 1993, 1994 by Hamish
+Macdonald (<htmlurl url="mailto:hamish@border.ocunix.on.ca"
+name="hamish@border.ocunix.on.ca">), Greg Harp (<htmlurl
+url="mailto:harp@netcom.com" name="harp@netcom.com">).
+</quote>
+
+<item>The original idea for this program comes from the <em/Linux/
+distribution:
+<quote>
+<em/LILO/: Generic Boot Loader for <em/Linux/ (<em/LInux LOader/) by
+Werner Almesberger (<htmlurl url="mailto:werner.almesberger@lrc.di.epfl.ch"
+name="werner.almesberger@lrc.di.epfl.ch">).
+</quote>
+
+<item>The <tt/rlatex/ script was taken from the <em/LILO/ distribution and
+is &copy; Copyright 1992-1996 Werner Almesberger.
+</itemize>
+
+And of course I want to thank the whole <em/Linux/ community, especially the
+other <em>Linux/m68k</em> guys, for this great <em/Operating System/ (Note the
+uppercase `O' and `S'. IMHO <em/icrosoft/ should refer to <em/indows 95/
+with <em/perating ystem/~:-)
+
+
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
+
+
+<sect>The <em/GNU General Public License/
+
+<p>
+The <em>Amiga Linux/m68k Loader</em> and its documentation are &copy;
+Copyright 1995 by Geert Uytterhoeven. However, they are also subject to the
+terms and conditions of the <em/GNU General Public License/. See the file
+<tt/COPYING/ for more details.
+
+
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
+
+
+<sect>The <em/Amiga/ boot process<label id="apx:booting">
+
+<p>
+An <em/Amiga/ can boot from different devices. After initialization of all
+internal (motherboard) and external (<em/Zorro II/III/ boards)
+devices, a list of bootable devices is created, sorted by boot priority. This
+list can be modified using the system boot menu (The system boot menu
+is invoked by holding both the left and right mouse buttons at boot up.). The
+first floppy drive (<tt/DF0:/) always has boot priority 5, while the default
+boot priority of a hard drive partition is 0.
+
+Then the system tries to boot from the bootable devices in the list, the one
+after the other starting with the device with the highest boot priority, until
+success. If all failed, the system asks the user to insert a floppy by
+displaying an image or animation. On succes, the system boots.
+
+A device is a candidate for booting if it's marked as bootable and if one of
+the following conditions is met:
+
+<itemize>
+<item>The device has a valid file system (i.e. its <em/DosType/ is the same
+as that of a <em/ROM/ file system or a file system that's stored in the
+<em/Rigid Disk Block/ of one of the hard drives) and the file system could be
+initialized for this device. This should be the case for your default
+<em/AmigaOS/ boot partition.
+
+<item>There is no valid file system for the device. This is the case if you
+specify <tt/0x45585432/ (<tt/EXT2/ in <em/HEX ASCII/) for the
+<em/DosType/ and there is no file system in a <em/Rigid Disk Block/ with <em/DosType/
+<tt/0x45585432/.
+</itemize>
+
+There are two ways to boot from a boot device:  with or without execution of
+the boot block (The boot block is the first block --- actually the
+first $n$ blocks, with default $n = 2$.  Since the default block size under
+<em/AmigaOS/ is 512 bytes, the default boot block size is 1024 bytes --- of the
+device, which has a special purpose.):
+
+<itemize>
+<item>Without execution of the boot block the system just ignores the boot
+block contents and uses the default boot method. This is the default behavior
+for hard drive partitions, which can be overridden by enabling <em/Custom
+Boot Code/ for the partition.
+
+<item>With execution of the boot block the system loads the boot block and
+calculates a checksum value. If the checksum is correct, the boot code in the
+boot block is executed, with the <em/BootRequest/ (of type <tt/struct
+IOStdReq/) for the boot device passed to it as a parameter. If the checksum is
+incorrect, the boot process fails for this device. This is the default behavior
+for the floppy drive and the behavior for hard drive partitions if <em/Custom
+Boot Code/ is enabled. <em/Lilo/ uses this method too.
+</itemize>
+
+The default boot method --- this method is also used in the default boot code
+for floppies --- just checks whether <em/dos.library/ is resident and
+returns a pointer to the initialization routine of <em/dos.library/.
+
+
+<!-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
+
+
+<sect>History
+
+<sect1>Version 0.1
+
+<p>
+<itemize>
+<item>Initial `alpha' release with support for only one kernel image at the
+same time.
+</itemize>
+
+<sect1>Version 0.2
+
+<p>
+<itemize>
+<item>Addition of the configuration file.
+<item>Support for multiple kernel images and command lines.
+</itemize>
+
+<sect1>Version 0.3
+
+<p>
+<itemize>
+<item>Handles files with holes.
+<item>Fixes for <em/Kickstart V36/ (<em/A3000 Beta ROM/).
+<item>Debug option.
+<item>Rounds memory chunks to a multiple of 256K instead of 1M (for e.g. users
+of the <em/A3640 MapROM/ feature).
+</itemize>
+
+<sect1>Version 0.4
+
+<p>
+<itemize>
+<item>Support added for a terminal connected to the builtin serial port.
+<item>Documentation in <em>LaTeX 2e</em>.
+</itemize>
+
+<sect1>Version 0.4a
+
+<p>
+<itemize>
+<item>Recompile to compensate for the changes in <tt>&lt;asm/bootinfo.h&gt;</tt>.
+</itemize>
+
+<sect1>Version 0.5
+
+<p>
+<itemize>
+<item><em/Seek()/ function added to the boot library.
+<item>Bootstrap code updated to the <em/Amiboot/ 2.1 level:
+<itemize>
+<item>Support added for <em/ELF/ kernels,
+<item>Support added for <em/a.out ZMAGIC/ kernels.
+</itemize>
+<item><em/LoadSeg()/ and <em/UnLoadSeg()/ functions of the boot library are
+replaced by <em/Load()/ and <em/UnLoad()/.
+<item><tt>/boot/loader</tt> is no longer an <em/AmigaOS/ executable. Now it's a
+raw PC-relative executable created with the normal <em/cc1/ of
+<em/m68k-linux-gcc/ 2.7.x and the <tt/fixpic/ <em/perl/ script. As a
+consequence you no longer need <em/gcc/ under <em/AmigaOS/ or a cross-compiler
+to create it. Another step in the direction of an <em/AmigaOS/-free Amiga~:-)
+<item>New configuration file format with additional options:
+<descrip>
+<tag/<tt>baud</tt>:/ Serial terminal speed,
+<tag/<tt>altdev</tt>:/ Alternate boot device,
+<tag/<tt>default</tt>:/ Default boot operating system.
+</descrip>
+</itemize>
+
+<sect1>Version 0.6
+
+<p>
+<itemize>
+<item>New options for the configuration file:
+<descrip>
+<tag/<tt>chipram</tt>:/ <em/Chip RAM/ size,
+<tag/<tt>fastram</tt>:/ <em/Fast RAM/ address and size.
+<tag/<tt>model</tt>:/ <em/Amiga/ model.
+</descrip>
+<item>Now <em/Amiboot/ and <em/Lilo/ use the same bootstrap code to ease
+code maintenance.
+<item>Changed the data block size from 512 to 1024 bytes.
+<item>New command line option <tt/--checksum/.
+</itemize>
+
+<sect1>Version 0.7 (internal version)
+
+<p>
+<itemize>
+<item>New tagged file format for <tt>/boot/map</tt>; included
+<tt/dumptagfile.c/ for debugging.
+<item>New command line option <tt/--root/.
+<item>New options for the configuration file:
+<descrip>
+<tag/<tt>prompt</tt>:/ Loader prompt,
+<tag/<tt>alias</tt>:/ Alias label for a boot record,
+<tag/<tt>ramdisk</tt>:/ File containing a file system to be used as a ramdisk.
+</descrip>
+<item><em/Lilo/ now knows the version of <em/Amiboot/ it's compatible with.
+<item>Implicit kernel command line options <tt/BOOT_IMAGE=/<tt/label/ and
+<tt/auto/ added.
+</itemize>
+
+<sect1>Version 0.8 (internal version)
+
+<p>
+<itemize>
+<item>Now <em/Lilo/ also works under <em>Linux/m68k 1.3.x</em> or higher.
+<item>Support added for gzipped kernel images and ramdisks.
+<item>Addition of a boot monitor.
+<item>Now all file vectors are stored only once in the map file.
+<item>New options for the configuration file:
+<descrip>
+<tag/<tt>kickrange</tt>:/ Specify the valid <em/Kickstart/ version range,
+<tag/<tt>file</tt>:/ Add your own files to the map file.
+</descrip>
+<item>Included <tt/fakeboot.c/ for debugging.
+</itemize>
+
+<sect1>Version 1.0
+
+<p>
+<itemize>
+<item><tt/fixpic/ is dead, long live <tt/m68k-cbm-amigados-gcc/!
+<tt>/boot/loader</tt> is again an <em/AmigaOS/ executable.
+<item>Support for gzipped kernel images and ramdisks removed because it doesn't
+work with <tt/m68k-cbm-amigados-gcc/.
+<item>Automatic creation of a boot block backup for easy uninstalling.
+<item>New command line options <tt/--backup/, <tt/--uninstall/ and
+<tt/--version/.
+<item>Added experimental documentation in <em/Linuxdoc-SGML/ format.
+</itemize>
+
+<sect1>Version 1.01
+
+<p>
+<itemize>
+<item>Fix for the alternate boot device option, which was broken in 1.0.
+</itemize>
+
+<sect1>Version 1.02
+
+<p>
+<itemize>
+<item>The prefix specified with the <tt/--root/ option wasn't added to all path
+names.
+</itemize>
+
+<sect1>Version 2.0
+
+<p>
+<itemize>
+<item>Updated for the new boot information structure for parameter passing.
+</itemize>
+
+<sect1>Version 2.1
+
+<p>
+<itemize>
+<item>Updated for <em/amiboot/ 5.2.
+<item>New option for the configuration file:
+<descrip>
+<tag/<tt>processor</tt>:/ Processor type.
+</descrip>
+<item>New command line option <tt/--create-reset/.
+<item>Fixed broken <tt/kickrange/.
+<item>The following configuration file options now also have a global variant:
+<descrip>
+<tag/<tt>chipram</tt> <em>size</em>/
+<tag/<tt>fastram</tt> <em>address size</em>/
+<tag/<tt>model</tt> <em>type</em>/
+<tag/<tt>processor/ <em>cfm</em>/
+</descrip>
+</itemize>
+
+<sect1>Version 2.2
+
+<p>
+<itemize>
+<item>Updated for <em/amiboot/ 5.3 (gzipped kernel images).
+</itemize>
+
+
+</article>
