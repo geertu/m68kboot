@@ -1,10 +1,13 @@
 #
 # common definitions and rules for Makefiles
 #
-# $Id: Rules.make,v 1.8 1998-02-19 20:40:12 rnhodek Exp $
+# $Id: Rules.make,v 1.9 1998-02-24 11:10:23 rnhodek Exp $
 #
 # $Log: Rules.make,v $
-# Revision 1.8  1998-02-19 20:40:12  rnhodek
+# Revision 1.9  1998-02-24 11:10:23  rnhodek
+# Add -DMACHNAME to LINUX_COMPILE
+#
+# Revision 1.8  1998/02/19 20:40:12  rnhodek
 # Make things compile again
 #
 # Revision 1.7  1997/08/10 19:24:20  rnhodek
@@ -47,7 +50,8 @@ AMIGA_COMPILE = $(AMIGA_HOSTCC) $(AMIGA_HOSTINC) $(AMIGA_HOSTFLAGS) \
                 $(BOOTOPTS) $(INC) $(SUBDEF)
 ATARI_COMPILE = $(ATARI_HOSTCC) $(ATARI_HOSTINC) $(ATARI_HOSTFLAGS) \
                 $(BOOTOPTS) $(INC) $(SUBDEF)
-LINUX_COMPILE = $(CC) $(CFLAGS) $(BOOTOPTS) $(INC) $(SUBDEF)
+LINUX_COMPILE = $(CC) $(CFLAGS) $(BOOTOPTS) $(INC) $(SUBDEF) \
+			    -DMACHNAME=\"$(MACH)\"
 
 UPCASE_MACH = $(shell echo $(MACH) | tr [a-z] [A-Z])
 
