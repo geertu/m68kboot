@@ -11,10 +11,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.c,v 1.15 2004-08-15 12:08:13 geert Exp $
+ * $Id: linuxboot.c,v 1.16 2004-08-23 16:14:16 joy Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.15  2004-08-15 12:08:13  geert
+ * Revision 1.16  2004-08-23 16:14:16  joy
+ * corrects my previous code for finding out the physical address from virtual one
+ *
+ * Revision 1.15  2004/08/15 12:08:13  geert
  * Allow CT2 and AB40 users to finally load kernel and ramdisk into FastRAM.
  * Previously the bootstrap didn't allow it because it knew the FastRAM was MMU
  * translated. Now it detects the correct offset between virtual and physical
@@ -163,22 +166,23 @@ static int get_ab040_bank_sizes( int maxres, u_long *result );
 	boot_exit( EXIT_FAILURE );		\
     } while(0)
 
-
-#define MMU_R_040	0x0001
-#define TOS_PAGE_MASK	(~(8192-1))
+#define TOS_PAGE_SIZE	8192
+#define TOS_PAGE_MASK	(~(TOS_PAGE_SIZE-1))
 /* return offset between physical and virtual address */
 long phys_offset(u_long vaddr) {
     if (bi.mch_type == ATARI_MACH_AB40 && ((unsigned long)vaddr & 0xff000000)) {
 	/* Convert virtual (user) address VADDR to physical address PADDR */
 	unsigned long _mmusr, _paddr;
   	vaddr &= TOS_PAGE_MASK;
-  __asm__ __volatile__ (".chip 68040\n\t"				\
-			"ptestr (%1)\n\t"				\
-			"movec %%mmusr,%0\n\t"				\
-			".chip 68k"					\
-			: "=r" (_mmusr)					\
+  __asm__ __volatile__ (".chip 68040\n\t"
+			"moveq  #1,d0\n\t"
+			"movec  d0,dfc\n\t"
+			"ptestr (%1)\n\t"
+			"movec %%mmusr,%0\n\t"
+			".chip 68k"
+			: "=r" (_mmusr)
 			: "a" (vaddr));
-  	_paddr = (_mmusr & MMU_R_040) ? (_mmusr & TOS_PAGE_MASK) : 0;
+  	_paddr = _mmusr & TOS_PAGE_MASK;
 	return _paddr - vaddr;
     }
     if (getcookie("_CT2", NULL) != -1 && ((unsigned long)vaddr & 0xff000000))
