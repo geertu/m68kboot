@@ -6,10 +6,14 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: writetags.l.c,v 1.6 1998-02-26 10:09:48 rnhodek Exp $
+ * $Id: writetags.l.c,v 1.7 1998-03-04 09:11:07 rnhodek Exp $
  * 
  * $Log: writetags.l.c,v $
- * Revision 1.6  1998-02-26 10:09:48  rnhodek
+ * Revision 1.7  1998-03-04 09:11:07  rnhodek
+ * Size of array elements for TAGTYPE_ARRAY is sizeof(u_long*), not
+ * sizeof(u_long) (though it's the same...)
+ *
+ * Revision 1.6  1998/02/26 10:09:48  rnhodek
  * Implement new TAGTYPE_CARRAY; plain ARRAY didn't work correctly for
  * string arrays.
  * If filename has a "bootp:" prefix, don't create a TAG_VECTOR for it.
@@ -166,7 +170,7 @@ static void WriteTagSection( int fd, TAGSECT *ts, void *rec )
 			break;
 		  case TAGTYPE_ARRAY:
 			for( i = 0; i < p->Extra; ++i ) {
-				q = *(const char **)(rec + p->Offset + i*sizeof(u_long));
+				q = *(const char **)(rec + p->Offset + i*sizeof(u_long*));
 				if (q)
 					WriteTagData( fd, p->Tag, q, sizeof(u_long) );
 			}
