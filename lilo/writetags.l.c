@@ -6,10 +6,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: writetags.l.c,v 1.1 1997-08-12 15:26:59 rnhodek Exp $
+ * $Id: writetags.l.c,v 1.2 1997-08-12 21:51:04 rnhodek Exp $
  * 
  * $Log: writetags.l.c,v $
- * Revision 1.1  1997-08-12 15:26:59  rnhodek
+ * Revision 1.2  1997-08-12 21:51:04  rnhodek
+ * Written last missing parts of Atari lilo and made everything compile
+ *
+ * Revision 1.1  1997/08/12 15:26:59  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -26,7 +29,6 @@
 #include <sys/ioctl.h>
 #include <linux/fs.h>
 
-#include "bootstrap.h"
 #include "config.h"
 #include "lilo_util.h"
 #include "parser.h"
@@ -55,19 +57,19 @@ void WriteTags( const char *fname )
     const struct BootRecord *record, *defrecord = NULL;
 
 	/* Print out boot records */
-	Puts( "\nBoot records:" );
+	puts( "\nBoot records:" );
 	for( record = Config.Records; record; record = record->Next) {
-		Printf( "    %s", record->Label );
+		printf( "    %s", record->Label );
 		if (EqualStrings(Config.Options.Default, record->Label) ||
 			EqualStrings(Config.Options.Default, record->Alias)) {
 			defrecord = record;
-			Printf( " (default)" );
+			printf( " (default)" );
 		}
-		Printf( "\n" );
+		printf( "\n" );
 	}
 
     if (Verbose)
-		Printf("Creating map file `%s'\n", MapFile);
+		printf("Creating map file `%s'\n", MapFile);
     if ((fd = open(fname, O_CREAT|O_RDWR|O_TRUNC, S_IRUSR|S_IWUSR)) == -1)
 		Error_Open(fname);
 	
@@ -79,7 +81,7 @@ void WriteTags( const char *fname )
 	for( i = 0; i < arraysize(TagSections); ++i ) {
 		ts = &TagSections[i];
 		if (Verbose)
-			Printf("  [ %s ]\n", ts->name );
+			printf("  [ %s ]\n", ts->name );
 
 		if (ts->link_offset == -1)
 			/* single structure */
@@ -95,7 +97,7 @@ void WriteTags( const char *fname )
     close(fd);
 
     if (!Verbose)
-		Puts("");
+		puts("");
 }
 
 
@@ -121,7 +123,7 @@ static void WriteTagSection( int fd, TAGSECT *ts, void *rec )
 			if ((file->Vector = CreateVector(path, &numblocks)))
 				vecsize = (numblocks+1)*sizeof(struct vecent);
 			else
-				Printf("Warning: file `%s' doesn't exist\n", path);
+				printf("Warning: file `%s' doesn't exist\n", path);
 			if (Verbose && file->Vector)
 				printf("    %s (%ld bytes)\n", path, file->Vector[0].start);
 			WriteTagData( fd, p->Tag, file->Vector, vecsize );
@@ -198,11 +200,11 @@ static void WriteZeroTag( int fd, const char *fname )
 	 * contains TAG_LILO; the next blksize ones are really used for mapping
 	 * the holes. */
 	zerosize = 2*blksize - pos;
-	if (!(zeros = Alloc( zerosize )))
+	if (!(zeros = malloc( zerosize )))
 		Error_NoMemory();
 	memset( zeros, 0, zerosize );
 	WriteTagData(fd, TAG_ZEROHOLE, zeros, zerosize );
-	Free( zeros );
+	free( zeros );
 
 	/* translate second block of file */
 	offset = 1;

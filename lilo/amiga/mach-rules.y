@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: mach-rules.y,v 1.1 1997-08-12 15:27:05 rnhodek Exp $
+ * $Id: mach-rules.y,v 1.2 1997-08-12 21:51:06 rnhodek Exp $
  * 
  * $Log: mach-rules.y,v $
- * Revision 1.1  1997-08-12 15:27:05  rnhodek
+ * Revision 1.2  1997-08-12 21:51:06  rnhodek
+ * Written last missing parts of Atari lilo and made everything compile
+ *
+ * Revision 1.1  1997/08/12 15:27:05  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -96,7 +99,7 @@ amimodel    : "A500"	{ $$ = AMI_500; }
 	    | "A2000"	{ $$ = AMI_2000; }
 	    | "A2500"	{ $$ = AMI_2500; }
 	    | "A3000"	{ $$ = AMI_3000; }
-	    | "A3000T"	{ $$ = AMI_300T; }
+	    | "A3000T"	{ $$ = AMI_3000T; }
 	    | "A3000+"	{ $$ = AMI_3000PLUS; }
 	    | "A4000"	{ $$ = AMI_4000; }
 	    | "A4000T"	{ $$ = AMI_4000T; }

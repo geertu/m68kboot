@@ -13,10 +13,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo_util.l.c,v 1.1 1997-08-12 15:26:57 rnhodek Exp $
+ * $Id: lilo_util.l.c,v 1.2 1997-08-12 21:51:02 rnhodek Exp $
  * 
  * $Log: lilo_util.l.c,v $
- * Revision 1.1  1997-08-12 15:26:57  rnhodek
+ * Revision 1.2  1997-08-12 21:51:02  rnhodek
+ * Written last missing parts of Atari lilo and made everything compile
+ *
+ * Revision 1.1  1997/08/12 15:26:57  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -37,20 +40,25 @@
 #include <linux/hdreg.h>
 #include <linux/fs.h>
 
+#include "lilo.h"
 #include "lilo_util.h"
 #include "config.h"
 #include "parser.h"
 #include "minmax.h"
 
     /*
-     *	Global Common variables
+     *	Global Common Variables
      */
+
+const char LiloVersion[] = LILO_VERSION;
 
 const char *ProgramName = NULL;
 int Verbose = 0;
 int DoBackup = 0;
 int Install = 0;
 int Uninstall = 0;
+
+struct BootBlock BootBlock;
 const char *SaveBootBlock = NULL;
 const char *RestoreBootBlock = NULL;
 const char *Device = NULL;
@@ -63,6 +71,13 @@ const char *BackupFile;
 dev_t BootDevice;
 u_long HoleSector;
 u_long MaxHoleSectors;
+const struct vecent *MapVector;
+int MapNumBlocks;
+char *LoaderData;
+int LoaderSize;
+const struct vecent *LoaderVector;
+int LoaderNumBlocks;
+
 
     /*
      *	Print an Error Message and Exit
@@ -411,7 +426,7 @@ const struct vecent *CreateVector( const char *name, int *numblocks )
     vector[0].start = size;
 
     GeometryFile(name, &device, &start);
-    CheckVectorDevice( vector, device );
+    CheckVectorDevice( name, device, vector );
 
     if (ioctl(fh, FIGETBSZ, &blksize) == -1)
 	Error_Ioctl(name, "FIGETBSZ");
@@ -535,6 +550,38 @@ void GeometryDevice( const char *devname, u_long *start)
     close(fh);
     *start = geo.start;
 }
+
+
+    /*
+     *	Patch the Loader with the Map Vector
+     */
+
+void PatchLoader(void)
+{
+    int i;
+    const u_long pattern[] = {
+	LILO_ID, LILO_MAPVECTORID
+    };
+    u_long *data = NULL;
+    u_long maxsize;
+
+    for (i = 0; i < LoaderSize-sizeof(pattern)+1; i++)
+	if (!memcmp(&LoaderData[i], pattern, sizeof(pattern))) {
+	    data = (u_long *)&LoaderData[i];
+	    break;
+	}
+    if (!data)
+	Die("Couldn't find magic key in loader template\n");
+    maxsize = data[2];
+    if (MapNumBlocks > maxsize-1)
+	Die("Map vector is too large for loader (%ld entries too much)\n",
+	    MapNumBlocks-maxsize-1);
+    if (Verbose)
+	printf("%d entries for map vector blocks, %lu entries free\n",
+	       MapNumBlocks, maxsize-1-MapNumBlocks);
+    memcpy(&data[3], MapVector, (MapNumBlocks+1)*sizeof(struct vecent));
+}
+
 
 	
 /* Local Variables: */

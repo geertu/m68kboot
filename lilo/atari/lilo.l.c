@@ -7,13 +7,15 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: lilo.l.c,v 1.1 1997-08-12 15:27:09 rnhodek Exp $
+ * $Id: lilo.l.c,v 1.2 1997-08-12 21:51:07 rnhodek Exp $
  * 
  * $Log: lilo.l.c,v $
- * Revision 1.1  1997-08-12 15:27:09  rnhodek
+ * Revision 1.2  1997-08-12 21:51:07  rnhodek
+ * Written last missing parts of Atari lilo and made everything compile
+ *
+ * Revision 1.1  1997/08/12 15:27:09  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
- *
  * 
  */
 
@@ -49,11 +51,15 @@ static int get_SCSI_id( const char *device, unsigned major );
 static void get_XGM_sector( const char *device, unsigned long *start );
 static void CreateBootBlock( void );
 static void CreateMapFile( void);
+static int check_checksum( void *buf );
 static void recalc_checksum( void *buf );
+static void WriteLoader( void);
 static void Usage( void);
 
 /************************* End of Prototypes **************************/
 
+
+#if 0
 
 #define	DUMPL(field)							\
 	do {										\
@@ -161,15 +167,10 @@ static void DumpConf( void )
 	}
 }
 
+#endif
 
-const char LiloVersion[] = LILO_VERSION;
-struct BootBlock BootBlock;
-
-static const struct vecent *LoaderVector;
 static int BootTOSDevno;
 static unsigned long BootStartSector;
-static const u_long *MapVector;
-static int MapNumBlocks;
 
 
 struct devent {
@@ -406,7 +407,7 @@ static void CreateBootBlock( void )
 			     LoaderVector[2].start : LoaderVector[1].start + 1;
 	
 	BootBlock.jump        = template.jump;
-	BootBlock.boot_device = BootTOSDevno;
+	BootBlock.boot_device = LoaderVector[0].length;
 	BootBlock.map_sector  = map_sector;
 	memcpy( BootBlock.data, template.data, sizeof(template.data) );
 	memcpy( &BootBlock.LiloID, "LILO", 4 );
@@ -437,11 +438,25 @@ static void CreateMapFile(void)
 }
 
 
-void CheckVectorDevice( struct vecent *vector, dev_t device )
+void CheckVectorDevice( const char *name, dev_t device, struct vecent *vector )
 {
 	/* TOS device number for file is put into length component of the first
 	 * vector element */
 	vector[0].length = get_TOS_devicenum( device );
+}
+
+
+#define ROOTSEC_CHECKSUM	0x1234
+
+static int check_checksum( void *buf )
+{
+    signed short *p = (signed short *)buf;
+    signed short *pend = buf + (HARD_SECTOR_SIZE/sizeof(short));
+	signed short sum;
+    
+    for( sum = 0; p < pend; ++p )
+		sum += *p;
+    return( sum == ROOTSEC_CHECKSUM );
 }
 
 
@@ -453,7 +468,26 @@ static void recalc_checksum( void *buf )
     
     for( sum = 0; p < pend; ++p )
 		sum += *p;
-    *pend = 0x1234 - sum;
+    *pend = ROOTSEC_CHECKSUM - sum;
+}
+
+
+    /*
+     *  Write the Loader (incl. Header Code)
+     */
+
+static void WriteLoader(void)
+{
+    int fh;
+
+    if (Verbose)
+		printf( "Writing loader to file `%s'\n", LoaderFile );
+
+    if ((fh = open(LoaderFile, O_CREAT|O_RDWR|O_TRUNC, S_IRUSR|S_IWUSR)) == -1)
+		Error_Open(LoaderFile);
+    if (write( fh, LoaderData, LoaderSize ) != LoaderSize)
+		Error_Write(LoaderFile);
+    close(fh);
 }
 
 
@@ -550,20 +584,57 @@ int main( int argc, char *argv[] )
 		RestoreBootBlock = CreateFileName(RestoreBootBlock);
 
     ReadConfigFile();
+#if 0
+	DumpConf();
+#endif
     if (device) {
         if (Verbose)
             printf("Using specified device `%s'\n", device);
         Device = device;
     }
-	DumpConf();
 
     if (stat(Device, &info) == -1)
 		Error_Stat(Device);
     if (!S_ISBLK(info.st_mode))
 		Die("%s is not a block special device\n", Device);
     BootDevice = info.st_rdev;
+	parse_device( Device, &BootTOSDevno, &BootStartSector, 1, CUR_FLOPPY );
     BackupFile = CreateBackupFileName();
 
+    ReadBootBlock( Device, BootStartSector );
+    printf( "%s: ", Device );
+    printf( "%s, root sector is %sbootable\n",
+			BootBlock.LiloID == LILO_ID ? " (created by Lilo)" : "",
+			check_checksum( &BootBlock ) ? "" : "not " );
+	
+    if (SaveBootBlock) {
+		WriteFile( SaveBootBlock, &BootBlock, sizeof(BootBlock) );
+		printf( "Root sector saved to file `%s'\n", SaveBootBlock );
+    }
+    if (RestoreBootBlock) {
+		ReadBootBlock( RestoreBootBlock, 0 );
+		printf( "Root sector read from file `%s'\n", RestoreBootBlock );
+    }
+    if (Uninstall) {
+		ReadBootBlock( BackupFile, 0 );
+		printf( "Original root sector read from file `%s'\n", BackupFile );
+    }
+
+    if (Install) {
+		BackupBootBlock();
+		CreateMapFile();
+		LoaderSize = ReadFile( LoaderTemplate, (void **)&LoaderData );
+		if (!(MapVector = CreateVector( MapFile, &MapNumBlocks )))
+			Error_Open(MapFile);
+		PatchLoader();
+		WriteLoader();
+		if (!(LoaderVector = CreateVector( LoaderFile, &LoaderNumBlocks )))
+			Error_Open(LoaderFile);
+		CreateBootBlock();
+    }
+	
+    if (RestoreBootBlock || Install || Uninstall)
+		WriteBootBlock( Device, BootStartSector );
 	return( 0 );
 }
 

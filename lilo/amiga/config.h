@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: config.h,v 1.1 1997-08-12 15:27:03 rnhodek Exp $
+ * $Id: config.h,v 1.2 1997-08-12 21:51:05 rnhodek Exp $
  * 
  * $Log: config.h,v $
- * Revision 1.1  1997-08-12 15:27:03  rnhodek
+ * Revision 1.2  1997-08-12 21:51:05  rnhodek
+ * Written last missing parts of Atari lilo and made everything compile
+ *
+ * Revision 1.1  1997/08/12 15:27:03  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -20,6 +23,7 @@
 #ifndef _conf_amiga_h
 #define _conf_amiga_h
 
+#include "linuxboot.h"
 #include "config_common.h"
 
 #define ID_BOOT_DISK		(0x424F4F55)	/* `BOOU' */

@@ -13,10 +13,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo.l.c,v 1.1 1997-08-12 15:27:04 rnhodek Exp $
+ * $Id: lilo.l.c,v 1.2 1997-08-12 21:51:05 rnhodek Exp $
  * 
  * $Log: lilo.l.c,v $
- * Revision 1.1  1997-08-12 15:27:04  rnhodek
+ * Revision 1.2  1997-08-12 21:51:05  rnhodek
+ * Written last missing parts of Atari lilo and made everything compile
+ *
+ * Revision 1.1  1997/08/12 15:27:04  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -43,9 +46,6 @@
 #include "config.h"
 #include "parser.h"
 #include "writetags.h"
-
-
-const char LiloVersion[] = LILO_VERSION;
 
 
     /*
@@ -116,18 +116,10 @@ static struct DosTypeEntry DosTypeEntries[] = {
 
 
     /*
-     *	Lilo Data
+     *	Amiga Specific Lilo Data
      */
 
-static struct BootBlock BootBlock;
 
-static const u_long *MapVector;
-static int MapNumBlocks;
-
-static char *LoaderData;
-static int LoaderSize;
-static const u_long *LoaderVector;
-static int LoaderNumBlocks;
 static u_long DosTypeID;
 
 
@@ -142,10 +134,6 @@ static void SetDosType(void);
 static void FixChecksum(void);
 static u_long CalcChecksum(void);
 static void CreateMapFile(void);
-static void WriteTagData(int fd, u_long tag, const void *data, u_long size);
-static void WriteTagString(int fd, u_long tag, const char *s);
-static const u_long *CreateVector(const char *name, int *numblocks);
-static void PatchLoader(void);
 static void WriteLoader(void);
 static void Usage(void) __attribute__ ((noreturn));
 
@@ -295,7 +283,7 @@ static void CreateMapFile(void)
      *	Callback for CreateVector to Check the Installation Device
      */
 
-void CheckVectorDevice( struct vecent *vector, dev_t device )
+void CheckVectorDevice( const char *name, dev_t device, struct vecent *vector )
 {
     static u_int first = 1;
     static dev_t altdev;
@@ -359,37 +347,6 @@ void CheckVectorDevice( struct vecent *vector, dev_t device )
 	}
     }
 }
-
-    /*
-     *	Patch the Loader with the Map Vector
-     */
-
-static void PatchLoader(void)
-{
-    int i;
-    const u_long pattern[] = {
-	LILO_ID, LILO_MAPVECTORID
-    };
-    u_long *data = NULL;
-    u_long maxsize;
-
-    for (i = 0; i < LoaderSize-sizeof(pattern)+1; i++)
-	if (!strncmp(&LoaderData[i], (char *)pattern, sizeof(pattern))) {
-	    data = (u_long *)&LoaderData[i];
-	    break;
-	}
-    if (!data)
-	Die("Couldn't find magic key in loader template\n");
-    maxsize = data[2];
-    if (MapNumBlocks > maxsize-1)
-	Die("Map vector is too large for loader (%ld entries too much)\n",
-	    MapNumBlocks-maxsize-1);
-    if (Verbose)
-	printf("%d entries for map vector blocks, %lu entries free\n",
-	       MapNumBlocks, maxsize-1-MapNumBlocks);
-    memcpy(&data[3], MapVector, (MapNumBlocks+1)*sizeof(u_long));
-}
-
 
     /*
      *  Write the Loader (incl. Header Code)

@@ -7,10 +7,13 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.5 1997-08-12 15:26:55 rnhodek Exp $
+# $Id: Makefile,v 1.6 1997-08-12 21:51:01 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.5  1997-08-12 15:26:55  rnhodek
+# Revision 1.6  1997-08-12 21:51:01  rnhodek
+# Written last missing parts of Atari lilo and made everything compile
+#
+# Revision 1.5  1997/08/12 15:26:55  rnhodek
 # Import of Amiga and newly written Atari lilo sources, with many mods
 # to separate out common parts.
 #
@@ -42,7 +45,7 @@ ATARI_OBJS = $(ATARI_COBJS)
 LOADER_COBJS = parsetags.o
 LILO_COBJS   = lilo.o lilo_util.o writetags.o conf.tab.o lex.conf.o
 
-AMIGA_LINUX_OBJS = $(addprefix amiga/,$(LILO_COBJS))
+AMIGA_LINUX_OBJS = $(addprefix amiga/,$(LILO_COBJS) bootcode.o head.o reset.o)
 ATARI_LINUX_OBJS = $(addprefix atari/,$(LILO_COBJS))
 
 SUBDEF = -DIN_LILO

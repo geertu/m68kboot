@@ -6,10 +6,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo_util.h,v 1.1 1997-08-12 15:26:57 rnhodek Exp $
+ * $Id: lilo_util.h,v 1.2 1997-08-12 21:51:02 rnhodek Exp $
  * 
  * $Log: lilo_util.h,v $
- * Revision 1.1  1997-08-12 15:26:57  rnhodek
+ * Revision 1.2  1997-08-12 21:51:02  rnhodek
+ * Written last missing parts of Atari lilo and made everything compile
+ *
+ * Revision 1.1  1997/08/12 15:26:57  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -21,11 +24,13 @@
 
 #include "config.h"
 
+extern const char LiloVersion[];
 extern const char *ProgramName;
 extern int Verbose;
 extern int DoBackup;
 extern int Install;
 extern int Uninstall;
+extern struct BootBlock BootBlock;
 extern const char *SaveBootBlock;
 extern const char *RestoreBootBlock;
 extern const char *Device;
@@ -39,8 +44,15 @@ extern dev_t BootDevice;
 extern struct BootBlock BootBlock;
 extern u_long HoleSector;
 extern u_long MaxHoleSectors;
+const struct vecent *MapVector;
+extern int MapNumBlocks;
+extern char *LoaderData;
+extern int LoaderSize;
+extern const struct vecent *LoaderVector;
+extern int LoaderNumBlocks;
 
-extern void CheckVectorDevice( struct vecent *vector, dev_t device );
+extern void CheckVectorDevice( const char *name, dev_t device,
+							   struct vecent *vector );
 
 /***************************** Prototypes *****************************/
 
@@ -70,6 +82,7 @@ void FindDevice( dev_t device, char *devname );
 void FindFileDevice( const char *name, char *devname, dev_t *device );
 void GeometryFile( const char *name, dev_t *device, u_long *start);
 void GeometryDevice( const char *devname, u_long *start);
+void PatchLoader( void);
 
 /************************* End of Prototypes **************************/
 
