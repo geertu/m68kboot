@@ -11,10 +11,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: bootstrap.h,v 1.4 1997-07-30 21:42:51 rnhodek Exp $
+ * $Id: bootstrap.h,v 1.5 1998-02-19 20:40:13 rnhodek Exp $
  * 
  * $Log: bootstrap.h,v $
- * Revision 1.4  1997-07-30 21:42:51  rnhodek
+ * Revision 1.5  1998-02-19 20:40:13  rnhodek
+ * Make things compile again
+ *
+ * Revision 1.4  1997/07/30 21:42:51  rnhodek
  * Fix defition of Puts; make boot_exit a normal function
  *
  * Revision 1.3  1997/07/16 15:06:21  rnhodek
@@ -37,7 +40,7 @@
 #include <osbind.h>
 
 extern unsigned long userstk;
-void boot_exit( int status );
+void boot_exit( int status ) __attribute__((noreturn));
 
 #define Puts(str)		fputs( (str), stdout )
 #define	GetChar			getchar

@@ -7,10 +7,13 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: bootparam.h,v 1.2 1997-08-23 22:43:44 rnhodek Exp $
+ * $Id: bootparam.h,v 1.3 1998-02-19 20:40:14 rnhodek Exp $
  * 
  * $Log: bootparam.h,v $
- * Revision 1.2  1997-08-23 22:43:44  rnhodek
+ * Revision 1.3  1998-02-19 20:40:14  rnhodek
+ * Make things compile again
+ *
+ * Revision 1.2  1997/08/23 22:43:44  rnhodek
  * Removed leftovers from ancient versions
  *
  * Revision 1.1  1997/08/12 15:27:08  rnhodek
@@ -21,6 +24,9 @@
 
 #ifndef _bootparm_h
 #define _bootparm_h
+
+/* number of struct vecent's that fit into a sector: int(512/6) */
+#define N_MAPENTRIES	85
 
 #ifndef __ASSEMBLY__
 #include <sys/types.h>

@@ -13,10 +13,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo_util.l.c,v 1.3 1997-08-23 23:10:41 rnhodek Exp $
+ * $Id: lilo_util.l.c,v 1.4 1998-02-19 20:40:13 rnhodek Exp $
  * 
  * $Log: lilo_util.l.c,v $
- * Revision 1.3  1997-08-23 23:10:41  rnhodek
+ * Revision 1.4  1998-02-19 20:40:13  rnhodek
+ * Make things compile again
+ *
+ * Revision 1.3  1997/08/23 23:10:41  rnhodek
  * Add sector number in printout of {Read,Write}BootBlock
  * Fix bug in map calculation
  *
@@ -42,6 +45,8 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <linux/hdreg.h>
+#define _LINUX_STAT_H		/* Hack to prevent including <linux/stat.h> */
+struct inode;			/* to avoid warning */
 #include <linux/fs.h>
 
 #include "lilo.h"

@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: lilo.l.c,v 1.4 1997-09-19 09:06:56 geert Exp $
+ * $Id: lilo.l.c,v 1.5 1998-02-19 20:40:14 rnhodek Exp $
  * 
  * $Log: lilo.l.c,v $
- * Revision 1.4  1997-09-19 09:06:56  geert
+ * Revision 1.5  1998-02-19 20:40:14  rnhodek
+ * Make things compile again
+ *
+ * Revision 1.4  1997/09/19 09:06:56  geert
  * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
  *
  * Revision 1.3  1997/08/23 23:09:35  rnhodek
@@ -49,7 +52,9 @@
 
 /***************************** Prototypes *****************************/
 
+#if 0
 static void DumpConf( void );
+#endif
 static int get_TOS_devicenum( dev_t device );
 static void add_dev_cache( const char *name, int devno, unsigned long
                            start, int start_valid, int is_xgm );
@@ -541,36 +546,41 @@ int main( int argc, char *argv[] )
 			Uninstall = 1;
 		else if (!strcmp(argv[0], "-V") || !strcmp(argv[0], "--version"))
 			Die(LiloVersion);
-		else if (!strcmp(argv[0], "-w") || !strcmp(argv[0], "--root"))
+		else if (!strcmp(argv[0], "-w") || !strcmp(argv[0], "--root")) {
 			if (argc-- > 1 && !Root) {
 				Root = argv[1];
 				argv++;
 			} else
 				Usage();
-		else if (!strcmp(argv[0], "-r") || !strcmp(argv[0], "--restore-from"))
+		}
+		else if (!strcmp(argv[0], "-r") || !strcmp(argv[0], "--restore-from")){
 			if (argc-- > 1 && !RestoreBootBlock) {
 				RestoreBootBlock = argv[1];
 				argv++;
 			} else
 				Usage();
-		else if (!strcmp(argv[0], "-s") || !strcmp(argv[0], "--save-to"))
+		}
+		else if (!strcmp(argv[0], "-s") || !strcmp(argv[0], "--save-to")) {
 			if (argc-- > 1 && !SaveBootBlock) {
 				SaveBootBlock = argv[1];
 				argv++;
 			} else
 				Usage();
-		else if (!strcmp(argv[0], "-d") || !strcmp(argv[0], "--device"))
+		}
+		else if (!strcmp(argv[0], "-d") || !strcmp(argv[0], "--device")) {
 			if (argc-- > 1 && !device) {
 				device = argv[1];
 				argv++;
 			} else
 				Usage();
-		else if (!strcmp(argv[0], "-C") || !strcmp(argv[0], "--config-file"))
+		}
+		else if (!strcmp(argv[0], "-C") || !strcmp(argv[0], "--config-file")) {
 			if (argc-- > 1 && !conffile) {
 				conffile = argv[1];
 				argv++;
 			} else
 				Usage();
+		}
 		else
 			Usage();
     }
@@ -613,7 +623,7 @@ int main( int argc, char *argv[] )
 		strcat( pdevice, "x" );
 	}
 	else
-		pdevice = Device;
+		pdevice = (char *)Device;
 		
     BackupFile = CreateBackupFileName();
 

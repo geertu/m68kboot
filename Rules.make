@@ -1,10 +1,13 @@
 #
 # common definitions and rules for Makefiles
 #
-# $Id: Rules.make,v 1.7 1997-08-10 19:24:20 rnhodek Exp $
+# $Id: Rules.make,v 1.8 1998-02-19 20:40:12 rnhodek Exp $
 #
 # $Log: Rules.make,v $
-# Revision 1.7  1997-08-10 19:24:20  rnhodek
+# Revision 1.8  1998-02-19 20:40:12  rnhodek
+# Make things compile again
+#
+# Revision 1.7  1997/08/10 19:24:20  rnhodek
 # In depend- rules, write directory prefix in rules.
 # Added depend- rules for .S Linux files.
 #
@@ -94,6 +97,10 @@ depend-amiga/%.o: %.S
 	@echo -n "amiga/" >>amiga/.depend
 	$(LINUX_COMPILE) -MM $< >>amiga/.depend
 
+depend-amiga/%.o: %.l.S
+	@echo -n "amiga/" >>amiga/.depend
+	$(LINUX_COMPILE) -MM $< >>amiga/.depend
+
 depend-atari/%.o: %.c
 	@echo -n "atari/" >>atari/.depend
 	$(ATARI_COMPILE) -MM $< >>atari/.depend
@@ -106,3 +113,6 @@ depend-atari/%.o: %.S
 	@echo -n "atari/" >>atari/.depend
 	$(LINUX_COMPILE) -MM $< >>atari/.depend
 
+depend-atari/%.o: %.l.S
+	@echo -n "atari/" >>atari/.depend
+	$(LINUX_COMPILE) -MM $< >>atari/.depend

@@ -6,10 +6,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: writetags.l.c,v 1.3 1997-09-19 09:06:49 geert Exp $
+ * $Id: writetags.l.c,v 1.4 1998-02-19 20:40:13 rnhodek Exp $
  * 
  * $Log: writetags.l.c,v $
- * Revision 1.3  1997-09-19 09:06:49  geert
+ * Revision 1.4  1998-02-19 20:40:13  rnhodek
+ * Make things compile again
+ *
+ * Revision 1.3  1997/09/19 09:06:49  geert
  * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
  *
  * Revision 1.2  1997/08/12 21:51:04  rnhodek
@@ -30,6 +33,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+#define _LINUX_STAT_H		/* Hack to prevent including <linux/stat.h> */
+struct inode;			/* to avoid warning */
 #include <linux/fs.h>
 
 #include "config.h"

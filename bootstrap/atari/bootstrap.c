@@ -43,10 +43,13 @@
  *      19 Feb 1994 Changed everything so that it works? (rdv)
  *      14 Mar 1994 New mini-copy routine used (rdv)
  *
- * $Id: bootstrap.c,v 1.3 1998-02-19 19:44:10 rnhodek Exp $
+ * $Id: bootstrap.c,v 1.4 1998-02-19 20:40:12 rnhodek Exp $
  * 
  * $Log: bootstrap.c,v $
- * Revision 1.3  1998-02-19 19:44:10  rnhodek
+ * Revision 1.4  1998-02-19 20:40:12  rnhodek
+ * Make things compile again
+ *
+ * Revision 1.3  1998/02/19 19:44:10  rnhodek
  * Integrated changes from ataboot 3.0 to 3.2
  *
  * Revision 1.2  1997/07/30 21:41:28  rnhodek
@@ -65,6 +68,7 @@
 #include <ctype.h>
 #include <unistd.h>
 
+#include "bootstrap.h"
 #include "linuxboot.h"
 #include "version.h"
 
@@ -84,11 +88,7 @@ static void get_default_args( int *argc, char ***argv );
 static void help( void )
 {
     printf(
-	"Linux/68k Atari Bootstrap version " ATABOOT_VERSION
-#ifdef USE_BOOTP
-	  " (with BOOTP)"
-#endif
-	"\n"
+	"Linux/68k Atari Bootstrap version " VERSION WITH_BOOTP "\n"
 	"Options:\n"
 	"  -k<file>: Use <file> as kernel image (defaults: vmlinux, vmlinux.gz)\n"
 	"  -r<file>: Load ramdisk <file>\n"

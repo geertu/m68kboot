@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: amigaos.h,v 1.2 1997-09-19 09:06:50 geert Exp $
+ * $Id: amigaos.h,v 1.3 1998-02-19 20:40:13 rnhodek Exp $
  * 
  * $Log: amigaos.h,v $
- * Revision 1.2  1997-09-19 09:06:50  geert
+ * Revision 1.3  1998-02-19 20:40:13  rnhodek
+ * Make things compile again
+ *
+ * Revision 1.2  1997/09/19 09:06:50  geert
  * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
  *
  * Revision 1.1  1997/08/12 15:26:59  rnhodek
@@ -66,8 +69,12 @@
 #define UNIT_VBLANK		1
 #define TR_ADDREQUEST		9
 
+#ifndef MEMF_PUBLIC
 #define MEMF_PUBLIC		1
+#endif
+#ifndef MEMF_CLEAR
 #define MEMF_CLEAR		0x10000
+#endif
 
 #define CONU_SNIPMAP		3
 #define CONFLAG_DEFAULT		0
@@ -154,7 +161,9 @@ struct Library;
      */
 
 #define CUSTOMSCREEN		0x000f
+#ifndef HIRES
 #define HIRES			0x8000
+#endif
 
 #define WFLG_SIMPLE_REFRESH	0x00000040
 #define WFLG_ACTIVATE		0x00001000
@@ -207,7 +216,9 @@ struct Window;
 
 #define LVOAbortIO		-0x1e0
 #define LVOAlert		-0x6c
+#ifndef LVOAllocVec
 #define LVOAllocVec		-0x2ac
+#endif
 #define LVOCacheClearU		-0x27c
 #define LVOCheckIO		-0x1d4
 #define LVOCloseDevice		-0x1c2
@@ -218,8 +229,12 @@ struct Window;
 #define LVODeleteIORequest	-0x294
 #define LVODeleteMsgPort	-0x2a0
 #define LVODoIO			-0x1c8
+#ifndef LVOFindResident
 #define LVOFindResident		-0x60
+#endif
+#ifndef LVOFreeVec
 #define LVOFreeVec		-0x2b2
+#endif
 #define LVOOpenDevice		-0x1bc
 #define LVOOpenLibrary		-0x228
 #define LVORawDoFmt		-0x20a
