@@ -7,10 +7,13 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.7 1997-08-10 19:49:46 rnhodek Exp $
+# $Id: Makefile,v 1.8 1998-02-19 21:27:06 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.7  1997-08-10 19:49:46  rnhodek
+# Revision 1.8  1998-02-19 21:27:06  rnhodek
+# Add install and binary targets
+#
+# Revision 1.7  1997/08/10 19:49:46  rnhodek
 # Hardwire $(CC) to m68k-linux-gcc, no sense in a cross-lilo :-)
 # >& /dev/null didn't work
 #
@@ -50,6 +53,9 @@
 BOOTOPTS  = -DBOOTINFO_COMPAT_1_0 # -DAOUT_KERNEL
 
 USE_BOOTP = n
+
+# where to install
+PREFIX = /
 
 # define with path to Linux/68k kernel headers, if not in the standard
 # places /usr/local/m68k-linux/include/linux, /usr/m68k-linux/include/linux,
@@ -119,6 +125,12 @@ dep:
 		$(MAKE) -C bootstrap dep MACH=atari; \
 		$(MAKE) -C lilo dep MACH=atari; \
 	fi
+
+install:
+	./do_install $(PREFIX)
+
+binary:
+	doit=""; [ root = "`whoami`" ] || doit=sudo; $$doit ./make_binary
 
 bootstrap/%.i bootstrap/%.s:
 	$(MAKE) -C bootstrap MACH=$(dir $(subst bootstrap/,,$@)) $(subst bootstrap/,,$@)
