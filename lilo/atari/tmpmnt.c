@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: tmpmnt.c,v 1.6 1998-02-27 10:22:00 rnhodek Exp $
+ * $Id: tmpmnt.c,v 1.7 1998-03-16 10:48:29 schwab Exp $
  * 
  * $Log: tmpmnt.c,v $
- * Revision 1.6  1998-02-27 10:22:00  rnhodek
+ * Revision 1.7  1998-03-16 10:48:29  schwab
+ * In umount_drv(), put path template into data section.
+ *
+ * Revision 1.6  1998/02/27 10:22:00  rnhodek
  * Removed #ifdef DEBUG_RW_SECTORS.
  *
  * Revision 1.5  1998/02/26 10:34:08  rnhodek
@@ -183,7 +186,7 @@ int umount( void )
  */
 int umount_drv( int drv )
 {
-	static char *fname = "X:\\X";
+	static char fname[] = "X:\\X";
 	int fd;
 	struct drv_param *dp = &drv_param[drv];
 	unsigned long mask = ~(1 << drv);
