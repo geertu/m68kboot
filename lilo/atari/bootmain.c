@@ -7,10 +7,16 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: bootmain.c,v 1.4 1998-02-23 10:16:57 rnhodek Exp $
+ * $Id: bootmain.c,v 1.5 1998-02-24 11:16:42 rnhodek Exp $
  * 
  * $Log: bootmain.c,v $
- * Revision 1.4  1998-02-23 10:16:57  rnhodek
+ * Revision 1.5  1998-02-24 11:16:42  rnhodek
+ * Fix typo in boot_linux() (printed "TOS" instead of "Linux" :-)
+ * Fix [id]tt0 usage in cache_ctrl(): whole instruction space should be
+ * cached, but only low 2 GB of data space (for hardware regs).
+ * Use cprintf() in Alert(), too.
+ *
+ * Revision 1.4  1998/02/23 10:16:57  rnhodek
  * Moved definition of CurrentFloppy to crt0.S
  *
  * Revision 1.3  1997/09/19 09:06:55  geert
@@ -144,7 +150,7 @@ int main( int argc, char *argv[] )
 			if (Debug)
 				cprintf( "Auto boot in progress, waiting for %ld seconds\n",
 						 BootOptions->Delay ? *BootOptions->Delay : 0 );
-			while(  _hz_200 < timeout) {
+			while( _hz_200 < timeout) {
 				if (Kbshift( -1 ) & 0xff)
 					/* any modifier or mouse button pressed */
 					goto no_auto_boot;
@@ -353,7 +359,7 @@ void boot_linux( const struct BootRecord *rec, const char *cmdline )
 	
 	/* do temp. mounts and run programs defined for the boot record */
 	if (Debug)
-		cprintf( "Booting TOS -- doing tmp mounts and executes\n" );
+		cprintf( "Booting Linux -- doing tmp mounts and executes\n" );
 	for( i = 0; i < MAX_TMPMNT; ++i ) {
 		if (rec->TmpMnt[i])
 			mount( &MountPoints[*rec->TmpMnt[i]] );
@@ -653,9 +659,9 @@ static void cache_ctrl( int on_flag )
 			"	movec	dtt1,%2\n"
 			"	movec	itt1,%3\n"
 			"	movel	#0x00ffc000,d0\n" /* everywhere, user&super, cache/wt*/
-			"	movec	d0,dtt0\n"
-			"	movel	#0x007fc000,d0\n" /* lower 2GB, user&super, cache/wt */
 			"	movec	d0,itt0\n"
+			"	movel	#0x007fc000,d0\n" /* lower 2GB, user&super, cache/wt */
+			"	movec	d0,dtt0\n"
 			"	moveq	#0,d0\n"
 			"	movec	d0,dtt1\n"
 			"	movec	d0,itt1\n"
@@ -753,7 +759,8 @@ char *AlertText[] = {
 /* Alert() is used in common code */
 void Alert( enum AlertCodes code )
 {
-	fprintf( stderr, "Error: %s\n", AlertText[code] );
+	cprintf( "Error: %s\n", AlertText[code] );
+	exit(-1);
 }
 
 
