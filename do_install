@@ -24,7 +24,7 @@ fi
 
 set -v
 install -m755 lilo/$machtype/lilo $PREFIX/sbin/lilo
-install -m644 lilo/$machtype/loader $PREFIX/boot/loader
+install -m644 lilo/$machtype/loader $PREFIX/boot/loader.$machtype
 if [ ! -f $PREFIX/etc/lilo.conf ]; then
 	install -m644 lilo/$machtype/lilo.conf.example $PREFIX/etc/lilo.conf
 	echo "You have to edit /etc/lilo.conf"
