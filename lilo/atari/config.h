@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: config.h,v 1.3 1997-09-19 09:06:56 geert Exp $
+ * $Id: config.h,v 1.4 1998-02-26 10:16:38 rnhodek Exp $
  * 
  * $Log: config.h,v $
- * Revision 1.3  1997-09-19 09:06:56  geert
+ * Revision 1.4  1998-02-26 10:16:38  rnhodek
+ * New config vars WorkDir, Environ, and BootDrv (global)
+ *
+ * Revision 1.3  1997/09/19 09:06:56  geert
  * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
  *
  * Revision 1.2  1997/08/23 22:47:30  rnhodek
@@ -69,6 +72,7 @@ struct BootBlock {
 
 #define MAX_TMPMNT	4
 #define MAX_EXECPROG	4
+#define MAX_ENVIRON	10
 
     /*
      *  Temporary Mount Definitions
