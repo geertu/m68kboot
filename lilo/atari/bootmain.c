@@ -7,10 +7,13 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: bootmain.c,v 1.12 1998-03-05 11:09:53 rnhodek Exp $
+ * $Id: bootmain.c,v 1.13 1998-03-05 12:29:48 rnhodek Exp $
  * 
  * $Log: bootmain.c,v $
- * Revision 1.12  1998-03-05 11:09:53  rnhodek
+ * Revision 1.13  1998-03-05 12:29:48  rnhodek
+ * Replace another printf by cprintf.
+ *
+ * Revision 1.12  1998/03/05 11:09:53  rnhodek
  * Also show boot records if "help" is entered.
  *
  * Revision 1.11  1998/03/05 10:25:34  rnhodek
@@ -358,7 +361,7 @@ int main( int argc, char *argv[] )
 				boot_bootsector( boot_os );
 				break;
 			  default:
-				printf( "Undefined OS type %lu\n", *boot_os->OSType );
+				cprintf( "Undefined OS type %lu\n", *boot_os->OSType );
 			}
 		}
 	}
