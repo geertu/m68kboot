@@ -11,10 +11,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.c,v 1.16 2004-08-23 16:14:16 joy Exp $
+ * $Id: linuxboot.c,v 1.17 2004-08-23 16:15:42 joy Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.16  2004-08-23 16:14:16  joy
+ * Revision 1.17  2004-08-23 16:15:42  joy
+ * corrects ramdisk src address printed in debug mode
+ *
+ * Revision 1.16  2004/08/23 16:14:16  joy
  * corrects my previous code for finding out the physical address from virtual one
  *
  * Revision 1.15  2004/08/15 12:08:13  geert
@@ -340,7 +343,7 @@ void linux_boot( void )
     if (debugflag) {
 	if (rd_size) {
 	    printf ("ramdisk src at %#lx, size is %ld\n",
-		    (u_long)memptr - rd_size, bi.ramdisk.size);
+		    (u_long)memptr + memreq - rd_size, bi.ramdisk.size);
 	    printf ("ramdisk dest is %#lx ... %#lx\n",
 		    bi.ramdisk.addr, bi.ramdisk.addr + rd_size - 1 );
 	}
