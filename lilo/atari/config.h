@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: config.h,v 1.1 1997-08-12 15:27:08 rnhodek Exp $
+ * $Id: config.h,v 1.2 1997-08-23 22:47:30 rnhodek Exp $
  * 
  * $Log: config.h,v $
- * Revision 1.1  1997-08-12 15:27:08  rnhodek
+ * Revision 1.2  1997-08-23 22:47:30  rnhodek
+ * Added forgotten icdpart in struct BootBlock
+ *
+ * Revision 1.1  1997/08/12 15:27:08  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -50,7 +53,9 @@ struct BootBlock {
     unsigned long	second_rootsec;	/* sector# of secondary rootsector */
 #endif
     unsigned long	map_sector;	/* sector# of map sector */
-    char		data[404];	/* boot loader code */
+    char		data[296];	/* boot loader code */
+    struct partition	icdpart[8];	/* info for ICD-partitions 5..12 */
+    char		unused[12];
     unsigned long	hd_size;	/* size of disk */
     struct partition	part[4];	/* partition entries */
     unsigned long	bsl_st;		/* start of bad sector list */
