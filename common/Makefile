@@ -7,49 +7,27 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.1 1997-07-15 09:45:37 rnhodek Exp $
+# $Id: Makefile,v 1.2 1997-07-16 09:29:25 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.1  1997-07-15 09:45:37  rnhodek
-# Initial revision
+# Revision 1.2  1997-07-16 09:29:25  rnhodek
+# Reorganized Makefiles so that all objects are built in
+# {bootstrap,lilo}/{amiga,atari}, not in common anymore. Define IN_BOOTSTRAP or
+# IN_LILO so that common sources can distinguish between the environments.
+# Other minor Makefile changes.
+#
+# Revision 1.1.1.1  1997/07/15 09:45:37  rnhodek
+# Import sources into CVS
 #
 #
 
-COMMON_OBJS = loadkernel.o bootinf.o stream.o file_mod.o gunzip_mod.o \
-              bootp_mod.o
+COMMON_OBJS = linuxboot.o loadkernel.o bootinf.o stream.o file_mod.o \
+              gunzip_mod.o bootp_mod.o
 AMIGA_COBJS = $(addprefix amiga/,$(COMMON_OBJS))
 ATARI_COBJS = $(addprefix atari/,$(COMMON_OBJS))
 
-AMIGA_OBJS = amiga/linuxboot.o 
-ATARI_OBJS = atari/linuxboot.o
-
 ifneq ($(USE_BOOTP),n)
-ATARI_OBJS += atari/ethlance.o
+ATARI_COBJS += atari/ethlance.o
+BOOTOPTS += -DETHLL_LANCE
 endif
-
-include $(TOPDIR)/Rules.make
-
-all: $(MACH)
-
-amiga: amiga/liblinuxboot.a
-
-amiga/liblinuxboot.a: $(AMIGA_OBJS) $(AMIGA_COBJS)
-	$(AMIGA_HOSTAR) rcs $@ $^
-
-atari: atari/liblinuxboot.a
-
-atari/liblinuxboot.a: $(ATARI_OBJS) $(ATARI_COBJS)
-	$(ATARI_HOSTAR) rcs $@ $^
-
-clean:
-	rm -f $(AMIGA_OBJS) $(ATARI_OBJS) $(AMIGA_COBJS) $(ATARI_COBJS) \
-	  {amiga,atari}/liblinuxboot.a #*# core
-
-dep:
-
-$(AMIGA_COBJS): amiga/%.o: %.c
-	$(AMIGA_COMPILE) -c $< -o $@
-
-$(ATARI_COBJS): atari/%.o: %.c
-	$(ATARI_COMPILE) -c $< -o $@
 

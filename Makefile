@@ -7,11 +7,17 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.1 1997-07-15 09:45:37 rnhodek Exp $
+# $Id: Makefile,v 1.2 1997-07-16 09:29:08 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.1  1997-07-15 09:45:37  rnhodek
-# Initial revision
+# Revision 1.2  1997-07-16 09:29:08  rnhodek
+# Reorganized Makefiles so that all objects are built in
+# {bootstrap,lilo}/{amiga,atari}, not in common anymore. Define IN_BOOTSTRAP or
+# IN_LILO so that common sources can distinguish between the environments.
+# Other minor Makefile changes.
+#
+# Revision 1.1.1.1  1997/07/15 09:45:37  rnhodek
+# Import sources into CVS
 #
 #
 
@@ -49,7 +55,7 @@ ATARI_HOSTAR    = m68k-mint-ar
 
 .PHONY: amiga amiga-bootstrap amiga-lilo amiga-common \
         atari atari-bootstrap atari-lilo atari-common \
-        all clean dep
+        all clean distclean dep
 
 all: amiga atari
 
@@ -57,31 +63,27 @@ amiga: amiga-bootstrap amiga-lilo
 
 atari: atari-bootstrap atari-lilo
 
-amiga-bootstrap: amiga-common
+amiga-bootstrap:
 	$(MAKE) -C bootstrap MACH=amiga
 
-atari-bootstrap: atari-common
+atari-bootstrap:
 	$(MAKE) -C bootstrap MACH=atari
 
-amiga-lilo: amiga-common
+amiga-lilo:
 	$(MAKE) -C lilo MACH=amiga
 
-atari-lilo: atari-common
+atari-lilo:
 	$(MAKE) -C lilo MACH=atari
 
-amiga-common:
-	$(MAKE) -C common MACH=amiga
-
-atari-common:
-	$(MAKE) -C common MACH=atari
-
 clean:
-	$(MAKE) -C common clean
 	$(MAKE) -C bootstrap clean
 	$(MAKE) -C lilo clean
 
+distclean:
+	$(MAKE) -C bootstrap distclean
+	$(MAKE) -C lilo distclean
+
 dep:
-	$(MAKE) -C common dep
 	$(MAKE) -C bootstrap dep
 	$(MAKE) -C lilo dep
 
