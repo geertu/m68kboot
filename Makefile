@@ -7,10 +7,13 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.8 1998-02-19 21:27:06 rnhodek Exp $
+# $Id: Makefile,v 1.9 1998-02-19 21:52:13 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.8  1998-02-19 21:27:06  rnhodek
+# Revision 1.9  1998-02-19 21:52:13  rnhodek
+# Added release, check-modified, and check-need targets.
+#
+# Revision 1.8  1998/02/19 21:27:06  rnhodek
 # Add install and binary targets
 #
 # Revision 1.7  1997/08/10 19:49:46  rnhodek
@@ -131,6 +134,34 @@ install:
 
 binary:
 	doit=""; [ root = "`whoami`" ] || doit=sudo; $$doit ./make_binary
+
+release:
+	@if [ "x$(VER)" = "x" ]; then \
+		echo "Usage: make release VER=<release-number>"; \
+		exit 1; \
+	fi
+	modified=`cvs status 2>/dev/null | awk '/Status:/ { if ($$4 != "Up-to-date") print $$2 }'`; \
+	if [ "x$$modified" != "x" ]; then \
+		echo "There are modified files: $$modified"; \
+		echo "Commit first"; \
+		exit 1; \
+	fi
+	sed "/VERSION/s/\".*\"/\"$(VER)\"/" <version.h >version.h.new
+	mv version.h.new version.h
+	cvs commit -m"Raised version to $(VER)" version.h
+	cvs tag RELEASE-`echo $(VER) | sed 's/\./-/g'`
+
+check-modified:
+	@modified=`cvs status 2>/dev/null | awk '/Status:/ { if ($$4 != "Up-to-date") print $$2 }'`; \
+	if [ "x$$modified" = "x" ]; then \
+		echo "No modified files."; \
+	else \
+		echo "Modified files:"; \
+		echo $$modified | tr ' ' '\n'; \
+	fi
+
+check-need:
+	@cvs status 2>/dev/null | awk '/Status:/ { if ($$4 != "Needs") { print $$2, $$4, $$5 }'
 
 bootstrap/%.i bootstrap/%.s:
 	$(MAKE) -C bootstrap MACH=$(dir $(subst bootstrap/,,$@)) $(subst bootstrap/,,$@)
