@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: tmpmnt.c,v 1.2 1997-09-19 09:07:00 geert Exp $
+ * $Id: tmpmnt.c,v 1.3 1998-02-24 11:22:29 rnhodek Exp $
  * 
  * $Log: tmpmnt.c,v $
- * Revision 1.2  1997-09-19 09:07:00  geert
+ * Revision 1.3  1998-02-24 11:22:29  rnhodek
+ * Fix indentation.
+ *
+ * Revision 1.2  1997/09/19 09:07:00  geert
  * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
  *
  * Revision 1.1  1997/08/12 15:27:13  rnhodek
@@ -80,7 +83,7 @@ static void uninstall_vectors( void );
 static int remove_vector( unsigned long *vec, const char *vecname );
 static long do_rwabs( int first_arg )
 	__attribute__ ((unused));
-	static _BPB *do_getbpb( unsigned int drv );
+static _BPB *do_getbpb( unsigned int drv );
 static long do_mediach( unsigned int _drv )
 	__attribute__ ((unused));
 
