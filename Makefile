@@ -7,10 +7,16 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.19 1998-04-09 08:10:53 rnhodek Exp $
+# $Id: Makefile,v 1.20 2004-08-15 11:47:04 geert Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.19  1998-04-09 08:10:53  rnhodek
+# Revision 1.20  2004-08-15 11:47:04  geert
+# - updates header #include's for compiling with kernel includes 2.2.25
+# - updates Makefile to compile with new cross compiler
+# - removes superfluous declaration of sync()
+# (from Petr Stehlik)
+#
+# Revision 1.19  1998/04/09 08:10:53  rnhodek
 # check-modified now really lists only modified files, not all files
 # that aren't up to date.
 #
@@ -117,7 +123,7 @@ AMIGA_HOSTINC   =
 AMIGA_HOSTFLAGS = -m68030 -O2 -Wall -Dlinux
 AMIGA_HOSTAR    = m68k-cbm-amigados-ar
 
-ATARI_HOSTCC    = m68k-mint-gcc
+ATARI_HOSTCC    = m68k-atari-mint-gcc
 ATARI_HOSTINC   = 
 ATARI_HOSTFLAGS = -m68030 -m68881 -Dlinux -O2 -fomit-frame-pointer \
                   -Wall

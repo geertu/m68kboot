@@ -11,10 +11,16 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.h,v 1.6 1998-07-15 08:19:41 schwab Exp $
+ * $Id: linuxboot.h,v 1.7 2004-08-15 11:47:06 geert Exp $
  * 
  * $Log: linuxboot.h,v $
- * Revision 1.6  1998-07-15 08:19:41  schwab
+ * Revision 1.7  2004-08-15 11:47:06  geert
+ * - updates header #include's for compiling with kernel includes 2.2.25
+ * - updates Makefile to compile with new cross compiler
+ * - removes superfluous declaration of sync()
+ * (from Petr Stehlik)
+ *
+ * Revision 1.6  1998/07/15 08:19:41  schwab
  * Include <asm/types.h> instead of defining __u32 etc types explicitly.
  *
  * Revision 1.5  1998/04/07 09:36:58  rnhodek
@@ -43,8 +49,7 @@
 #define _linuxboot_h
 
 #include <sys/types.h>
-#define _LINUX_TYPES_H		/* Hack to prevent including <linux/types.h> */
-typedef unsigned int u32;	/* for <linux/zorro.h> */
+#define __KERNEL__
 #include <asm/types.h>		/* for 2.1.90+ zorro.h */
 #include <asm/bootinfo.h>
 #include <asm/setup.h>

@@ -11,10 +11,16 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.c,v 1.10 1998-06-12 11:40:03 rnhodek Exp $
+ * $Id: linuxboot.c,v 1.11 2004-08-15 11:47:05 geert Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.10  1998-06-12 11:40:03  rnhodek
+ * Revision 1.11  2004-08-15 11:47:05  geert
+ * - updates header #include's for compiling with kernel includes 2.2.25
+ * - updates Makefile to compile with new cross compiler
+ * - removes superfluous declaration of sync()
+ * (from Petr Stehlik)
+ *
+ * Revision 1.10  1998/06/12 11:40:03  rnhodek
  * Fix recognition of last 4 MB of memory on AB040.
  *
  * Revision 1.9  1998/02/26 10:05:42  rnhodek
@@ -74,9 +80,6 @@
 
 #define MIN_RAMSIZE     (3)	/* 3 MB */
 #define TEMP_STACKSIZE 256
-
-/* This is missing in <unistd.h> */
-extern int sync (void);
 
 struct atari_bootinfo bi;
 unsigned long bi_size;
