@@ -7,10 +7,14 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: mach-rules.y,v 1.3 1997-09-19 09:06:59 geert Exp $
+ * $Id: mach-rules.y,v 1.4 1998-02-26 10:20:34 rnhodek Exp $
  * 
  * $Log: mach-rules.y,v $
- * Revision 1.3  1997-09-19 09:06:59  geert
+ * Revision 1.4  1998-02-26 10:20:34  rnhodek
+ * New config vars WorkDir, Environ, and BootDrv (global)
+ * Remove some const warnings.
+ *
+ * Revision 1.3  1997/09/19 09:06:59  geert
  * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
  *
  * Revision 1.2  1997/08/23 23:09:50  rnhodek
@@ -142,7 +146,7 @@ g_tmpmnt: "mount" STRING "on" TOSDRIVESPEC opt_rw
 		int i, j, dev;
 		unsigned long start;
 
-		parse_device( (const char *)$2, &dev, &start, 0, ANY_FLOPPY, 0 );
+		parse_device( (char *)$2, &dev, &start, 0, ANY_FLOPPY, 0 );
 		for (i = 0; i < arraysize(Config.Options.TmpMnt); i++)
 		    if (!Config.Options.TmpMnt[i])
 			break;
@@ -156,16 +160,41 @@ opt_rw: "ro"		{ $$ = 0; }
 	  | "rw"		{ $$ = 1; }
 	  | /* empty */ { $$ = 0; } ;
 
-g_execprog: "exec" STRING
+g_execprog: "exec" STRING opt_workdir
 	{
 		int i;
 		
 		for (i = 0; i < arraysize(Config.Options.ExecProg); i++)
 		    if (!Config.Options.ExecProg[i])
-			break;
+				break;
 		if (i == arraysize(Config.Options.ExecProg))
 		    conferror("Too many programs to execute");
 		Config.Options.ExecProg[i] = (const char *)$2;
+		Config.Options.WorkDir[i] = (const char *)$3;
+	};
+
+opt_workdir: "chdir" STRING	{ $$ = $2; }
+	| /* empty */			{ $$ = 0; } ;
+
+g_bootdrv: "boot-drive" TOSDRIVESPEC
+	{
+		if (Config.Options.BootDrv)
+		    Redefinition((char *)$1);
+		Config.Options.BootDrv = CopyLong($2);
+	};
+
+setenv: "setenv" STRING
+	{
+		int i;
+
+		if (!strchr( (const char *)$2, '=' ))
+			conferror("Environment setting doesn't contain a '='");
+		for (i = 0; i < arraysize(Config.Options.Environ); i++)
+		    if (!Config.Options.Environ[i])
+				break;
+		if (i == arraysize(Config.Options.Environ))
+		    conferror("Too many environment variables");
+		Config.Options.Environ[i] = (const char *)$2;
 	};
 
 bootrec: "bootrec" STRING bootopts "endrec"
@@ -243,7 +272,7 @@ tmpmnt: "mount" STRING "on" TOSDRIVESPEC opt_rw
 		int i, j, dev;
 		unsigned long start;
 
-		parse_device( (const char *)$2, &dev, &start, 0, ANY_FLOPPY, 0 );
+		parse_device( (char *)$2, &dev, &start, 0, ANY_FLOPPY, 0 );
 		for (i = 0; i < arraysize(BootRecord.TmpMnt); i++)
 		    if (!BootRecord.TmpMnt[i])
 			break;
@@ -287,7 +316,7 @@ bootpart: "partition" STRING
 	
 		if (BootRecord.BootDev || BootRecord.BootSec)
 		    Redefinition((char *)$1);
-		parse_device( (const char *)$2, &dev, &start, 0, NO_FLOPPY, 0 );
+		parse_device( (char *)$2, &dev, &start, 0, NO_FLOPPY, 0 );
 		BootRecord.BootDev = CopyLong(dev);
 		BootRecord.BootSec = CopyLong(start);
 	}
