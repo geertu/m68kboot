@@ -43,10 +43,14 @@
  *      19 Feb 1994 Changed everything so that it works? (rdv)
  *      14 Mar 1994 New mini-copy routine used (rdv)
  *
- * $Id: bootstrap.c,v 1.5 1998-02-25 10:33:16 rnhodek Exp $
+ * $Id: bootstrap.c,v 1.6 1998-12-14 10:03:59 schwab Exp $
  * 
  * $Log: bootstrap.c,v $
- * Revision 1.5  1998-02-25 10:33:16  rnhodek
+ * Revision 1.6  1998-12-14 10:03:59  schwab
+ * (parse_size): Use tolower instead of islower to
+ * convert to lower case.
+ *
+ * Revision 1.5  1998/02/25 10:33:16  rnhodek
  * Move call to Super() to bootstrap-specific file bootstrap.c, and
  * remove it from linuxboot.c.
  *
@@ -238,9 +242,9 @@ static unsigned long parse_size( const char *p )
 	usage();
     }
 
-    if (islower(*end) == 'k')
+    if (tolower(*end) == 'k')
 	size *= 1024;
-    else if (islower(*end) == 'm')
+    else if (tolower(*end) == 'm')
 	size *= 1024*1024;
     return( size );
 }
