@@ -7,10 +7,13 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.13 1998-03-03 15:11:08 rnhodek Exp $
+# $Id: Makefile,v 1.14 1998-03-04 09:08:47 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.13  1998-03-03 15:11:08  rnhodek
+# Revision 1.14  1998-03-04 09:08:47  rnhodek
+# Remove some more files on 'distclean'.
+#
+# Revision 1.13  1998/03/03 15:11:08  rnhodek
 # Remove TAGS only on distclean, not clean.
 #
 # Revision 1.12  1998/02/26 11:37:09  rnhodek
@@ -133,10 +136,12 @@ clean:
 	$(MAKE) -C doc clean
 
 distclean:
-	rm -f TAGS
 	$(MAKE) -C bootstrap distclean
 	$(MAKE) -C lilo distclean
 	$(MAKE) -C doc distclean
+	rm -f TAGS
+	find . -name '.#' -o -name '.new.*' -o -name '#*#' -o \
+	       -name '*~' -exec rm {} \;
 
 dep:
 	if $(AMIGA_HOSTCC) -v >/dev/null 2>&1; then \
