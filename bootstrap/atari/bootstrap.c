@@ -43,10 +43,13 @@
  *      19 Feb 1994 Changed everything so that it works? (rdv)
  *      14 Mar 1994 New mini-copy routine used (rdv)
  *
- * $Id: bootstrap.c,v 1.7 2004-08-23 16:31:00 joy Exp $
+ * $Id: bootstrap.c,v 1.8 2004-08-23 16:40:05 joy Exp $
  * 
  * $Log: bootstrap.c,v $
- * Revision 1.7  2004-08-23 16:31:00  joy
+ * Revision 1.8  2004-08-23 16:40:05  joy
+ * copyright prolonged. Help handling fixed. VT52 emulator switched to linewrap mode so that long bootargs printed on screen is readable. My name added to hall of fame :-)
+ *
+ * Revision 1.7  2004/08/23 16:31:00  joy
  * with this patch ramdisk is loaded to TT/FastRAM even if kernel is in ST-RAM (unless user asked specifically for ramdisk in ST-RAM with new '-R' option in the bootargs). This fixes (or rather works around) problems with ST-RAM swap in kernels 2.4.x. It even helps booting on machines with less RAM. And it also protects the kernel from overwriting by ramdisk. Another switch '-V' additionally protects the Shifter/VIDEL VideoRAM from overwriting by ramdisk
  *
  * Revision 1.6  1998/12/14 10:03:59  schwab
@@ -136,11 +139,14 @@ int main( int argc, char *argv[] )
     int ch, cmdlen;
     
     /* print the startup message */
-    puts( "\fLinux/68k Atari Bootstrap version " VERSION WITH_BOOTP );
-    puts( "Copyright 1993-98 by Arjan Knor, Robert de Vries, "
-	  "Roman Hodek, Andreas Schwab\n" );
+    puts( "\ev\fLinux/68k Atari Bootstrap version " VERSION WITH_BOOTP );
+    puts( "Copyright 1993-2004 by Arjan Knor, Robert de Vries, "
+	  "Roman Hodek, Andreas Schwab, Petr Stehlik\n" );
 
-    if (argc == 2 && !strcmp( argv[1], "--help" ))
+    if (argc == 2 && (  !strcmp( argv[1], "--help" )
+		      ||!strcmp( argv[1], "-h" )
+		      ||!strcmp( argv[1], "-?" )
+		     ) )
 	help();
     
     /* ++roman: If no arguments on the command line, read them from
@@ -186,9 +192,6 @@ int main( int argc, char *argv[] )
 	    no_bootp = 1;
 #endif
 	    break;
-	  case '?':
-	  case 'h':
-	    help();
 	  default:
 	    usage();
 	}
