@@ -7,10 +7,13 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: bootmain.c,v 1.16 1998-03-16 11:11:30 rnhodek Exp $
+ * $Id: bootmain.c,v 1.17 1998-04-07 10:01:43 rnhodek Exp $
  * 
  * $Log: bootmain.c,v $
- * Revision 1.16  1998-03-16 11:11:30  rnhodek
+ * Revision 1.17  1998-04-07 10:01:43  rnhodek
+ * Add some more TOS errors.
+ *
+ * Revision 1.16  1998/03/16 11:11:30  rnhodek
  * Remove Dsetdrv() from boot_tos(), it has no effect anyway (due to Pterm).
  * Instead, check if _bootdev exists and pick another one if not.
  *
@@ -161,15 +164,22 @@ struct {
 } toserr_table[] = {
 	{  -1, "General BIOS error" },
 	{  -2, "Drive not ready" },
+	{  -3, "Unknown command" },
 	{  -4, "CRC error" },
+	{  -5, "Bad request" },
 	{  -6, "Seek error" },
 	{  -7, "Unknown media" },
 	{  -8, "Sector not found" },
+	{  -9, "Out of paper" },
 	{ -10, "Write fault" },
 	{ -11, "Read fault" },
+	{ -12, "General error" },
 	{ -13, "Write protect" },
 	{ -15, "Unknown device" },
 	{ -16, "Bad sectors" },
+	{ -17, "Insert other disk" },
+	{ -18, "Insert other disk" },
+	{ -19, "Drive not responding" },
 	{ -32, "Invalid function number" },
 	{ -33, "File not found" },
 	{ -34, "Path not found" },
