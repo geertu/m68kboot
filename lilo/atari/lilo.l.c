@@ -7,10 +7,15 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: lilo.l.c,v 1.7 1998-03-03 11:32:33 rnhodek Exp $
+ * $Id: lilo.l.c,v 1.8 1998-03-04 09:16:25 rnhodek Exp $
  * 
  * $Log: lilo.l.c,v $
- * Revision 1.7  1998-03-03 11:32:33  rnhodek
+ * Revision 1.8  1998-03-04 09:16:25  rnhodek
+ * CreateMapFile: Die if there are no boot records at all; check if
+ * kernel file exists only if OSType is BOS_LINUX, and if it isn't a
+ * BOOTP image.
+ *
+ * Revision 1.7  1998/03/03 11:32:33  rnhodek
  * Fixed a bad bug: BootStartSector should always be zero, except for XGM!
  *
  * Revision 1.6  1998/02/23 10:24:48  rnhodek
@@ -476,16 +481,27 @@ static void CreateMapFile(void)
 {
     const struct BootRecord *record;
     int fd;
-    
+
+	if (!Config.Records)
+		Die("No boot records\n");
+	
     /* check a few conditions on the default boot record */
     for (record = Config.Records; record; record = record->Next) {
 		if (EqualStrings(Config.Options.Default, record->Label) ||
 			EqualStrings(Config.Options.Default, record->Alias)) {
-			if ((fd = open( record->Kernel, O_RDONLY )) < 0)
-				Die("Kernel image `%s' for default boot record `%s' does not "
-					"exist\n", record->Kernel, record->Label);
-			else
-				close( fd );
+			if (record->OSType && *record->OSType != BOS_LINUX)
+				break;
+#ifdef USE_BOOTP
+			if (strncmp( record->Kernel, "bootp:", 6 ) != 0) {
+#endif
+				if ((fd = open( record->Kernel, O_RDONLY )) < 0)
+					Die("Kernel image `%s' for default boot record `%s' "
+						"does not exist\n", record->Kernel, record->Label);
+				else
+					close( fd );
+#ifdef USE_BOOTP
+			}
+#endif
 			break;
 		}
     }

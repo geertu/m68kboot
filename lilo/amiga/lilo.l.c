@@ -13,10 +13,15 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo.l.c,v 1.3 1998-02-19 21:07:08 rnhodek Exp $
+ * $Id: lilo.l.c,v 1.4 1998-03-04 09:12:53 rnhodek Exp $
  * 
  * $Log: lilo.l.c,v $
- * Revision 1.3  1998-02-19 21:07:08  rnhodek
+ * Revision 1.4  1998-03-04 09:12:53  rnhodek
+ * CreateMapFile: Die if there are no boot records at all; check if
+ * kernel file exists only if OSType is BOS_LINUX, and if it isn't a
+ * BOOTP image.
+ *
+ * Revision 1.3  1998/02/19 21:07:08  rnhodek
  * Added if/else braces to avoid gcc warnings
  *
  * Revision 1.2  1997/08/12 21:51:05  rnhodek
@@ -262,18 +267,29 @@ static void CreateMapFile(void)
     const struct BootRecord *record;
     int fd;
     
+    if (!Config.Records)
+	Die("No boot records\n");
+	
     /* check a few conditions on the default boot record */
     for (record = Config.Records; record; record = record->Next) {
 	if (EqualStrings(Config.Options.Default, record->Label) ||
 	    EqualStrings(Config.Options.Default, record->Alias)) {
+	    if (record->OSType && *record->OSType != BOS_LINUX)
+		break;
 	    if (record->Password)
 		Die("Default boot record `%s' must not have a password\n",
 		    record->Label);
-	    if ((fd = open( record->Kernel, O_RDONLY )) < 0)
-		Die("Kernel image `%s' for default boot record `%s' does not "
-		    "exist\n", record->Kernel, record->Label);
-	    else
-		close( fd );
+#ifdef USE_BOOTP
+	    if (strncmp( record->Kernel, "bootp:", 6 ) != 0) {
+#endif
+		if ((fd = open( record->Kernel, O_RDONLY )) < 0)
+		    Die("Kernel image `%s' for default boot record `%s' "
+			"does not exist\n", record->Kernel, record->Label);
+		else
+		    close( fd );
+#ifdef USE_BOOTP
+	    }
+#endif
 	    break;
 	}
     }
