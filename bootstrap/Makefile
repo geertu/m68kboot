@@ -7,10 +7,16 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.4 1997-07-16 13:29:10 rnhodek Exp $
+# $Id: Makefile,v 1.5 2004-08-15 11:53:15 geert Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.4  1997-07-16 13:29:10  rnhodek
+# Revision 1.5  2004-08-15 11:53:15  geert
+# This just calls one of the binutils to correct the bits in the binary header.
+# I wrote two longish mails about this subject to the mailing list so I won't
+# repeat myself. It simply really clears the "Load to TTRAM flag".
+# (from Petr Stehlik)
+#
+# Revision 1.4  1997/07/16 13:29:10  rnhodek
 # Add targets to make .i and .s files; remove those files on make clean
 #
 # Revision 1.3  1997/07/16 10:32:54  rnhodek
@@ -49,6 +55,7 @@ atari: atari/ataboot.ttp
 
 atari/ataboot.ttp: $(ATARI_OBJS)
 	$(ATARI_COMPILE) -o $@ $^
+	m68k-atari-mint-flags --mno-fastload --mno-fastram $@
 
 clean:
 	rm -f $(AMIGA_OBJS) $(ATARI_OBJS) {amiga,atari}/*.[is] \
