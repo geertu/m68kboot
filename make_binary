@@ -22,6 +22,7 @@ for mach in amiga atari; do
 		mkdir -p tmp/{etc,sbin,boot}
 		mkdir -p tmp/usr/{man/man8,doc/m68kboot,lib/m68kboot,info}
 		install -m755 lilo/$mach/lilo tmp/sbin
+		install -m755 lilo/$mach/dumpmapfile tmp/sbin
 		install -m644 lilo/$mach/loader tmp/boot/loader.$mach
 		install -m644 lilo/$mach/lilo.conf.example tmp/etc
 		install -m644 doc/lilo.8 tmp/usr/man/man8
