@@ -11,11 +11,14 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: bootstrap.h,v 1.1 1997-07-15 09:45:38 rnhodek Exp $
+ * $Id: bootstrap.h,v 1.2 1997-07-16 12:59:13 rnhodek Exp $
  * 
  * $Log: bootstrap.h,v $
- * Revision 1.1  1997-07-15 09:45:38  rnhodek
- * Initial revision
+ * Revision 1.2  1997-07-16 12:59:13  rnhodek
+ * Add definitions for generic output and memory allocation
+ *
+ * Revision 1.1.1.1  1997/07/15 09:45:38  rnhodek
+ * Import sources into CVS
  *
  * 
  */
@@ -37,6 +40,13 @@ extern __inline__ void boot_exit(int status)
     getchar();
     exit(status);
 }
+
+#define Puts			puts
+#define	GetChar			getchar
+#define	PutChar			putchar
+#define	Printf			printf
+#define Alloc			malloc
+#define Free			free
 
 #endif  /* _bootstrap_h */
 

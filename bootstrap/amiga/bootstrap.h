@@ -1,6 +1,5 @@
 /*
-** linux/arch/m68k/boot/amiga/bootstrap.h -- This file is part of the Amiga
-**					     bootloader.
+** amiga/bootstrap.h -- This file is part of the Amiga bootloader.
 **
 ** Copyright 1993, 1994 by Hamish Macdonald
 **
@@ -18,15 +17,23 @@
 ** License.  See the file COPYING in the main directory of this archive
 ** for more details.
 **
-** $Id: bootstrap.h,v 1.1 1997-07-15 09:45:38 rnhodek Exp $
+** $Id: bootstrap.h,v 1.2 1997-07-16 12:59:13 rnhodek Exp $
 ** 
 ** $Log: bootstrap.h,v $
-** Revision 1.1  1997-07-15 09:45:38  rnhodek
-** Initial revision
+** Revision 1.2  1997-07-16 12:59:13  rnhodek
+** Add definitions for generic output and memory allocation
+**
+** Revision 1.1.1.1  1997/07/15 09:45:38  rnhodek
+** Import sources into CVS
 **
 ** 
 */
 
+#ifndef _bootstrap_h
+#define _bootstrap_h
+
+
+#include "linuxboot.h"
 
 struct MsgPort {
     u_char fill1[15];
@@ -154,3 +161,15 @@ static __inline void DeleteMsgPort(struct MsgPort *port)
 		      : "r" (a6), "r" (a0)
 		      : "a0","a1","d0","d1", "memory");
 }
+
+/* generic output and memory allocation */
+
+#define Puts(str)			(puts((str),stderr), fflush(stderr))
+#define	GetChar				getchar
+#define	PutChar(c)			putchar((c),stderr)
+#define	Printf(fmt,rest...)	(fprintf(stderr,fmt,##rest), fflush(stderr))
+#define Alloc(size)			AllocVec((size),MEMF_FAST|MEMF_PUBLIC)
+#define Free(p)				FreeVec(p)
+
+#endif  /* _bootstrap_h */
+
