@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: gunzip_mod.c,v 1.6 1998-04-07 10:05:17 rnhodek Exp $
+ * $Id: gunzip_mod.c,v 1.7 1998-04-09 08:04:41 rnhodek Exp $
  * 
  * $Log: gunzip_mod.c,v $
- * Revision 1.6  1998-04-07 10:05:17  rnhodek
+ * Revision 1.7  1998-04-09 08:04:41  rnhodek
+ * Use ELF_LOADER for switching SYMBOL_NAME_STR
+ *
+ * Revision 1.6  1998/04/07 10:05:17  rnhodek
  * Change logic for which SYMBOL_NAME_STR should be used: without '_' is
  * only for Amiga Lilo.
  *
@@ -38,7 +41,7 @@
  */
 
 #include <stdio.h>
-#if defined(IN_LILO) && defined(amiga)
+#ifdef ELF_LOADER
 #include "strlib.h"
 #include <linux/linkage.h>
 #else
