@@ -44,10 +44,13 @@
  *	31 May 1994 Memory thrash problem solved (Geert)
  *	11 May 1994 A3640 MapROM check (Geert)
  * 
- * $Id: linuxboot.c,v 1.8 1997-09-19 09:06:40 geert Exp $
+ * $Id: linuxboot.c,v 1.9 1998-02-26 10:04:52 rnhodek Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.8  1997-09-19 09:06:40  geert
+ * Revision 1.9  1998-02-26 10:04:52  rnhodek
+ * Also set BOOT_IMAGE= command line option on Amiga.
+ *
+ * Revision 1.8  1997/09/19 09:06:40  geert
  * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
  *
  * Revision 1.7  1997/08/10 19:22:55  rnhodek
@@ -238,6 +241,7 @@ u_long linuxboot(const struct linuxboot_args *args)
     u_short manuf;
     u_char prod;
     void *bi_ptr;
+    char *kname;
 
     linuxboot_args = args;
 
@@ -413,6 +417,17 @@ u_long linuxboot(const struct linuxboot_args *args)
 
     Puts("\n\n");
 
+    /* add BOOT_IMAGE= argument if enough space left on command line */
+    kname = (char *)kernelname;
+    if (strncmp( kernelname, "local:", 6 ) == 0 ||
+	strncmp( kernelname, "bootp:", 6 ) == 0)
+	kname += 6;
+    if (strlen(bi.command_line)+strlen(kname)+12 < CL_SIZE-1) {
+	if (*bi.command_line)
+	    strcat( bi.command_line, " " );
+	strcat( bi.command_line, "BOOT_IMAGE=" );
+	strcat( bi.command_line, kname );
+    }
     /* display the command line */
     Printf("Command line is '%s'\n", bi.command_line);
 
