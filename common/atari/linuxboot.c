@@ -11,10 +11,14 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.c,v 1.11 2004-08-15 11:47:05 geert Exp $
+ * $Id: linuxboot.c,v 1.12 2004-08-15 11:48:59 geert Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.11  2004-08-15 11:47:05  geert
+ * Revision 1.12  2004-08-15 11:48:59  geert
+ * Add missing Centurbo2 support that I found in atari-bootstrap package
+ * (from Petr Stehlik)
+ *
+ * Revision 1.11  2004/08/15 11:47:05  geert
  * - updates header #include's for compiling with kernel includes 2.2.25
  * - updates Makefile to compile with new cross compiler
  * - removes superfluous declaration of sync()
@@ -186,6 +190,10 @@ void linux_boot( void )
     if (bi.mch_type == ATARI_MACH_AB40 &&
 	((unsigned long)linux_boot & 0xff000000))
 	ERROR( "Error: Bootstrap can't run in FastRAM on Afterburner040\n" );
+    /* For similar reasons, the bootstrap doesn't work in Centurbo2 TT-RAM */
+    if (getcookie("_CT2", NULL) != -1 &&
+	((unsigned long)linux_boot & 0xff000000))
+	ERROR( "Error: Bootstrap can't run in TT-RAM on Centurbo2\n" );
     
 
     get_mem_infos();
@@ -244,6 +252,10 @@ void linux_boot( void )
     if (bi.mch_type == ATARI_MACH_AB40 && ((unsigned long)memptr & 0xff000000))
 	ERROR( "Error: Bootstrap may not allocate memory from FastRAM "
 	       "on Afterburner040\n" );
+    if (getcookie("_CT2", NULL) != -1 &&
+	((unsigned long)memptr & 0xff000000))
+	ERROR( "Error: Bootstrap may not allocate memory from TT-RAM "
+		"on Centurbo2\n" );
 
     /* clearing the kernel's memory perhaps avoids "uninitialized bss"
      * types of bugs... */
@@ -401,12 +413,19 @@ static void get_cpu_infos( void )
 
 static void get_mch_type( void )
 {
-    u_long mch_cookie, ab40_cookie;
+    u_long mch_cookie;
     int rv;
 
     /* Pass contents of the _MCH cookie to the kernel */
     getcookie("_MCH", &mch_cookie);
     bi.mch_cookie = mch_cookie;
+
+    bi.mch_type = ATARI_MACH_NORMAL;
+    if (getcookie("_CT2", NULL) != -1)
+	/* On the Centurbo2 board, no memory tests will give bus errors! So
+	 * don't even execute the test code below, but proceed */
+	goto finish;
+	
 
     __asm__ __volatile__
 	( "movel	0x8,a0\n\t"	/* save buserr vector */
@@ -438,7 +457,6 @@ static void get_mch_type( void )
 	  : /* no inputs */
 	  : "d1", "d2", "a0", "a1", "memory" );
 
-    bi.mch_type = ATARI_MACH_NORMAL;
     switch( rv ) {
       case 1:
 	bi.mch_type = ATARI_MACH_AB40;
@@ -456,12 +474,13 @@ static void get_mch_type( void )
      * if an "AB40" cookie exists, or with 99% if it's a Falcon and has a '040
      * processor. */
     if (bi.mch_type == ATARI_MACH_NORMAL) {
-	if (getcookie("AB40", &ab40_cookie) != -1 ||
+	if (getcookie("AB40", NULL) != -1 ||
 	    ((bi.mch_cookie >> 16) == ATARI_MCH_FALCON &&
 	     bi.cputype == CPU_68040))
 	    bi.mch_type = ATARI_MACH_AB40;
     }
 
+  finish:
     printf( "Model: " );
     switch( bi.mch_cookie >> 16 ) {
       case ATARI_MCH_ST:
@@ -593,14 +612,21 @@ static void get_mem_infos( void )
 	    /* all these kinds of TT-RAM are mutually exclusive */
 
 	    /* "Original" or properly emulated TT-Ram */
-	    if (*ramtop)
+	    if (*ramtop) {
 		/* the 'ramtop' variable at 0x05a4 is not
 		 * officially documented. We use it anyway
 		 * because it is the only way to get the TTram size.
 		 * (It is zero if there is no TTram.)
 		 */
-		ADD_CHUNK( TT_RAM_BASE, *ramtop - TT_RAM_BASE,
-			   force_tt_size, "TT-RAM" );
+		if (getcookie("_CT2", NULL) != -1)
+		    /* TT-RAM starts at phys. 0x04000000 on Centurbo2 but is
+		     * remapped for TOS to 0x01000000 with the MMU */
+		    ADD_CHUNK( CT2_FAST_START, *ramtop - TT_RAM_BASE,
+			       force_tt_size, "TT-RAM" );
+		else
+		    ADD_CHUNK( TT_RAM_BASE, *ramtop - TT_RAM_BASE,
+			       force_tt_size, "TT-RAM" );
+	    }
 	    /* test for MAGNUM alternate RAM
 	     * added 26.9.1995 M. Schwingen, rincewind@discworld.oche.de
 	     */
@@ -669,7 +695,8 @@ static int getcookie(char *cookie, u_long *value)
 
     while(cookiejar[i] != 0L) {
 	if(cookiejar[i] == *(u_long *)cookie) {
-	    *value = cookiejar[i + 1];
+	    if (value)
+	    	*value = cookiejar[i + 1];
 	    return 1;
 	}
 	i += 2;

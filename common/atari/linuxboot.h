@@ -11,10 +11,14 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.h,v 1.7 2004-08-15 11:47:06 geert Exp $
+ * $Id: linuxboot.h,v 1.8 2004-08-15 11:49:00 geert Exp $
  * 
  * $Log: linuxboot.h,v $
- * Revision 1.7  2004-08-15 11:47:06  geert
+ * Revision 1.8  2004-08-15 11:49:00  geert
+ * Add missing Centurbo2 support that I found in atari-bootstrap package
+ * (from Petr Stehlik)
+ *
+ * Revision 1.7  2004/08/15 11:47:06  geert
  * - updates header #include's for compiling with kernel includes 2.2.25
  * - updates Makefile to compile with new cross compiler
  * - removes superfluous declaration of sync()
@@ -61,8 +65,9 @@
 #define MACH_FALCON 3
 
 /* some constants for memory handling */
-#define TT_RAM_BASE  (u_long)(0x01000000)
-#define MB           (1024 * 1024)
+#define TT_RAM_BASE    (u_long)(0x01000000)
+#define CT2_FAST_START (u_long)(0x04000000)
+#define MB             (1024 * 1024)
 
 /* global variables for communicating options */
 extern int debugflag;
