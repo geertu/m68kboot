@@ -7,10 +7,14 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: gunzip_mod.c,v 1.5 1998-04-06 01:40:51 dorchain Exp $
+ * $Id: gunzip_mod.c,v 1.6 1998-04-07 10:05:17 rnhodek Exp $
  * 
  * $Log: gunzip_mod.c,v $
- * Revision 1.5  1998-04-06 01:40:51  dorchain
+ * Revision 1.6  1998-04-07 10:05:17  rnhodek
+ * Change logic for which SYMBOL_NAME_STR should be used: without '_' is
+ * only for Amiga Lilo.
+ *
+ * Revision 1.5  1998/04/06 01:40:51  dorchain
  * make loader linux-elf.
  * made amiga bootblock working again
  * compiled, but not tested bootstrap
@@ -34,16 +38,14 @@
  */
 
 #include <stdio.h>
-#ifdef IN_BOOTSTRAP
+#if defined(IN_LILO) && defined(amiga)
+#include "strlib.h"
+#include <linux/linkage.h>
+#else
 #include <stdlib.h>
 #include <string.h>
 #undef SYMBOL_NAME_STR
 #define SYMBOL_NAME_STR(X) "_"#X
-#else
-#ifdef IN_LILO
-#include "strlib.h"
-#include <linux/linkage.h>
-#endif
 #endif
 #include <unistd.h>
 
