@@ -6,10 +6,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo.h,v 1.2 1997-08-23 20:36:19 rnhodek Exp $
+ * $Id: lilo.h,v 1.3 1997-08-23 23:11:08 rnhodek Exp $
  * 
  * $Log: lilo.h,v $
- * Revision 1.2  1997-08-23 20:36:19  rnhodek
+ * Revision 1.3  1997-08-23 23:11:08  rnhodek
+ * New parameter 'set_bootdev' to parse_device
+ *
+ * Revision 1.2  1997/08/23 20:36:19  rnhodek
  * Deleted obsolete prototype of CheckVectorDevice
  *
  * Revision 1.1  1997/08/12 15:27:09  rnhodek
@@ -33,8 +36,10 @@ enum flopok {
 
 /***************************** Prototypes *****************************/
 
-void parse_device( const char *device, int *devnum, unsigned long *start,
-                   int allow_xgm, enum flopok floppy_ok );
+void parse_device( char *device, int *devnum, unsigned long *start, int
+                   allow_xgm, enum flopok floppy_ok, int set_bootdev );
+void CheckVectorDevice( const char *name, dev_t device, struct vecent
+                        *vector );
 int main( int argc, char *argv[] );
 
 /************************* End of Prototypes **************************/

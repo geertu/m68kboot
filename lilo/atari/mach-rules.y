@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: mach-rules.y,v 1.1 1997-08-12 15:27:10 rnhodek Exp $
+ * $Id: mach-rules.y,v 1.2 1997-08-23 23:09:50 rnhodek Exp $
  * 
  * $Log: mach-rules.y,v $
- * Revision 1.1  1997-08-12 15:27:10  rnhodek
+ * Revision 1.2  1997-08-23 23:09:50  rnhodek
+ * New parameter 'set_bootdev' to parse_device
+ *
+ * Revision 1.1  1997/08/12 15:27:10  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -136,7 +139,7 @@ g_tmpmnt: "mount" STRING "on" TOSDRIVESPEC opt_rw
 		int i, j, dev;
 		unsigned long start;
 
-		parse_device( (const char *)$2, &dev, &start, 0, ANY_FLOPPY );
+		parse_device( (const char *)$2, &dev, &start, 0, ANY_FLOPPY, 0 );
 		for (i = 0; i < arraysize(Config.Options.TmpMnt); i++)
 		    if (!Config.Options.TmpMnt[i])
 			break;
@@ -237,7 +240,7 @@ tmpmnt: "mount" STRING "on" TOSDRIVESPEC opt_rw
 		int i, j, dev;
 		unsigned long start;
 
-		parse_device( (const char *)$2, &dev, &start, 0, ANY_FLOPPY );
+		parse_device( (const char *)$2, &dev, &start, 0, ANY_FLOPPY, 0 );
 		for (i = 0; i < arraysize(BootRecord.TmpMnt); i++)
 		    if (!BootRecord.TmpMnt[i])
 			break;
@@ -281,7 +284,7 @@ bootpart: "partition" STRING
 	
 		if (BootRecord.BootDev || BootRecord.BootSec)
 		    Redefinition((char *)$1);
-		parse_device( (const char *)$2, &dev, &start, 0, NO_FLOPPY );
+		parse_device( (const char *)$2, &dev, &start, 0, NO_FLOPPY, 0 );
 		BootRecord.BootDev = CopyLong(dev);
 		BootRecord.BootSec = CopyLong(start);
 	}
