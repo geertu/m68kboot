@@ -13,10 +13,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo_util.l.c,v 1.4 1998-02-19 20:40:13 rnhodek Exp $
+ * $Id: lilo_util.l.c,v 1.5 1998-02-26 10:07:56 rnhodek Exp $
  * 
  * $Log: lilo_util.l.c,v $
- * Revision 1.4  1998-02-19 20:40:13  rnhodek
+ * Revision 1.5  1998-02-26 10:07:56  rnhodek
+ * CreateFileName: Don't prefix filename with 'Root' if it has a "bootp:" prefix.
+ *
+ * Revision 1.4  1998/02/19 20:40:13  rnhodek
  * Make things compile again
  *
  * Revision 1.3  1997/08/23 23:10:41  rnhodek
@@ -380,13 +383,20 @@ const char *CreateFileName(const char *name)
 {
     int size;
     char *s;
+    int prefix_root;
 
+#ifdef USE_BOOTP
+    prefix_root = Root && (strncmp( name, "bootp:", 6 ) != 0);
+#else
+    prefix_root = Root != 0;
+#endif
+    
     size = strlen(name)+1;
-    if (Root)
+    if (prefix_root)
 	size += strlen(Root);
     if (!(s = malloc(size)))
 	Error_NoMemory();
-    if (Root) {
+    if (prefix_root) {
 	strcpy(s, Root);
 	strcat(s, name);
     } else
