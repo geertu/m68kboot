@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: bootstrap.h,v 1.2 1997-07-16 15:06:25 rnhodek Exp $
+ * $Id: bootstrap.h,v 1.3 1997-07-30 21:42:51 rnhodek Exp $
  * 
  * $Log: bootstrap.h,v $
- * Revision 1.2  1997-07-16 15:06:25  rnhodek
+ * Revision 1.3  1997-07-30 21:42:51  rnhodek
+ * Fix defition of Puts; make boot_exit a normal function
+ *
+ * Revision 1.2  1997/07/16 15:06:25  rnhodek
  * Replaced all call to libc functions puts, printf, malloc, ... in common code
  * by the capitalized generic function/macros. New generic function ReAlloc, need
  * by load_ramdisk.
@@ -27,7 +30,7 @@
 
 #define	boot_exit		exit
 
-#define Puts			puts
+#define Puts(str)		fputs( (str), stdout )
 #define	GetChar			getchar
 #define	PutChar			putchar
 #define	Printf			printf

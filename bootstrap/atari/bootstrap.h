@@ -11,10 +11,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: bootstrap.h,v 1.3 1997-07-16 15:06:21 rnhodek Exp $
+ * $Id: bootstrap.h,v 1.4 1997-07-30 21:42:51 rnhodek Exp $
  * 
  * $Log: bootstrap.h,v $
- * Revision 1.3  1997-07-16 15:06:21  rnhodek
+ * Revision 1.4  1997-07-30 21:42:51  rnhodek
+ * Fix defition of Puts; make boot_exit a normal function
+ *
+ * Revision 1.3  1997/07/16 15:06:21  rnhodek
  * Replaced all call to libc functions puts, printf, malloc, ... in common code
  * by the capitalized generic function/macros. New generic function ReAlloc, need
  * by load_ramdisk.
@@ -34,18 +37,9 @@
 #include <osbind.h>
 
 extern unsigned long userstk;
+void boot_exit( int status );
 
-/* ++andreas: this must be inline due to Super */
-extern __inline__ void boot_exit (int) __attribute__ ((noreturn));
-extern __inline__ void boot_exit(int status)
-{
-    /* first go back to user mode */
-    (void)Super(userstk);
-    getchar();
-    exit(status);
-}
-
-#define Puts			puts
+#define Puts(str)		fputs( (str), stdout )
 #define	GetChar			getchar
 #define	PutChar			putchar
 #define	Printf			printf
