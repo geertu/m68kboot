@@ -7,10 +7,14 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: monitor.c,v 1.7 1998-03-04 09:18:43 rnhodek Exp $
+ * $Id: monitor.c,v 1.8 1998-03-05 10:26:39 rnhodek Exp $
  * 
  * $Log: monitor.c,v $
- * Revision 1.7  1998-03-04 09:18:43  rnhodek
+ * Revision 1.8  1998-03-05 10:26:39  rnhodek
+ * Replace body of list_records() by call to new ListRecords() in
+ * bootmain.c; the functionality is needed if the monitor is included or not.
+ *
+ * Revision 1.7  1998/03/04 09:18:43  rnhodek
  * do_exec: accept option -n for running prg without caches.
  *
  * Revision 1.6  1998/03/02 13:56:47  rnhodek
@@ -276,28 +280,7 @@ static void show_list( int argc, const char *argv[] )
 
 static void list_records( int argc, const char *argv[] )
 {
-	const struct BootRecord *rec;
-	
-	cprintf( "Boot records:\n" );
-	for( rec = BootRecords; rec; rec = rec->Next ) {
-		cprintf( "  %-31.31s (", rec->Label );
-		if (rec->Alias)
-			cprintf( "alias \"%s\", ", rec->Alias );
-		cprintf( "type " );
-		switch( rec->OSType ? *rec->OSType : BOS_LINUX ) {
-		  case BOS_TOS:		cprintf( "TOS" ); break;
-		  case BOS_LINUX:	cprintf( "Linux" ); break;
-		  case BOS_BOOTB:	cprintf( "bootsector" ); break;
-		  default:			cprintf( "unknown" ); break;
-		}
-		if (rec->Password)
-			cprintf( ", restricted" );
-		if (!is_available( rec ))
-			cprintf( ", incomplete" );
-		if (rec == dflt_os)
-			cprintf( ", default" );
-		cprintf( ")\n" );
-	}
+	ListRecords();
 }
 
 
