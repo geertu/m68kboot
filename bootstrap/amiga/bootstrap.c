@@ -28,10 +28,14 @@
 ** License.  See the file COPYING in the main directory of this archive
 ** for more details.
 **
-** $Id: bootstrap.c,v 1.2 1997-07-16 14:05:00 rnhodek Exp $
+** $Id: bootstrap.c,v 1.3 1997-08-10 19:22:53 rnhodek Exp $
 ** 
 ** $Log: bootstrap.c,v $
-** Revision 1.2  1997-07-16 14:05:00  rnhodek
+** Revision 1.3  1997-08-10 19:22:53  rnhodek
+** Moved AmigaOS inline funcs to extr header inline-funcs.h; the functions
+** can't be compiled under Linux
+**
+** Revision 1.2  1997/07/16 14:05:00  rnhodek
 ** Sorted out which headers to use and the like; Amiga bootstrap now compiles.
 ** Puts and other generic functions now defined in bootstrap.h
 **
@@ -55,6 +59,7 @@
 
 /* Amiga bootstrap include files */
 #include "linuxboot.h"
+#include "inline-funcs.h"
 #include "bootstrap.h"
 
 

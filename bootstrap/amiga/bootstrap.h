@@ -17,10 +17,14 @@
 ** License.  See the file COPYING in the main directory of this archive
 ** for more details.
 **
-** $Id: bootstrap.h,v 1.4 1997-07-16 15:06:15 rnhodek Exp $
+** $Id: bootstrap.h,v 1.5 1997-08-10 19:22:54 rnhodek Exp $
 ** 
 ** $Log: bootstrap.h,v $
-** Revision 1.4  1997-07-16 15:06:15  rnhodek
+** Revision 1.5  1997-08-10 19:22:54  rnhodek
+** Moved AmigaOS inline funcs to extr header inline-funcs.h; the functions
+** can't be compiled under Linux
+**
+** Revision 1.4  1997/07/16 15:06:15  rnhodek
 ** Replaced all call to libc functions puts, printf, malloc, ... in common code
 ** by the capitalized generic function/macros. New generic function ReAlloc, need
 ** by load_ramdisk.
@@ -43,6 +47,7 @@
 
 
 #include "linuxboot.h"
+#include "inline-funcs.h"
 
 struct MsgPort {
     u_char fill1[15];

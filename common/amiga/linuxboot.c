@@ -44,10 +44,14 @@
  *	31 May 1994 Memory thrash problem solved (Geert)
  *	11 May 1994 A3640 MapROM check (Geert)
  * 
- * $Id: linuxboot.c,v 1.6 1997-08-10 19:03:41 rnhodek Exp $
+ * $Id: linuxboot.c,v 1.7 1997-08-10 19:22:55 rnhodek Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.6  1997-08-10 19:03:41  rnhodek
+ * Revision 1.7  1997-08-10 19:22:55  rnhodek
+ * Moved AmigaOS inline funcs to extr header inline-funcs.h; the functions
+ * can't be compiled under Linux
+ *
+ * Revision 1.6  1997/08/10 19:03:41  rnhodek
  * Removed ALIGN_STR to avoid dependency on <linux/linkage.h>
  *
  * Revision 1.5  1997/07/18 12:10:37  rnhodek
@@ -88,8 +92,9 @@
 #include <asm/amigahw.h>
 #include <asm/page.h>
 
-#include "bootstrap.h"
 #include "linuxboot.h"
+#include "inline-funcs.h"
+#include "bootstrap.h"
 #include "loadkernel.h"
 #include "bootinf.h"
 
@@ -145,7 +150,7 @@ static int probe_resource(const char *name);
 static void start_kernel(void (*startfunc)(), char *stackp, char *memptr,
 			 u_long start_mem, u_long kernel_size, u_long rd_dest,
 			 u_long rd_size) __attribute__ ((noreturn));
-asmlinkage u_long maprommed(void);
+u_long maprommed(void);
 
     /*
      *	Reset functions for nasty Zorro boards
