@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: loader.c,v 1.3 1998-03-10 10:23:11 rnhodek Exp $
+ * $Id: loader.c,v 1.4 1998-03-17 12:31:15 rnhodek Exp $
  * 
  * $Log: loader.c,v $
- * Revision 1.3  1998-03-10 10:23:11  rnhodek
+ * Revision 1.4  1998-03-17 12:31:15  rnhodek
+ * Change Puts with arg to Printf.
+ *
+ * Revision 1.3  1998/03/10 10:23:11  rnhodek
  * New option "message": print before showing the prompt.
  *
  * Revision 1.2  1997/09/19 09:06:54  geert
@@ -252,7 +255,7 @@ u_long Main(struct IOStdReq *bootrequest)
     /* If a message is defined, display it now. */
     /* NOT TESTED YET! */
     if (BootOptions->Message)
-	Puts( "%s\n", BootOptions->Message );
+	Printf( "%s\n", BootOptions->Message );
 	
     do {
 	DefaultBootRecord = FindBootRecord(NULL);
