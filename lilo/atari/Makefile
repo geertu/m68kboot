@@ -7,10 +7,13 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.2 1998-02-23 10:16:21 rnhodek Exp $
+# $Id: Makefile,v 1.3 1998-02-24 11:14:11 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.2  1998-02-23 10:16:21  rnhodek
+# Revision 1.3  1998-02-24 11:14:11  rnhodek
+# When building loader.map also omit ___gcc_compiled_c symbols
+#
+# Revision 1.2  1998/02/23 10:16:21  rnhodek
 # Added rule for atari/bootos utility.
 # Generate a map file for loader.tos, for debugging exception dumps.
 #
@@ -34,7 +37,9 @@ atari/loader.tos: $(LOADER_OBJS) $(ATARI_COBJS)
 	@# discard all symbols and locals
 	$(ATARI_COMPILE) -s -Wl,-M -nostdlib -Wl,-x -o $@ $^ -lmint -lgem | \
 	perl -ne 'printf "%08x %s\n", eval($$2), $$1 \
-	          if /^  (\S+): (0x\S+)$$/ && $$1 ne "gcc2_compiled.";' | \
+	          if /^  (\S+): (0x\S+)$$/ && \
+			     $$1 ne "gcc2_compiled." && \
+			     $$1 ne "___gnu_compiled_c";' | \
 	sort >atari/loader.map
 
 atari/bootos: atari/bootos.o
