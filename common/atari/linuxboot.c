@@ -11,10 +11,15 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.c,v 1.12 2004-08-15 11:48:59 geert Exp $
+ * $Id: linuxboot.c,v 1.13 2004-08-15 11:51:16 geert Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.12  2004-08-15 11:48:59  geert
+ * Revision 1.13  2004-08-15 11:51:16  geert
+ * Correct behavior of "-t" (=ignore TT/FastRAM) so it is truly ignored and no
+ * FastRAM test on AB40 is run.
+ * (from Petr Stehlik)
+ *
+ * Revision 1.12  2004/08/15 11:48:59  geert
  * Add missing Centurbo2 support that I found in atari-bootstrap package
  * (from Petr Stehlik)
  *
@@ -579,19 +584,21 @@ static void get_mem_infos( void )
 
 	/* Assume that only Falcon with a '040 is Afterburner040 */
 
-        struct {
-	    unsigned long start, size;
-	} banks[2];
-	int n_banks;
+	if (!ignore_ttram) {
+            struct {
+	        unsigned long start, size;
+	    } banks[2];
+	    int n_banks;
 
-        n_banks = get_ab040_bank_sizes( 2, (unsigned long *)banks );
+            n_banks = get_ab040_bank_sizes( 2, (unsigned long *)banks );
 	
-        if (!ignore_ttram && n_banks >= 1)
-	    ADD_CHUNK( banks[0].start, banks[0].size,
-		       force_tt_size, "FastRAM bank 1" );
-        if (!ignore_ttram && n_banks >= 2 && force_tt_size < 0)
-	    ADD_CHUNK( banks[1].start, banks[1].size,
-		       force_tt_size, "FastRAM bank 2" );
+            if (n_banks >= 1)
+	        ADD_CHUNK( banks[0].start, banks[0].size,
+		           force_tt_size, "FastRAM bank 1" );
+            if (n_banks >= 2 && force_tt_size < 0)
+	        ADD_CHUNK( banks[1].start, banks[1].size,
+		           force_tt_size, "FastRAM bank 2" );
+	}
 
     }
     else {
