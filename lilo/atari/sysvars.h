@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: sysvars.h,v 1.1 1997-08-12 15:27:13 rnhodek Exp $
+ * $Id: sysvars.h,v 1.2 1998-02-24 11:21:36 rnhodek Exp $
  * 
  * $Log: sysvars.h,v $
- * Revision 1.1  1997-08-12 15:27:13  rnhodek
+ * Revision 1.2  1998-02-24 11:21:36  rnhodek
+ * _bootdev is a word variable, not long.
+ *
+ * Revision 1.1  1997/08/12 15:27:13  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -20,7 +23,7 @@
 #ifndef _sysvars_h
 #define _sysvars_h
 
-#define	_bootdev	(*((unsigned long *)0x446))
+#define	_bootdev	(*((unsigned short *)0x446))
 #define hdv_getbpb	(*((unsigned long *)0x472))
 #define hdv_rw		(*((unsigned long *)0x476))
 #define hdv_mediach	(*((unsigned long *)0x47e))
