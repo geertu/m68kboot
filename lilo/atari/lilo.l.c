@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: lilo.l.c,v 1.9 1998-03-06 09:49:45 rnhodek Exp $
+ * $Id: lilo.l.c,v 1.10 1998-03-10 10:26:01 rnhodek Exp $
  * 
  * $Log: lilo.l.c,v $
- * Revision 1.9  1998-03-06 09:49:45  rnhodek
+ * Revision 1.10  1998-03-10 10:26:01  rnhodek
+ * CreateMapFile(): Also test if there are restricted images without a password.
+ *
+ * Revision 1.9  1998/03/06 09:49:45  rnhodek
  * In CreateBootBlock(), initialize new field 'modif_mask' from SkipOnKeys.
  *
  * Revision 1.8  1998/03/04 09:16:25  rnhodek
@@ -489,25 +492,27 @@ static void CreateMapFile(void)
 	if (!Config.Records)
 		Die("No boot records\n");
 	
-    /* check a few conditions on the default boot record */
+    /* check a few conditions on boot records */
     for (record = Config.Records; record; record = record->Next) {
 		if (EqualStrings(Config.Options.Default, record->Label) ||
 			EqualStrings(Config.Options.Default, record->Alias)) {
-			if (record->OSType && *record->OSType != BOS_LINUX)
-				break;
+			if (record->OSType && *record->OSType == BOS_LINUX) {
 #ifdef USE_BOOTP
-			if (strncmp( record->Kernel, "bootp:", 6 ) != 0) {
+				if (strncmp( record->Kernel, "bootp:", 6 ) != 0) {
 #endif
-				if ((fd = open( record->Kernel, O_RDONLY )) < 0)
-					Die("Kernel image `%s' for default boot record `%s' "
-						"does not exist\n", record->Kernel, record->Label);
-				else
-					close( fd );
+					if ((fd = open( record->Kernel, O_RDONLY )) < 0)
+						Die("Kernel image `%s' for default boot record `%s' "
+							"does not exist\n", record->Kernel, record->Label);
+					else
+						close( fd );
 #ifdef USE_BOOTP
+				}
+#endif
 			}
-#endif
-			break;
 		}
+		if (record->Restricted && *record->Restricted && !record->Password)
+			Die("Boot record `%s' is restricted, but has no password\n",
+				record->Label);
     }
     
     WriteTags( MapFile );
