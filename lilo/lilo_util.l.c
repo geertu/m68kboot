@@ -13,10 +13,14 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo_util.l.c,v 1.6 1998-03-06 09:48:39 rnhodek Exp $
+ * $Id: lilo_util.l.c,v 1.7 1998-03-17 12:30:51 rnhodek Exp $
  * 
  * $Log: lilo_util.l.c,v $
- * Revision 1.6  1998-03-06 09:48:39  rnhodek
+ * Revision 1.7  1998-03-17 12:30:51  rnhodek
+ * Introduce MaxVectorSector{Number,Count}, if the loader has limits on
+ * which numbers can be used.
+ *
+ * Revision 1.6  1998/03/06 09:48:39  rnhodek
  * Implement a cache for the results of FindDevice(); going through whole
  * /dev and stat-ing each file everytime is inefficient.
  *
@@ -93,6 +97,8 @@ char *LoaderData;
 int LoaderSize;
 const struct vecent *LoaderVector;
 int LoaderNumBlocks;
+u_long MaxVectorSectorNumber = ULONG_MAX;
+u_long MaxVectorSectorCount = USHRT_MAX;
 
 
     /*
@@ -472,20 +478,33 @@ const struct vecent *CreateVector( const char *name, int *numblocks )
 		    vector[i].start != HoleSector ||
 		    vector[i].length >= MaxHoleSectors) {
 		    ++i;
+		    if (HoleSector > MaxVectorSectorNumber)
+			Die("Sector number %lu is outside the supported "
+			    "range\n", HoleSector);
 		    vector[i].start  = HoleSector;
 		    vector[i].length = 0;
 		}
 		n = min( MaxHoleSectors-vector[i].length, j );
+		if (vector[i].length + n > MaxVectorSectorCount)
+		    n = MaxVectorSectorCount;
 		vector[i].length += n;
 	    }
 	}
 	else {
 	    /* not a hole */
 	    thisstart = start + offset*sectors_per_block;
-	    if (i != 0 && vector[i].start + vector[i].length == thisstart)
+	    /* BUG: The MaxVectorSectorCount check below doesn't work if
+	     * MaxVectorSectorCount < sectors_per_block! But since
+	     * sectors_per_block is usually small (2..8) this doesn't hurt for
+	     * now. */
+	    if (i != 0 && vector[i].start + vector[i].length == thisstart &&
+		vector[i].length + sectors_per_block <= MaxVectorSectorCount)
 		vector[i].length += sectors_per_block;
 	    else {
 		++i;
+		if (thisstart > MaxVectorSectorNumber)
+		    Die("Sector number %lu is outside the supported range\n",
+			HoleSector);
 		vector[i].start  = thisstart;
 		vector[i].length = sectors_per_block;
 	    }
