@@ -7,10 +7,15 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: bootp_mod.c,v 1.3 1997-07-18 11:07:07 rnhodek Exp $
+ * $Id: bootp_mod.c,v 1.4 1998-02-26 10:01:04 rnhodek Exp $
  * 
  * $Log: bootp_mod.c,v $
- * Revision 1.3  1997-07-18 11:07:07  rnhodek
+ * Revision 1.4  1998-02-26 10:01:04  rnhodek
+ * Handle "bootp:" prefix from Lilo.
+ * Don't print error messages about Ethernet packages from a wrong server
+ * or port; these are no real errors, they can be caused by normal net activity.
+ *
+ * Revision 1.3  1997/07/18 11:07:07  rnhodek
  * Added sfilesize() call & Co. to streams
  *
  * Revision 1.2  1997/07/16 15:06:22  rnhodek
@@ -265,6 +270,17 @@ static int bootp_open( const char *name )
 	if (no_bootp)
 		goto try_next;
 
+#ifdef IN_LILO
+	/* inside Lilo, only use BOOTP if the filename starts with "bootp:" */
+	if (strncmp( name, "bootp:", 6 ) != 0)
+		goto try_next;
+	name += 6;
+#else
+	/* "local:" prefix in name means use local file, skip BOOTP */
+	if (strncmp( name, "local:", 6 ) == 0)
+		goto try_next;
+#endif
+
 	/* Check if a Ethernet interface is present and determine the Ethernet
 	 * address */
 	if (check_ethif() < 0) {
@@ -272,10 +288,6 @@ static int bootp_open( const char *name )
 		goto try_next;
 	}
 
-	/* "local:" prefix in name means use local file, skip BOOTP */
-	if (strncmp( name, "local:", 6 ) == 0)
-		goto try_next;
-	
 	strcpy( image_name, name );
 	/* Replace the default name "vmlinux" by an empty name; the BOOTP server
 	 * will replace this by its default kernel for us */
@@ -638,7 +650,10 @@ static int udp_rcv( UDP *pkt, int *len, int fromport, int atport )
 	if (ServerIPaddr != IP_Unknown_Addr &&
 		ServerIPaddr != IP_Broadcast_Addr &&
 		pkt->ip.src_addr != ServerIPaddr) {
+#if 0
+		/* This is no real error, be quiet about it */
 		Printf( "Received packet from wrong server\n" );
+#endif
 		goto repeat;
 	}
 	/* If IP header is longer than 5 longs, delete the options */
@@ -649,7 +664,10 @@ static int udp_rcv( UDP *pkt, int *len, int fromport, int atport )
 	
 	/* UDP layer */
 	if (fromport != 0 && pkt->udp.src_port != fromport) {
+#if 0
+		/* This is no real error, be quiet about it */
 		Printf( "Received packet from wrong port %d\n", pkt->udp.src_port );
+#endif
 		goto repeat;
 	}
 	if (pkt->udp.dst_port != atport) {
