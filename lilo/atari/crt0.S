@@ -7,10 +7,15 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: crt0.S,v 1.3 1998-02-24 11:20:55 rnhodek Exp $
+ * $Id: crt0.S,v 1.4 1998-02-25 10:34:55 rnhodek Exp $
  * 
  * $Log: crt0.S,v $
- * Revision 1.3  1998-02-24 11:20:55  rnhodek
+ * Revision 1.4  1998-02-25 10:34:55  rnhodek
+ * Add missing '#' before constant STACK_SIZE.
+ * Also include TOSPRGHDR_SIZE in _PgmSize.
+ * Also dump 4 stack longs before current SP.
+ *
+ * Revision 1.3  1998/02/24 11:20:55  rnhodek
  * Save old vectors before modifying them, and restore them after loader
  * exits. Otherwise, they would point to unallocated memory afterwards.
  * Initialize all standard handles to -1 (console).
@@ -196,8 +201,8 @@ end_reloc:
 	movl	a6@(PRGHDR_TLEN),d7
 	addl	a6@(PRGHDR_DLEN),d7
 	addl	a6@(PRGHDR_BLEN),d7
-	addl	#1536,d7		/* junk before TOS program */
-	addl	STACK_SIZE,d7		/* length of text+data+BSS+stack */
+	addl	#1536+TOSPRGHDR_SIZE,d7	/* junk before TOS program */
+	addl	#STACK_SIZE,d7		/* length of text+data+BSS+stack */
 	
 	movl	d7,sp@-			/* new size of block */
 	movl	a5,sp@-			/* base address */
@@ -531,6 +536,7 @@ exc_common:
 	jbsr	puts
 	movq	#7,d7
 1:	movl	a6,d0
+	subl	#16,d0
 	jbsr	putnum
 	movl	#str_colon,a0
 	jbsr	puts
