@@ -7,10 +7,14 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: loader.c,v 1.5 1998-04-06 01:40:57 dorchain Exp $
+ * $Id: loader.c,v 1.6 2004-10-01 19:01:33 geert Exp $
  * 
  * $Log: loader.c,v $
- * Revision 1.5  1998-04-06 01:40:57  dorchain
+ * Revision 1.6  2004-10-01 19:01:33  geert
+ * Kill warning about unused variable saved_return_address by moving it to the
+ * inline assembler.
+ *
+ * Revision 1.5  1998/04/06 01:40:57  dorchain
  * make loader linux-elf.
  * made amiga bootblock working again
  * compiled, but not tested bootstrap
@@ -86,11 +90,12 @@ SYMBOL_NAME_STR(int_fkt_offset_jmp) ":
 	lea     %pc@("SYMBOL_NAME_STR(saved_return_address)"),%a1
 	movel	%a1@,%a1
 	jmp	%a1@	|return
+" SYMBOL_NAME_STR(saved_return_address) ":
+	.long	0
 ");
 /* gcc returns pointers in %a0, data values in %d0, so... */
 void *ptr_fkt_offset_jmp(void *,...);
 u_long int_fkt_offset_jmp(void *,...);
-static u_long saved_return_address;
 
 const char LiloVersion[] = VERSION;
 
