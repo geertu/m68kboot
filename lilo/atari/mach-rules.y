@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: mach-rules.y,v 1.7 1998-03-10 10:26:34 rnhodek Exp $
+ * $Id: mach-rules.y,v 1.8 1998-04-08 09:32:35 schwab Exp $
  * 
  * $Log: mach-rules.y,v $
- * Revision 1.7  1998-03-10 10:26:34  rnhodek
+ * Revision 1.8  1998-04-08 09:32:35  schwab
+ * Fix spelling "loadto-st-ram" -> "load-to-st-ram".
+ *
+ * Revision 1.7  1998/03/10 10:26:34  rnhodek
  * New boot record option "restricted".
  *
  * Revision 1.6  1998/03/06 09:50:25  rnhodek
@@ -264,7 +267,7 @@ ignorettram: "ignore-tt-ram" opt_bool
 		BootRecord.IgnoreTTRam = CopyLong($2);
 	};
 
-loadtostram: "loadto-st-ram" opt_bool
+loadtostram: "load-to-st-ram" opt_bool
 	{
 		if (BootRecord.LoadToSTRam)
 		    Redefinition((char *)$1);
