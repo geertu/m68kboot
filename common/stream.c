@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  *
- * $Id: stream.c,v 1.8 1998-04-07 09:55:36 rnhodek Exp $
+ * $Id: stream.c,v 1.9 1998-04-09 08:05:17 rnhodek Exp $
  * 
  * $Log: stream.c,v $
- * Revision 1.8  1998-04-07 09:55:36  rnhodek
+ * Revision 1.9  1998-04-09 08:05:17  rnhodek
+ * Use ELF_LOADER for whether to use int_fkt_offset_jmp().
+ *
+ * Revision 1.8  1998/04/07 09:55:36  rnhodek
  * Change logic which set of MOD_* macros is to be used:
  * int_fkt_offset_jmp is only for Amiga Lilo.
  *
@@ -200,7 +203,7 @@ void stream_push( MODULE *mod )
 		}														\
     } while(0)
 
-#if defined(IN_LILO) && defined(amiga)
+#ifdef ELF_LOADER
 /* need to adjust addresses from function tables */
 extern u_long int_fkt_offset_jmp(void *,...);
 #define MOD_OPEN(name)		(int_fkt_offset_jmp(currmod->open, (name)))
