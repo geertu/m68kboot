@@ -404,7 +404,50 @@ you're a bit out of luck. In that case, you can't change the boot
 preference at all. To boot Lilo, you have to give Lilo's boot
 partition a TOS boot flag (0x80), and remove the boot flag from your
 TOS boot partition. To switch back to default TOS boot, you have to
-undo those two steps.
+undo those two steps. Of course, you can also install Lilo to the
+master root sector to circumvent the problem, but please make sure
+that Lilo can really boot TOS before doing this. If Lilo should fail
+somehow, you would be completely unable to boot your system (except
+from floppy).
+
+<p>
+There are also TOS HD drivers that install a master root sector that
+ignores the boot preference completely. I've heard that from the ICD
+driver (at least version 6.5.5). In that case, the same as above
+applies.
+
+<sect1>Atari only: Limitations
+
+<p>
+Lilo uses the XBIOS function <tt/DMAread/ for reading all its files.
+Unfortunately, <tt/DMAread/ only supports 21 bits for sector
+numbers<footnote>For the experts: It only knows the <tt/READ(6)/
+command, not <tt/READ(10)/, on SCSI. With ACSI there's no
+<tt/READ(10)/ anyway, except through vendor-specific
+extensions.</footnote>. This means that all files accessed by Lilo
+must be in the low 1 GB of a disk. The files affected are:
+<itemize>
+<item><tt>/boot/loader.patched</tt>
+<item><tt>/boot/map</tt>
+<item>Kernel images and ramdisks
+<item>TOS HD drivers configured in <tt>/etc/lilo.conf</tt>
+<item>All TOS programs started by Lilo
+</itemize>
+If one of these files ---also partially--- is outside this 1 GB block,
+you'll get an error message like
+<tscreen>
+<tt>Sector number ... is outside the supported range</tt>
+</tscreen>
+from Lilo. The fix is to move it somewhere else, probably another
+partition. For example, you could create a small partition (maybe 10
+MB) only for that purpose and mount it on <tt>/boot</tt>.
+
+<p>
+TODO: Does the following work?
+
+<p>
+You can also move only the files to another partitions, and make
+symlinks from <tt>/boot</tt> to the real files.
 
 <sect1>Uninstalling Lilo
 
