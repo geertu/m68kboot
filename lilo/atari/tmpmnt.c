@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: tmpmnt.c,v 1.3 1998-02-24 11:22:29 rnhodek Exp $
+ * $Id: tmpmnt.c,v 1.4 1998-02-25 10:38:35 rnhodek Exp $
  * 
  * $Log: tmpmnt.c,v $
- * Revision 1.3  1998-02-24 11:22:29  rnhodek
+ * Revision 1.4  1998-02-25 10:38:35  rnhodek
+ * umount_drv() should also clear bit in _drvbits.
+ *
+ * Revision 1.3  1998/02/24 11:22:29  rnhodek
  * Fix indentation.
  *
  * Revision 1.2  1997/09/19 09:07:00  geert
@@ -183,6 +186,7 @@ int umount_drv( int drv )
 	if ((fd = Fopen( fname, 0 )) >= 0)
 		Fclose( fd );
 
+	_drvbits &= ~(1 << drv);
 	if (Debug)
 		cprintf( "Unmounted drive %c:, mediach=%u\n", drv+'A',dp->mediach );
 
