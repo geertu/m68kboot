@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  *
- * $Id: stream.c,v 1.4 1997-07-18 11:07:08 rnhodek Exp $
+ * $Id: stream.c,v 1.5 1998-02-24 11:11:41 rnhodek Exp $
  * 
  * $Log: stream.c,v $
- * Revision 1.4  1997-07-18 11:07:08  rnhodek
+ * Revision 1.5  1998-02-24 11:11:41  rnhodek
+ * In stream_push(), set mod->down->up only if downstream module exists
+ *
+ * Revision 1.4  1997/07/18 11:07:08  rnhodek
  * Added sfilesize() call & Co. to streams
  *
  * Revision 1.3  1997/07/17 14:21:57  geert
@@ -155,7 +158,8 @@ void stream_push( MODULE *mod )
 	mod->down = head_mod.down;
 	mod->up = &head_mod;
 	head_mod.down = mod;
-	mod->down->up = mod;
+	if (mod->down)
+		mod->down->up = mod;
 }
 
 /* ------------------------------------------------------------------------ */
