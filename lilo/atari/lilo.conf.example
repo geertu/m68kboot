@@ -1,25 +1,24 @@
 #
-#   Atari Linux/m68k Loader
+#	Atari Linux/m68k Loader
 #
-#   Sample Configuration File
+#	Sample Configuration File
 #
 
 header
-    bootdev "/dev/hda1"
-    default "linux"
-	resolution tt-mid
-	no-bing
-    auto false
-    timeout 20
-	serial Modem2 9600 7E1.5 xon
-    password "atari"
-	machine TT
-	cpu 68030
-	fpu 68881
+	bootdev "/dev/sda2"
+	default "linux"
+#	resolution tt-mid
+#	no-bing
+#	auto
+	timeout 20
+#	serial Modem2 9600 8N1 rtscts
+	password "atari"
+#	machine TT
+#	cpu 68030
+#	fpu 68881
 	mount "/dev/sda1" on C:
 	mount "/dev/sda3" on D:
-	exec "C:\\AUTO\\NVDI.PRG"
-	exec "C:\\AUTO\\SELECTR.PRG"
+	exec "C:\AUTO\NVDI.PRG" workdir "C:\"
 endheader
 
 bootrec "TOS"
@@ -29,38 +28,33 @@ bootrec "TOS"
 endrec
 
 bootrec "linux"
-    image "/boot/vmlinux"
-    args "root=/dev/sda10"
+	image "/boot/vmlinux"
+	args "root=/dev/sda10"
 endrec
 
 bootrec "single"
-    image "/boot/vmlinux"
-    args "root=/dev/sda10 single"
-    password "single"
-endrec
-
-bootrec "emergency"
-    image "/boot/vmlinux"
-    args "root=/dev/sda10 -b"
-    password "emergency"
+	image "/boot/vmlinux"
+	args "root=/dev/sda10 single"
+	password "single"
 endrec
 
 bootrec "ramdisk"
-    image "/boot/vmlinux"
-    ramdisk "/boot/filesys-ELF-2.0.x.gz"
-    args "root=/dev/ram"
-    password "ramdisk"
+	image "/boot/vmlinux"
+	ramdisk "/boot/filesys-ELF-2.0.x.gz"
+	args "root=/dev/ram"
+	password "ramdisk"
 endrec
 
 bootrec "test1"
-    image "/usr/src/linux/vmlinux"
+	image "/usr/src/linux/vmlinux"
+	args "root=/dev/sdb1"
 endrec
 
 bootrec "test2"
-    image "/usr/src/linux/vmlinux"
-    args "root=/dev/sdb10"
+	image "/usr/src/linux/vmlinux"
+	args "root=/dev/sdb1"
 	mount "/dev/sda1" on C:
-	exec "C:\\AUTO\\GEMENV.PRG"
+	exec "C:\AUTO\GEMENV.PRG"
 	ignore-tt-ram
 	load-to-st-ram
 	extra-mem 16M at 0x02000000
@@ -70,4 +64,4 @@ bootrec "asv"
 	partition "/dev/sda2"
 endrec
 
-file "/boot/filesys-ELF-2.0.x"
+file "/boot/ramdisk"
