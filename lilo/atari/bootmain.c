@@ -7,10 +7,13 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: bootmain.c,v 1.6 1998-02-26 10:15:57 rnhodek Exp $
+ * $Id: bootmain.c,v 1.7 1998-02-26 11:17:08 rnhodek Exp $
  * 
  * $Log: bootmain.c,v $
- * Revision 1.6  1998-02-26 10:15:57  rnhodek
+ * Revision 1.7  1998-02-26 11:17:08  rnhodek
+ * Print CR-NL after 'd' of LILO...booted.
+ *
+ * Revision 1.6  1998/02/26 10:15:57  rnhodek
  * Implement new config vars Environ and BootDrv with functions
  * setup_environ() and putenv().
  * Print autoboot message also if Debug == 0.
@@ -144,7 +147,7 @@ int main( int argc, char *argv[] )
 	char *cmdline = NULL, *label;
 	
 	/* final 'd' of LILO...booted */
-	Cconout( 'd' );
+	Cconws( "d\r\n" );
 
 	/* enable caches while in the loader */
 	cache_ctrl( 1 );
