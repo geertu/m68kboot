@@ -7,10 +7,15 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: bootmain.c,v 1.1 1997-08-12 15:27:07 rnhodek Exp $
+ * $Id: bootmain.c,v 1.2 1997-08-23 20:47:50 rnhodek Exp $
  * 
  * $Log: bootmain.c,v $
- * Revision 1.1  1997-08-12 15:27:07  rnhodek
+ * Revision 1.2  1997-08-23 20:47:50  rnhodek
+ * Fixed waiting for keypress in autoboot
+ * Added some debugging printf
+ * Replaced printf by cprintf
+ *
+ * Revision 1.1  1997/08/12 15:27:07  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -124,25 +129,33 @@ int main( int argc, char *argv[] )
 	/* If 'auto' option is set and no modifier key is pressed, go on booting
 	 * the default OS */
 	boot_os = dflt_os = FindBootRecord(NULL);
+	if (Debug)
+		cprintf( "Default OS is %s\n", dflt_os->Label );
 	if (is_available( boot_os )) {
 		if (BootOptions->Auto && *BootOptions->Auto && !dflt_os->Password) {
 			unsigned long timeout = _hz_200;
 			if (BootOptions->Delay)
 				timeout += *BootOptions->Delay * HZ;
-			do {
-				if (Kbshift( -1 ) & 0xff) {
+			if (Debug)
+				cprintf( "Auto boot in progress, waiting for %ld seconds\n",
+						 BootOptions->Delay ? *BootOptions->Delay : 0 );
+			while(  _hz_200 < timeout) {
+				if (Kbshift( -1 ) & 0xff)
 					/* any modifier or mouse button pressed */
-					AutoBoot = 1;
-					goto boot_default;
-				}
-			} while( _hz_200 < timeout );
+					goto no_auto_boot;
+			}
+			AutoBoot = 1;
+			goto boot_default;
 		}
 	}
 	else
 		printf( "Can't use default OS %s, because record is incomplete\n",
 				dflt_os->Label );
 	
+  no_auto_boot:
 	/* do global temp. mounts and programs */
+	if (Debug)
+		cprintf( "mounting and executing\n" );
 	for( i = 0; i < MAX_TMPMNT; ++i ) {
 		if (BootOptions->TmpMnt[i])
 			mount( &MountPoints[*BootOptions->TmpMnt[i]] );
@@ -275,6 +288,9 @@ void boot_tos( const struct BootRecord *rec )
 	long basepage, err;
 
 	/* mount the driver where the driver resides */
+	if (Debug)
+		cprintf( "Booting TOS -- mounting dev=%ld sec=%lu on C:\n",
+				 *rec->BootDev, *rec->BootSec );
 	driver_mnt.device = *rec->BootDev;
 	driver_mnt.start_sec = *rec->BootSec;
 	driver_mnt.drive = 2; /* always use C: */
@@ -294,6 +310,8 @@ void boot_tos( const struct BootRecord *rec )
 				rec->TOSDriver, tos_perror(basepage) );
 		return;
 	}
+	if (Debug)
+		cprintf( "TOS HD driver loaded at 0x%08lx\n", basepage );
 	
 	/* set _bootdev variable, defines the drive from where AUTO folder progs
 	 * and accessories are loaded */
@@ -306,12 +324,16 @@ void boot_tos( const struct BootRecord *rec )
 	cache_ctrl( 0 );
 
 	/* now run the driver */
+	if (Debug)
+		cprintf( "Executing TOS HD driver...\n" );
 	if ((err = Pexec( (Sversion() < 0x1500) ? 4 : 6, NULL, basepage, NULL))
 		< 0) {
 		cprintf( "Error on executing TOS hd driver \"%s\": %s\n",
 				rec->TOSDriver, tos_perror(err) );
 		return;
 	}
+	if (Debug)
+		cprintf( "ok, return value %ld\n", err );
 
 	/* we can now safely jump back to ROM code, since the hd driver should
 	 * have changed hdv_rw, which terminates the boot-try loop */
@@ -325,6 +347,8 @@ void boot_linux( const struct BootRecord *rec, const char *cmdline )
 	int i, override = 0;
 	
 	/* do temp. mounts and run programs defined for the boot record */
+	if (Debug)
+		cprintf( "Booting TOS -- doing tmp mounts and executes\n" );
 	for( i = 0; i < MAX_TMPMNT; ++i ) {
 		if (rec->TmpMnt[i])
 			mount( &MountPoints[*rec->TmpMnt[i]] );
@@ -365,6 +389,8 @@ void boot_linux( const struct BootRecord *rec, const char *cmdline )
 		strncat( command_line, rec->Args, CL_SIZE - strlen(command_line) );
 		command_line[CL_SIZE] = 0;
 	}
+	if (Debug)
+		cprintf( "Command line is \"%s\"\n", command_line );
 
 	linux_boot();
 }
@@ -375,6 +401,9 @@ void boot_bootsector( const struct BootRecord *rec )
 	long err;
     signed short *p, *pend, sum;
 
+	if (Debug)
+		cprintf( "Booting boot sector %lu from dev %ld\n",
+				 *rec->BootSec, *rec->BootDev );
 	/* close VDI workstation */
 	graf_deinit();
 	/* turn off caches before loading code */
@@ -399,6 +428,8 @@ void boot_bootsector( const struct BootRecord *rec )
 	}
 
 	/* ok, jump to it */
+	if (Debug)
+		cprintf( "Boot sector loaded, checksum ok, now jumping to it\n" );
 	ExitAction = 2;
 	exit( 0 );
 }
@@ -466,12 +497,12 @@ int exec_tos_program( const char *prog )
 	args[arglen+1] = 0;
 
 	if (Debug)
-		printf( "Executing %s %s\n", cmd, args );
+		cprintf( "Executing %s %s\n", cmd, args );
 
 	err = Pexec( 0, cmd, args, NULL );
 	if (err < 0) {
 		/* if negative as 32bit number, it was a GEMDOS error */
-		printf( "Error on executing %s: %s\n", cmd, tos_perror(err) );
+		cprintf( "Error on executing %s: %s\n", cmd, tos_perror(err) );
 		tos_perror( err );
 		return( -1 );
 	}
@@ -508,8 +539,8 @@ static unsigned parse_serial_params( const char *param )
 	if (*param >= '5' && *param <= '8')
 		bits = 3 - (*param - '5');
 	else
-		printf( "Bad number of data bits (%c) in serial parameters\n",
-				*param );
+		cprintf( "Bad number of data bits (%c) in serial parameters\n",
+				 *param );
 	if (*param)
 		++param;
 
@@ -524,8 +555,8 @@ static unsigned parse_serial_params( const char *param )
 		parity = 3;
 		break;
 	  default:
-		printf( "Bad parity specification (%c) in serial parameters\n",
-				*param );
+		cprintf( "Bad parity specification (%c) in serial parameters\n",
+				 *param );
 	}
 	if (*param)
 		++param;
@@ -538,13 +569,13 @@ static unsigned parse_serial_params( const char *param )
 		}
 	}
 	else
-		printf( "Bad number of stop bits (%c) in serial parameters\n",
-				*param );
+		cprintf( "Bad number of stop bits (%c) in serial parameters\n",
+				 *param );
 	if (*param)
 		++param;
 
 	if (*param)
-		printf( "Junk at end of serial parameter string (%s)\n", param );
+		cprintf( "Junk at end of serial parameter string (%s)\n", param );
 
 	return( (bits << 5) | (stopbits << 3) | (parity << 1) );
 }
@@ -556,7 +587,7 @@ static unsigned parse_serial_params( const char *param )
 static void patch_cookies( void )
 {
 	if (!*_p_cookies) {
-		printf( "No cookie jar -- can't change cookie values.\n" );
+		cprintf( "No cookie jar -- can't change cookie values.\n" );
 		return;
 	}
 	if (BootOptions->MCH_cookie)
@@ -738,6 +769,9 @@ long ReadSectors( char *buf, unsigned _device, unsigned sector, unsigned cnt )
 {
 	int device = _device;
 	
+	if (Debug)
+		cprintf( "ReadSectors( dev=%d, sector=%u, cnt=%u, buf=%08lx )\n",
+				 device, sector, cnt, (unsigned long)buf );
 	if (device < 0) {
 		device = -device - 2;
 		if (device < 0) device = CurrentFloppy;
@@ -749,6 +783,9 @@ long ReadSectors( char *buf, unsigned _device, unsigned sector, unsigned cnt )
 
 long WriteSectors( char *buf, int device, unsigned sector, unsigned cnt )
 {
+	if (Debug)
+		cprintf( "WriteSectors( dev=%d, sector=%u, cnt=%u, buf=%08lx )\n",
+				 device, sector, cnt, (unsigned long)buf );
 	if (device < 0) {
 		device = -device - 2;
 		if (device < 0) device = CurrentFloppy;
