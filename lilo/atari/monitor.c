@@ -7,10 +7,17 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: monitor.c,v 1.4 1998-02-25 10:38:02 rnhodek Exp $
+ * $Id: monitor.c,v 1.5 1998-02-26 10:25:12 rnhodek Exp $
  * 
  * $Log: monitor.c,v $
- * Revision 1.4  1998-02-25 10:38:02  rnhodek
+ * Revision 1.5  1998-02-26 10:25:12  rnhodek
+ * New sub-command 'mounts' of 'list'.
+ * Args to isprefix() were swapped, and a "== 0" test was left from
+ * previous strcmp usage.
+ * Fix output format in misc places.
+ * Fix parsing device names and partitions.
+ *
+ * Revision 1.4  1998/02/25 10:38:02  rnhodek
  * New argument 'doprompt' to read_line().
  *
  * Revision 1.3  1998/02/24 11:21:18  rnhodek
@@ -41,6 +48,7 @@
 
 /* MiNTlib doesn't know strcasecmp */
 #define strcasecmp	stricmp
+#define strncasecmp	strnicmp
 
 struct command {
     const char *name;
@@ -61,6 +69,7 @@ static void show_version( int argc, const char *argv[] );
 static void show_list( int argc, const char *argv[] );
 static void list_records( int argc, const char *argv[] );
 static void list_files( int argc, const char *argv[] );
+static void list_mount( int argc, const char *argv[] );
 static void set_record( int argc, const char *argv[] );
 static void show_record_info( int argc, const char *argv[] );
 static const char *format_partit( const unsigned long *dev, const unsigned
@@ -98,27 +107,27 @@ static int isprefix( const char *a, const char *b );
 
 static const struct command commands[] = {
 	{ "help", show_help,
-	  "                       Display this help" },
+	  "                        Display this help" },
 	{ "version", show_version,
-	  "                    Display version info" },
+	  "                     Display version info" },
 	{ "list", show_list,
-	  " [records|files]       List boot records or files" },
+	  " [records|files|mounts] List boot records or files" },
 	{ "use", set_record,
-	  " [<label>]              Set current boot record" },
+	  " [<label>]               Set current boot record" },
 	{ "info", show_record_info,
-	  " [<label>]             Show infos from (curr.) boot record" },
+	  " [<label>]              Show infos from (curr.) boot record" },
 	{ "set", set_record_field,
-	  " <var> [<val>]          Set variables of curr. boot record" },
+	  " <var> [<val>]           Set variables of curr. boot record" },
 	{ "partition", show_partition,
-	  " <device>         Show partition table" },
+	  " <device>          Show partition table" },
 	{ "mount", do_mount,
-	  " <partit> <drv>       Mount TOS drive" },
+	  " <partit> <drv>        Mount TOS drive" },
 	{ "umount", do_umount,
-	  " [<drv>]             Unmount one (all) TOS drives" },
+	  " [<drv>]              Unmount one (all) TOS drives" },
 	{ "exec", do_exec,
-	  " <path>                Execute a TOS program" },
+	  " <path>                 Execute a TOS program" },
 	{ "boot", do_boot,
-	  " <partit> [<driver>]   Boot bootsector or TOS (with driver)" }
+	  " <partit> [<driver>]    Boot bootsector or TOS (with driver)" }
 };
 
 
@@ -163,13 +172,13 @@ static void exec_command( int argc, const char *argv[],
 	int i;
 
 	for( i = 0; i < ncommands; ++i ) {
-		if (isprefix( commands[i].name, argv[0] ) == 0) {
+		if (isprefix( argv[0], commands[i].name )) {
 			commands[i].func( argc-1, argv+1 );
 			return;
 		}
 	}
 	if (i == ncommands)
-		cprintf( "Unknown command %s!\n", argv[0] );
+		cprintf( "Unknown command %s\n", argv[0] );
 }
 
 static void parse_line( char *line, int *argcp, const char **argvp[] )
@@ -238,6 +247,7 @@ static void show_version( int argc, const char *argv[] )
 static struct command list_commands[] = {
 	{ "records", list_records, NULL },
 	{ "files", list_files, NULL },
+	{ "mounts", list_mount, NULL },
 };
 
 static void show_list( int argc, const char *argv[] )
@@ -245,6 +255,7 @@ static void show_list( int argc, const char *argv[] )
 	if (!argc) {
 		list_records( 0, NULL );
 		list_files( 0, NULL );
+		list_mount( 0, NULL );
 	}
 	else
 		exec_command( argc, argv, list_commands, arraysize(list_commands) );
@@ -272,7 +283,7 @@ static void list_records( int argc, const char *argv[] )
 			cprintf( ", incomplete" );
 		if (rec == dflt_os)
 			cprintf( ", default" );
-		cprintf( "\n" );
+		cprintf( ")\n" );
 	}
 }
 
@@ -286,10 +297,17 @@ static void list_files( int argc, const char *argv[] )
 		cprintf("  %s (", file->Path );
 		if (file->Vector)
 			cprintf( "%ld bytes", file->Vector[0].start );
-		else
+		else if (strncmp( file->Path, "bootp:", 6 ) != 0)
 			cprintf( "not available" );
 		cprintf( ")\n" );
     }
+}
+
+
+static void list_mount( int argc, const char *argv[] )
+{
+    cprintf( "Mounts:\n" );
+	list_mounts();
 }
 
 
@@ -329,7 +347,7 @@ static void show_record_info( int argc, const char *argv[] )
 				 rec->Kernel ? rec->Kernel : "(none)" );
 		cprintf( "Ramdisk              : %s\n",
 				 rec->Ramdisk ? rec->Ramdisk : "(none)" );
-		cprintf( "Arguments: %s\n",
+		cprintf( "Arguments            : %s\n",
 				 rec->Args ? rec->Args : "(none)" );
 		cprintf( "Ignore TT-RAM        : %s\n",
 				 (rec->IgnoreTTRam ? *rec->IgnoreTTRam : ignore_ttram) ?
@@ -357,6 +375,7 @@ static void show_record_info( int argc, const char *argv[] )
 			cprintf( "%lu kByte", *rec->ExtraMemSize / 1024 );
 		else
 			cprintf( "(undefined)" );
+		cprintf( "\n" );
 		cprintf( "Temporary mounts     :\n" );
 		for( i = 0; i < MAX_TMPMNT; ++i ) {
 			if (!rec->TmpMnt[i])
@@ -466,11 +485,11 @@ static void set_type( int argc, const char *argv[] )
 {
 	if (!argc)
 		cprintf( "OS type missing\n" );
-	else if (isprefix( "linux", argv[0] ))
+	else if (isprefix( argv[0], "linux" ))
 		*(unsigned long *)CurrRec->OSType = BOS_LINUX;
-	else if (isprefix( "tos", argv[0] ))
+	else if (isprefix( argv[0], "tos" ))
 		*(unsigned long *)CurrRec->OSType = BOS_TOS;
-	else if (isprefix( "bootsector", argv[0] ))
+	else if (isprefix( argv[0], "bootsector" ))
 		*(unsigned long *)CurrRec->OSType = BOS_BOOTB;
 	else
 		cprintf( "Bad OS type\n" );
@@ -691,7 +710,7 @@ static void do_exec( int argc, const char *argv[] )
 		return;
 	}
 
-	rv = exec_tos_program( argv[0] );
+	rv = exec_tos_program( argv[0], NULL );
 	cprintf( "Return value %d\n", rv );
 }
 
@@ -739,13 +758,13 @@ static int parse_device( const char *p, char endc, const char **endp )
 {
 	int dev;
 	
-	if (strcasecmp( "ACSI", p ))
+	if (strncasecmp( p, "ACSI", 4 ) == 0)
 		dev = 0, p += 4;
-	else if (strcasecmp( "SCSI", p ))
+	else if (strncasecmp( p, "SCSI", 4 ) == 0)
 		dev = 8, p += 4;
-	else if (strcasecmp( "IDE", p ))
+	else if (strncasecmp( p, "IDE", 3 ) == 0)
 		dev = 16, p += 3;
-	else if (strcasecmp( "FLOP", p ))
+	else if (strncasecmp( p, "FLOP", 4 ) == 0)
 		dev = -1, p += 4;
 	else {
 	  bad:
@@ -781,7 +800,7 @@ static int parse_partit( const char *p, int *dev, unsigned long *start )
 		cprintf( "Missing ':' after device name\n" );
 		return( 0 );
 	}
-	*start = getnum( p );
+	*start = getnum( p+1 );
 	return( 1 );
 }
 
