@@ -7,10 +7,30 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: bootmain.c,v 1.5 1998-02-24 11:16:42 rnhodek Exp $
+ * $Id: bootmain.c,v 1.6 1998-02-26 10:15:57 rnhodek Exp $
  * 
  * $Log: bootmain.c,v $
- * Revision 1.5  1998-02-24 11:16:42  rnhodek
+ * Revision 1.6  1998-02-26 10:15:57  rnhodek
+ * Implement new config vars Environ and BootDrv with functions
+ * setup_environ() and putenv().
+ * Print autoboot message also if Debug == 0.
+ * strspn in exec_tos_program() should have been strcspn.
+ * New option 'workdir' to exec_tos_program(), to implement new config
+ * var 'WorkDir'.
+ * Init VDI only if NoGUI == 0.
+ * Move umount() call after the menu, so that a VDI driver still can
+ * access files during menu display.
+ * Handle empty command line (means default OS).
+ * In boot_tos(), the driver name must be prefixed with "C:\", otherwise
+ * it is searched for on the current drive (which is A:).
+ * In cache_ctrl(0), also need to catch Line-F vector, since first '040
+ * insn is cpush, which has a 0xfxxx encoding.
+ * In first_word(), handle case of empty command line correctly.
+ * New function bios_printf() for debugging {Read,Write}Sectors and the
+ * hdv_* implementations in tmpmount.c. These are called by GEMDOS and
+ * thus can't use GEMDOS functions.
+ *
+ * Revision 1.5  1998/02/24 11:16:42  rnhodek
  * Fix typo in boot_linux() (printed "TOS" instead of "Linux" :-)
  * Fix [id]tt0 usage in cache_ctrl(): whole instruction space should be
  * cached, but only low 2 GB of data space (for hardware regs).
@@ -107,6 +127,8 @@ struct {
 static void ReadMapData( void);
 static unsigned int parse_serial_params( const char *param );
 static void patch_cookies( void );
+static void setup_environ( void );
+static void putenv( const char *str );
 static void set_cookie( const char *name, u_long value );
 static void cache_ctrl( int on_flag );
 static char *firstword( char **str );
@@ -133,6 +155,9 @@ int main( int argc, char *argv[] )
 	/* If the user directed us to change cookie values, do so now */
 	patch_cookies();
 
+	/* set up _bootdev and environment */
+	setup_environ();
+
 	/* acustic signal if not disabled */
 	if (!(BootOptions->NoBing && *BootOptions->NoBing))
 		Cconout( 7 );
@@ -145,11 +170,11 @@ int main( int argc, char *argv[] )
 	if (is_available( boot_os )) {
 		if (BootOptions->Auto && *BootOptions->Auto && !dflt_os->Password) {
 			unsigned long timeout = _hz_200;
-			if (BootOptions->Delay)
+			if (BootOptions->Delay && *BootOptions->Delay) {
 				timeout += *BootOptions->Delay * HZ;
-			if (Debug)
-				cprintf( "Auto boot in progress, waiting for %ld seconds\n",
-						 BootOptions->Delay ? *BootOptions->Delay : 0 );
+				cprintf( "Auto boot waiting for %ld seconds -- "
+						 "waiting for shift key\n", *BootOptions->Delay );
+			}
 			while( _hz_200 < timeout) {
 				if (Kbshift( -1 ) & 0xff)
 					/* any modifier or mouse button pressed */
@@ -173,13 +198,14 @@ int main( int argc, char *argv[] )
 	}
 	for( i = 0; i < MAX_EXECPROG; ++i ) {
 		if (BootOptions->ExecProg[i])
-			exec_tos_program( BootOptions->ExecProg[i] );
+			exec_tos_program( BootOptions->ExecProg[i],
+							  BootOptions->WorkDir[i] );
 	}
-	umount();
 
 	/* now initialize the VDI, after we executed the TOS programs (which could
 	 * have been gfx board drivers) */
-	graf_init( BootOptions->VideoRes );
+	if (!NoGUI)
+		graf_init( BootOptions->VideoRes );
 	
 	/* initialize serial port */
 	if (BootOptions->Serial) {
@@ -222,7 +248,7 @@ int main( int argc, char *argv[] )
 				continue;
 			}
 			label = firstword( &cmdline );
-			if ((boot_os = FindBootRecord( label ))) {
+			if ((boot_os = (*label ? FindBootRecord( label ) : dflt_os))) {
 				if (boot_os->Password &&
 					strcmp( get_password(), boot_os->Password ) != 0) {
 					menu_error( "Bad password!" );
@@ -246,6 +272,9 @@ int main( int argc, char *argv[] )
 					boot_os->Label );
 		}
 		else {
+			/* Unmount mounted TOS drives before booting */
+			umount();
+			
 			switch( *boot_os->OSType ) {
 			  case BOS_TOS:
 				boot_tos( boot_os );
@@ -297,6 +326,7 @@ void boot_tos( const struct BootRecord *rec )
 {
 	struct tmpmnt driver_mnt;
 	long basepage, err;
+	char driver[20];
 
 	/* mount the driver where the driver resides */
 	if (Debug)
@@ -312,8 +342,12 @@ void boot_tos( const struct BootRecord *rec )
 		return;
 	}
 
+	strcpy( driver, "C:\\" );
+	strncat( driver, rec->TOSDriver, 12 );
+	driver[15] = 0;
+	
 	/* load the driver into memory */
-	basepage = Pexec( 3, rec->TOSDriver, "\000", NULL );
+	basepage = Pexec( 3, driver, "\000", NULL );
 	/* unmount drive again */
 	umount();
 	if (basepage < 0) {
@@ -366,7 +400,7 @@ void boot_linux( const struct BootRecord *rec, const char *cmdline )
 	}
 	for( i = 0; i < MAX_EXECPROG; ++i ) {
 		if (rec->ExecProg[i])
-			exec_tos_program( rec->ExecProg[i] );
+			exec_tos_program( rec->ExecProg[i], NULL );
 	}
 	umount();
 
@@ -483,15 +517,17 @@ static void ReadMapData(void)
 /*
  * Execute a TOS program (from a mounted drive)
  */
-int exec_tos_program( const char *prog )
+int exec_tos_program( const char *prog, const char *workdir )
 {
 	unsigned int cmdlen, arglen;
 	const char *p;
 	char *cmd, *args;
 	long err;
-	
+	int old_drv = 0;
+	char old_path[128];
+
 	/* extract program name */
-	cmdlen = strspn( prog, " \t" );
+	cmdlen = strcspn( prog, " \t" );
 	if (!(cmd = malloc( cmdlen+1 )))
 		Alert(AN_LILO|AG_NoMemory);
 	strncpy( cmd, prog, cmdlen );
@@ -507,10 +543,28 @@ int exec_tos_program( const char *prog )
 	args[0] = arglen;
 	args[arglen+1] = 0;
 
+	if (workdir) {
+		old_drv = Dgetdrv();
+		Dgetpath( old_path, 0 );
+		if (Debug)
+			cprintf( "Changing directory to %s\n", workdir );
+		if (isalpha(workdir[0]) && workdir[1] == ':') {
+			Dsetdrv( toupper(workdir[0]) - 'A' );
+			workdir += 2;
+		}
+		Dsetpath( workdir );
+	}
+	
 	if (Debug)
-		cprintf( "Executing %s %s\n", cmd, args );
+		cprintf( "Executing %s %s\n", cmd, args+1 );
 
 	err = Pexec( 0, cmd, args, NULL );
+
+	if (workdir) {
+		Dsetdrv( old_drv );
+		Dsetpath( old_path );
+	}
+	
 	if (err < 0) {
 		/* if negative as 32bit number, it was a GEMDOS error */
 		cprintf( "Error on executing %s: %s\n", cmd, tos_perror(err) );
@@ -611,6 +665,49 @@ static void patch_cookies( void )
 
 
 /*
+ * Set up _bootdev and environment as directed by the configuration
+ */
+static void setup_environ( void )
+{
+	int i;
+	
+	if (BootOptions->BootDrv) {
+		char env_path[4] = "X:\\";
+		_bootdev = *BootOptions->BootDrv;
+		/* create a BIOS compatible PATH= variable (same strange syntax...) */
+		putenv( "PATH=" );
+		env_path[0] = *BootOptions->BootDrv + 'A';
+		putenv( env_path );
+	}
+
+	for( i = 0; i < MAX_ENVIRON; ++i ) {
+		if (BootOptions->Environ[i])
+			putenv( BootOptions->Environ[i] );
+	}
+}
+
+
+/*
+ * Simple version of putenv() (doesn't check for existing vars) that writes to
+ * the 1280 bytes available after our basepage. Later we could terminate with
+ * Ptermres() and keep this space resident, so we can push our enviroment also
+ * to other processes started later by TOS.
+ */
+static void putenv( const char *str )
+{
+	static char *env_end = NULL;
+	extern char *_base; /* really (BASEPAGE *) */
+
+	if (!env_end)
+		env_end = _base + 256;
+
+	while(  *str )
+		*env_end++ = *str++;
+	*env_end++ = 0;
+	*env_end = 0;
+}
+
+/*
  * Change value of a single cookie
  */
 static void set_cookie( const char *name, u_long value )
@@ -690,10 +787,14 @@ static void cache_ctrl( int on_flag )
 	}
 	else {
 		__asm__ __volatile__ (
-			/* redirect illegal insn vector to catch wrong CPU case */
+			/* redirect illegal insn and line-F vectors to catch wrong CPU
+			 * case */
 			"	movel	sp,a1\n"
 			"	movel	0x10,a0\n"
-			"	movel	#1f,0x10\n"
+			"	movel	0x2c,a2\n"
+			"	movel	#1f,d0\n"
+			"	movel	d0,0x10\n"
+			"	movel	d0,0x2c\n"
 			/* '040 and '060: invalidate caches, restore old cacr and transp.
 			 * transl. registers */
 			"	.chip	68040\n"
@@ -713,12 +814,13 @@ static void cache_ctrl( int on_flag )
 			/* clean up */
 			"	.chip	68k\n"
 			"2:	movel	a0,0x10\n"
+			"	movel	a2,0x2c\n"
 			"	movel	a1,sp"
 			: /* no outputs */
 			: "d" (old_dtt0), "d" (old_itt0),
 			  "d" (old_dtt1), "d" (old_itt1),
 			  "d" (old_cacr)
-			: "d0", "a0", "a1" );
+			: "d0", "a0", "a1", "a2" );
 	}
 }
 
@@ -736,7 +838,8 @@ static char *firstword( char **str )
 	q = p;
 	while( *p && !isspace(*p) )
 		++p;
-	*p++ = 0;
+	if (*p)
+		*p++ = 0;
 	while( *p && isspace(*p) )
 		++p;
 	*str = p;
@@ -782,9 +885,10 @@ long ReadSectors( char *buf, unsigned int _device, unsigned int sector,
 {
 	int device = _device;
 	
-	if (Debug)
-		cprintf( "ReadSectors( dev=%d, sector=%u, cnt=%u, buf=%08lx )\n",
+#ifdef DEBUG_RW_SECTORS
+	bios_printf( "ReadSectors( dev=%d, sector=%u, cnt=%u, buf=%08lx )\n",
 				 device, sector, cnt, (unsigned long)buf );
+#endif
 	if (device < 0) {
 		device = -device - 2;
 		if (device < 0) device = CurrentFloppy;
@@ -797,9 +901,10 @@ long ReadSectors( char *buf, unsigned int _device, unsigned int sector,
 long WriteSectors( char *buf, int device, unsigned int sector,
 				   unsigned int cnt )
 {
-	if (Debug)
-		cprintf( "WriteSectors( dev=%d, sector=%u, cnt=%u, buf=%08lx )\n",
+#ifdef DEBUG_RW_SECTORS
+	bios_printf( "WriteSectors( dev=%d, sector=%u, cnt=%u, buf=%08lx )\n",
 				 device, sector, cnt, (unsigned long)buf );
+#endif
 	if (device < 0) {
 		device = -device - 2;
 		if (device < 0) device = CurrentFloppy;
@@ -808,6 +913,22 @@ long WriteSectors( char *buf, int device, unsigned int sector,
 	else
 		return( DMAwrite( sector, cnt, buf, device ) );
 }
+
+#ifdef DEBUG_RW_SECTORS
+void bios_printf( const char *format, ... )
+{
+	static char buf[256];
+	char *p;
+	
+	vsprintf( buf, format, &format+1 );
+	for( p = buf; *p; ++p ) {
+		if (*p == '\n')
+			Bconout( 2, '\r' );
+		Bconout( 2, *p );
+	}
+}
+#endif
+
 
 /* Local Variables: */
 /* tab-width: 4     */
