@@ -7,10 +7,14 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.18 1998-04-06 01:40:50 dorchain Exp $
+# $Id: Makefile,v 1.19 1998-04-09 08:10:53 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.18  1998-04-06 01:40:50  dorchain
+# Revision 1.19  1998-04-09 08:10:53  rnhodek
+# check-modified now really lists only modified files, not all files
+# that aren't up to date.
+#
+# Revision 1.18  1998/04/06 01:40:50  dorchain
 # make loader linux-elf.
 # made amiga bootblock working again
 # compiled, but not tested bootstrap
@@ -193,7 +197,7 @@ release:
 	cvs tag RELEASE-`echo $(VER) | sed 's/\./-/g'`
 
 check-modified:
-	@modified=`cvs status 2>&1 | awk 'BEGIN { OFS="" } /Examining/ { dir=$$NF } /Status:/ { if ($$4 != "Up-to-date") print dir, "/", $$2 }'`; \
+	@modified=`cvs status 2>&1 | awk 'BEGIN { OFS="" } /Examining/ { dir=$$NF } /Status:/ { if ($$4 == "Locally" && $$5 == "Modified") print dir, "/", $$2 }'`; \
 	if [ "x$$modified" = "x" ]; then \
 		echo "No modified files."; \
 	else \
