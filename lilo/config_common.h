@@ -7,10 +7,14 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: config_common.h,v 1.4 1998-02-26 10:06:27 rnhodek Exp $
+ * $Id: config_common.h,v 1.5 1998-03-02 13:00:33 rnhodek Exp $
  * 
  * $Log: config_common.h,v $
- * Revision 1.4  1998-02-26 10:06:27  rnhodek
+ * Revision 1.5  1998-03-02 13:00:33  rnhodek
+ * MAXVECTORSIZE seemed much too big for the compressed vector tables we
+ * use now (usually only 1 entry used :-)
+ *
+ * Revision 1.4  1998/02/26 10:06:27  rnhodek
  * New TAGTYPE_CARRAY; plain ARRAY didn't work correctly for string arrays.
  *
  * Revision 1.3  1998/02/24 11:12:17  rnhodek
@@ -96,7 +100,7 @@ struct TagName {
 
 #include "tagdef.h"
 
-#define MAXVECTORSIZE	(512)		/* Should be sufficient */
+#define MAXVECTORSIZE	(128)		/* Should be sufficient */
 struct FileVectorData {
     u_long ID[2];
     u_long MaxVectorSize;
