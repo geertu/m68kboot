@@ -11,10 +11,14 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.c,v 1.8 1998-02-25 10:33:29 rnhodek Exp $
+ * $Id: linuxboot.c,v 1.9 1998-02-26 10:05:42 rnhodek Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.8  1998-02-25 10:33:29  rnhodek
+ * Revision 1.9  1998-02-26 10:05:42  rnhodek
+ * Also strip "bootp:" prefixes for BOOT_IMAGE= option.
+ * Fix test whether there's enough test to add BOOT_IMAGE=.
+ *
+ * Revision 1.8  1998/02/25 10:33:29  rnhodek
  * Move call to Super() to bootstrap-specific file bootstrap.c, and
  * remove it from linuxboot.c.
  *
@@ -155,9 +159,10 @@ void linux_boot( void )
     /* Copy command line options into the kernel command line */
     strcpy( bi.command_line, command_line );
     kname = kernel_name;
-    if (strncmp( kernel_name, "local:", 6 ) == 0)
+    if (strncmp( kernel_name, "local:", 6 ) == 0 ||
+	strncmp( kernel_name, "bootp:", 6 ) == 0)
 	kname += 6;
-    if (strlen(kname)+12 < CL_SIZE-1) {
+    if (strlen(bi.command_line)+strlen(kname)+12 < CL_SIZE-1) {
 	if (*bi.command_line)
 	    strcat( bi.command_line, " " );
 	strcat( bi.command_line, "BOOT_IMAGE=" );
