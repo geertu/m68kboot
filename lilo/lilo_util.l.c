@@ -13,10 +13,14 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo_util.l.c,v 1.5 1998-02-26 10:07:56 rnhodek Exp $
+ * $Id: lilo_util.l.c,v 1.6 1998-03-06 09:48:39 rnhodek Exp $
  * 
  * $Log: lilo_util.l.c,v $
- * Revision 1.5  1998-02-26 10:07:56  rnhodek
+ * Revision 1.6  1998-03-06 09:48:39  rnhodek
+ * Implement a cache for the results of FindDevice(); going through whole
+ * /dev and stat-ing each file everytime is inefficient.
+ *
+ * Revision 1.5  1998/02/26 10:07:56  rnhodek
  * CreateFileName: Don't prefix filename with 'Root' if it has a "bootp:" prefix.
  *
  * Revision 1.4  1998/02/19 20:40:13  rnhodek
@@ -501,13 +505,30 @@ const struct vecent *CreateVector( const char *name, int *numblocks )
      *	Find the Name to a Device Number
      */
 
+static struct dev_cache {
+    struct dev_cache *next;
+    dev_t device;
+    char *name;
+} *DeviceCache = NULL;
+
 void FindDevice( dev_t device, char *devname )
 {
     struct stat info;
     DIR *dir;
     const struct dirent *dirent;
     int found = 0;
+    struct dev_cache *ca;
 
+    /* first look in the cache -- searching through the whole /dev directory
+     * and doing stat() on every file in it is sloooow */
+    for( ca = DeviceCache; ca; ca = ca->next ) {
+	if (ca->device == device) {
+	    strcpy( devname, ca->name );
+	    return;
+	}
+    }
+
+    /* now search /dev */
     if (!(dir = opendir("/dev")))
 	Error_OpenDir("/dev");
     while ((dirent = readdir(dir))) {
@@ -522,6 +543,15 @@ void FindDevice( dev_t device, char *devname )
     if (!found)
 	Die("Can't find special device entry for device %04lx\n",
 	    (u_long)device);
+
+    /* add to cache */
+    if (!(ca = malloc( sizeof(struct dev_cache) )))
+	Error_NoMemory();
+    ca->device = device;
+    if (!(ca->name = strdup( devname )))
+	Error_NoMemory();
+    ca->next = DeviceCache;
+    DeviceCache = ca;
 }
 
 
