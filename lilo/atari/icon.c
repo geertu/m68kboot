@@ -7,15 +7,21 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: icon.c,v 1.1 1997-08-12 15:27:08 rnhodek Exp $
+ * $Id: icon.c,v 1.2 1998-03-02 13:08:52 rnhodek Exp $
  * 
  * $Log: icon.c,v $
- * Revision 1.1  1997-08-12 15:27:08  rnhodek
+ * Revision 1.2  1998-03-02 13:08:52  rnhodek
+ * Don't include this file if NO_GUI is defined.
+ *
+ * Revision 1.1  1997/08/12 15:27:08  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
  * 
  */
+
+#include "loader_config.h"
+#ifndef NO_GUI
 
 #include <vdibind.h>
 #include <gemfast.h>
@@ -737,5 +743,4 @@ MFDB iconMFDB[3] = {
 	{ (long)icon2data, ICON2_W, ICON2_H, ICON2_W/16, 1, 1 }
 };
 
-
-
+#endif /* NO_GUI */
