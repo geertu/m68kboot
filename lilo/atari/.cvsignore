@@ -1,0 +1,14 @@
+tagdef.h
+tagdef.c
+tagnames.c
+conf.y
+conf.tab.l.c
+conf.tab.l.h
+lex.conf.l.c
+rootsect.b
+loader.tos
+loader
+lilo
+rootsect.img
+bootos
+loader.map
