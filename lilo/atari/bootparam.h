@@ -7,10 +7,13 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: bootparam.h,v 1.3 1998-02-19 20:40:14 rnhodek Exp $
+ * $Id: bootparam.h,v 1.4 1998-02-23 10:17:39 rnhodek Exp $
  * 
  * $Log: bootparam.h,v $
- * Revision 1.3  1998-02-19 20:40:14  rnhodek
+ * Revision 1.4  1998-02-23 10:17:39  rnhodek
+ * Added definition BP_DEVX (devices for standard handles)
+ *
+ * Revision 1.3  1998/02/19 20:40:14  rnhodek
  * Make things compile again
  *
  * Revision 1.2  1997/08/23 22:43:44  rnhodek
@@ -83,6 +86,7 @@ typedef struct {
 #define	BP_PARENT		36
 #define	BP_FLAGS		40
 #define	BP_ENV			44
+#define	BP_DEVX			48
 #define	BP_CMDLIN		128
 
 #endif  /* _bootparm_h */
