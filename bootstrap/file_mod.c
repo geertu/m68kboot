@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: file_mod.c,v 1.2 1997-07-18 12:30:47 rnhodek Exp $
+ * $Id: file_mod.c,v 1.3 1998-02-19 19:44:09 rnhodek Exp $
  * 
  * $Log: file_mod.c,v $
- * Revision 1.2  1997-07-18 12:30:47  rnhodek
+ * Revision 1.3  1998-02-19 19:44:09  rnhodek
+ * Integrated changes from ataboot 3.0 to 3.2
+ *
+ * Revision 1.2  1997/07/18 12:30:47  rnhodek
  * Moved file_mod.c from common/ to bootstrap/
  *
  * Revision 1.2  1997/07/18 11:07:08  rnhodek
@@ -73,7 +76,7 @@ static long file_fillbuf( void *buf )
 
 static int file_skip( long cnt )
 {
-	return( lseek( fd, SEEK_CUR, cnt ) );
+	return( lseek( fd, cnt, SEEK_CUR ) );
 }
 
 static int file_close( void )

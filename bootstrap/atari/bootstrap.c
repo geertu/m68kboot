@@ -1,7 +1,7 @@
 /*
  * bootstrap.c -- Atari bootstrapper main program
  *
- * Copyright (c) 1993-97 by
+ * Copyright (c) 1993-98 by
  *   Arjan Knor
  *   Robert de Vries
  *   Roman Hodek <Roman.Hodek@informatik.uni-erlangen.de>
@@ -43,10 +43,13 @@
  *      19 Feb 1994 Changed everything so that it works? (rdv)
  *      14 Mar 1994 New mini-copy routine used (rdv)
  *
- * $Id: bootstrap.c,v 1.2 1997-07-30 21:41:28 rnhodek Exp $
+ * $Id: bootstrap.c,v 1.3 1998-02-19 19:44:10 rnhodek Exp $
  * 
  * $Log: bootstrap.c,v $
- * Revision 1.2  1997-07-30 21:41:28  rnhodek
+ * Revision 1.3  1998-02-19 19:44:10  rnhodek
+ * Integrated changes from ataboot 3.0 to 3.2
+ *
+ * Revision 1.2  1997/07/30 21:41:28  rnhodek
  * Only remove an ugly empty line
  *
  * Revision 1.1.1.1  1997/07/15 09:45:38  rnhodek
@@ -78,6 +81,32 @@ static void get_default_args( int *argc, char ***argv );
 
 /************************* End of Prototypes **************************/
 
+static void help( void )
+{
+    printf(
+	"Linux/68k Atari Bootstrap version " ATABOOT_VERSION
+#ifdef USE_BOOTP
+	  " (with BOOTP)"
+#endif
+	"\n"
+	"Options:\n"
+	"  -k<file>: Use <file> as kernel image (defaults: vmlinux, vmlinux.gz)\n"
+	"  -r<file>: Load ramdisk <file>\n"
+	"  -s: load kernel to ST-RAM\n"
+	"  -t: ignore TT-RAM\n"
+#ifdef USE_BOOTP
+	"  -n: no BOOTP\n"
+#endif
+	"  -S<size>: pretend ST-RAM having <size>\n"
+	"  -T<size>: pretend TT-RAM having <size>\n"
+	"  -m<start>:<size>: pass extra memory block to kernel\n"
+	"  -d: print debug infos, wait for key before booting\n"
+	"  -h, -?: print this help message\n"
+	);
+    
+    getchar();
+    exit(EXIT_SUCCESS);
+}
 
 static void usage( void )
 {
@@ -95,9 +124,12 @@ int main( int argc, char *argv[] )
     
     /* print the startup message */
     puts( "\fLinux/68k Atari Bootstrap version " VERSION WITH_BOOTP );
-    puts( "Copyright 1993-97 by Arjan Knor, Robert de Vries, "
+    puts( "Copyright 1993-98 by Arjan Knor, Robert de Vries, "
 	  "Roman Hodek, Andreas Schwab\n" );
 
+    if (argc == 2 && !strcmp( argv[1], "--help" ))
+	help();
+    
     /* ++roman: If no arguments on the command line, read them from
      * file */
     if (argc == 1)
@@ -136,6 +168,8 @@ int main( int argc, char *argv[] )
 #endif
 	    break;
 	  case '?':
+	  case 'h':
+	    help();
 	  default:
 	    usage();
 	}

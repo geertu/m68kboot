@@ -1,9 +1,9 @@
 
-				Linux/68k Atari Bootstrap version 3.0
+				Linux/68k Atari Bootstrap version 3.2
 				-------------------------------------
 
-Date: Jul 6, 1997
-Linux/68k version: 2.1.42
+Date: Feb 16, 1998
+Linux/68k version: 2.1.85
 Author: Roman.Hodek@informatik.uni-erlangen.de (Roman Hodek)
 
 
@@ -27,12 +27,7 @@ where vx.y is a kernel version (with the patchlevel omitted). There
 are usually two version, one with BOOTP and one without (see section 5
 on how to include BOOTP support if compiling yourself).
 
-FAQ 1: Where is the source for ataboot?
-A: You already have it if you have this document. The bootstrap
-sources are included in the kernel source tree, in directory
-arch/m68k/boot/atari.
-
-FAQ 2: How can I compile my own bootstrap?
+FAQ: How can I compile my own bootstrap?
 A: Unfortunately, that's not too easy :-( ataboot is a TOS program
 (obviously), so it must be compiled with a TOS compiler. On the other
 hand, it needs several files from include/{linux,asm}, so it needs the
@@ -167,31 +162,49 @@ Starting with 2.1 kernels, the bootinfo's internal structure has been
 changed totally, with the main advantage that no more incompabilities
 between the bootstrapper and the kernel are possible anymore. This
 format has been given version 2.0, and it probably is the highest
-version ever given to a bootinfo. (As stated, the new format should be
-general enough to avoid any mismatches.)
+major version ever given to a bootinfo. (As stated, the new format
+should be general enough to avoid any mismatches.)
 
 Why I'm telling you all this? Well, 2.0 kernels still use bootinfo
-1.0, whereas 2.1 kernels use 2.0 bootinfo. So you basically can't boot
+1.x, whereas 2.1 kernels use 2.x bootinfo. So you basically can't boot
 a 2.0 kernel with a bootstrap from a 2.1 source, and vice versa. But
-all new bootstraps (in 2.1.x kernel sources) have a compability mode
-that allows to also boot a kernel with 1.0 bootinfo (i.e., 2.0.x, or
-even older). If you really want, you can omit that compat mode, by
+all new bootstraps for 2.1.x kernels have a compability mode that
+allows to also boot a kernel with 1.0 bootinfo (i.e., 2.0.x, or even
+older). If you really want, you can omit that compat mode, by
 undefining BOOTINFO_COMPAT_1_0 (see next section).
 
 If there should be any unexpected problems with bootinfo versions,
 ataboot should tell you about it. The above should give you an idea
 what's going on. For the rest, ask an guru...
 
+As a note, there exist now 3 bootinfo versions in all:
+
+ 1.0: The original bootinfo, used by 2.0.x kernels and all older ones,
+      since bootinfo versioning has been introduced. The bootinfo is
+      simply a structure with some defined fields.
+
+ 2.0: Used by 2.1 kernel up to 2.1.72. The bootinfo now consists of
+      named tags with values, and the kernel picks the infos it needs.
+      Unknown tags are ignored so they're no problem.
+
+ 2.1: There's a new tag for Atari special machine type (Medusa, Hades,
+      Afterburner040). That version came with ataboot-3.1 and kernel
+      2.1.79. With the new tag, the kernel needs not test for the
+      machine type a second time, and it needs that tag. This means
+      that you need an ataboot >= 3.1 for such kernels, but can still
+      boot older kernels with the new ataboot. ataboot should abort if
+      you try to boot a new kernel with a too-old bootstrap (therefore
+      the updated minor version.)
 
 5) Compile Time Options
 =======================
 
 ataboot has --in addition to the command line options described
-above-- also some compile time options. These are selected in
-arch/m68k/boot/Makefile (variable ATARI_BOOTOPTS), or on make's
-command line, e.g. like this:
+above-- also some compile time options. These are selected in the
+Makefile (variable ATARI_BOOTOPTS), or on make's command line, e.g.
+like this:
 
-  make bootstrap ATARI_BOOTOPTS='-DBOOTINFO_COMPAT_1_0 -DAOUT_KERNEL'
+  make ATARI_BOOTOPTS='-DBOOTINFO_COMPAT_1_0 -DAOUT_KERNEL'
 
 The options currently available are:
 
@@ -217,5 +230,5 @@ The default configuration is -DBOOTINFO_COMPAT_1_0 only, others are
 off. Support for BOOTP/TFTP can be selected by adding "USE_BOOTP=yes"
 on the make command line:
 
-  make bootstrap USE_BOOTP=yes
+  make USE_BOOTP=yes
 

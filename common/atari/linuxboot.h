@@ -11,10 +11,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.h,v 1.3 1997-07-18 12:10:38 rnhodek Exp $
+ * $Id: linuxboot.h,v 1.4 1998-02-19 19:44:10 rnhodek Exp $
  * 
  * $Log: linuxboot.h,v $
- * Revision 1.3  1997-07-18 12:10:38  rnhodek
+ * Revision 1.4  1998-02-19 19:44:10  rnhodek
+ * Integrated changes from ataboot 3.0 to 3.2
+ *
+ * Revision 1.3  1997/07/18 12:10:38  rnhodek
  * Call open_ramdisk only if ramdisk_name set; 0 return value means error.
  * Rename load_ramdisk/move_ramdisk to open_ramdisk/load_ramdisk, in parallel
  * to the *_kernel functions.
@@ -76,6 +79,7 @@ struct atari_bootinfo {
     struct mem_info ramdisk;		  /* ramdisk description */
     char command_line[CL_SIZE];		  /* kernel command line parameters */
     unsigned long mch_cookie;		  /* _MCH cookie from TOS */
+    unsigned long mch_type;		  /* special machine types */
 };
 
 extern struct atari_bootinfo bi;

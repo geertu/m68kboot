@@ -1,7 +1,7 @@
 /*
  * linuxboot.c -- Do actual booting of Linux kernel
  *
- * Copyright (c) 1993-97 by
+ * Copyright (c) 1993-98 by
  *   Arjan Knor
  *   Robert de Vries
  *   Roman Hodek <Roman.Hodek@informatik.uni-erlangen.de>
@@ -11,10 +11,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.c,v 1.6 1997-07-18 12:10:38 rnhodek Exp $
+ * $Id: linuxboot.c,v 1.7 1998-02-19 19:44:10 rnhodek Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.6  1997-07-18 12:10:38  rnhodek
+ * Revision 1.7  1998-02-19 19:44:10  rnhodek
+ * Integrated changes from ataboot 3.0 to 3.2
+ *
+ * Revision 1.6  1997/07/18 12:10:38  rnhodek
  * Call open_ramdisk only if ramdisk_name set; 0 return value means error.
  * Rename load_ramdisk/move_ramdisk to open_ramdisk/load_ramdisk, in parallel
  * to the *_kernel functions.
@@ -102,12 +105,14 @@ extern char copyall, copyallend;
 /***************************** Prototypes *****************************/
 
 static void get_cpu_infos( void );
+static void get_mch_type( void );
 static void get_mem_infos( void );
 static char *format_mb( unsigned long size );
 static int getcookie( char *cookie, u_long *value);
-static int test_medusa( void );
+static int test_cpu_type (void);
 static int test_software_fpu( void);
 static void get_medusa_bank_sizes( u_long *bank1, u_long *bank2 );
+static int get_ab040_bank_sizes( int maxres, u_long *result );
 
 /************************* End of Prototypes **************************/
 
@@ -122,7 +127,6 @@ static void get_medusa_bank_sizes( u_long *bank1, u_long *bank2 );
 void linux_boot( void )
 {
     char *kname;
-    u_long mch_type;		/* machine type cookie */
     void *bi_ptr;		/* pointer to bootinfo */
     u_long start_mem, mem_size;	/* addr and size of mem chunk where the kernel
 				 * goes to */
@@ -150,10 +154,6 @@ void linux_boot( void )
     /* machine is Atari */
     bi.machtype = MACH_ATARI;
 
-    /* Pass contents of the _MCH cookie to the kernel */
-    getcookie("_MCH", &mch_type);
-    bi.mch_cookie = mch_type;
-    
     /* Copy command line options into the kernel command line */
     strcpy( bi.command_line, command_line );
     kname = kernel_name;
@@ -168,6 +168,16 @@ void linux_boot( void )
     printf ("Kernel command line: %s\n", bi.command_line );
 
     get_cpu_infos();
+    get_mch_type();
+    
+    /* On the Afterburner040, neither bootstrap code nor data may reside in
+     * FastRAM. The FastRAM there is joined to one contiguous block with the
+     * MMU, and thus FastRAM addresses can become invalid as soon as we turn
+     * off the MMU. */
+    if (bi.mch_type == ATARI_MACH_AB40 &&
+	((unsigned long)linux_boot & 0xff000000))
+	ERROR( "Error: Bootstrap can't run in FastRAM on Afterburner040\n" );
+    
 
     get_mem_infos();
     /* extract data of first chunk, there goes the kernel to */
@@ -221,6 +231,10 @@ void linux_boot( void )
     /* allocate RAM for the kernel */
     if (!(memptr = malloc( memreq )))
 	ERROR( "Unable to allocate memory for kernel\n" );
+    /* Second part of the AB40 no-FastRAM test */
+    if (bi.mch_type == ATARI_MACH_AB40 && ((unsigned long)memptr & 0xff000000))
+	ERROR( "Error: Bootstrap may not allocate memory from FastRAM "
+	       "on Afterburner040\n" );
 
     /* clearing the kernel's memory perhaps avoids "uninitialized bss"
      * types of bugs... */
@@ -329,19 +343,10 @@ void linux_boot( void )
 
 static void get_cpu_infos( void )
 {
-    u_long cpu_type, fpu_type;
+    u_long cpu_type;
 
-    /* get _CPU, _FPU and _MCH */
-    getcookie("_CPU", &cpu_type);
-    getcookie("_FPU", &fpu_type);
-
-    /* check if we are on a 68030/40 with FPU */
-    if ((cpu_type != 30 && cpu_type != 40 && cpu_type != 60))
-	ERROR( "Machine type currently not supported. Aborting..." );
-
-    switch(cpu_type) {
-      case  0:
-      case 10: break;
+    switch( cpu_type = test_cpu_type() ) {
+      case  0: ERROR( "Machine type currently not supported. Aborting..." );
       case 20: bi.cputype = CPU_68020; bi.mmutype = MMU_68851; break;
       case 30: bi.cputype = CPU_68030; bi.mmutype = MMU_68030; break;
       case 40: bi.cputype = CPU_68040; bi.mmutype = MMU_68040; break;
@@ -349,55 +354,134 @@ static void get_cpu_infos( void )
       default:
 	ERROR( "Error: Unknown CPU type. Aborting...\n" );
     }
-
     printf("CPU: %ld; ", cpu_type + 68000);
-    printf("FPU: ");
 
-    /* check for FPU; in case of a '040 or '060, don't look at _FPU itself,
-     * some software may set it to wrong values (68882 or the like) */
-    if (cpu_type == 40) {
-	bi.fputype = FPU_68040;
-	puts( "68040" );
-    }
-    else if (cpu_type == 60) {
-	bi.fputype = FPU_68060;
-	puts( "68060" );
-    }
-    else {
-	switch ((fpu_type >> 16) & 7) {
-	  case 0:
-	    puts("not present");
-	    break;
-	  case 1:
-	    puts("SFP004 not supported. Assuming no FPU.");
-	    break;
-	  case 2:
-	    /* try to determine real type */
-	    if (fpu_idle_frame_size () != 0x18)
-		goto m68882;
-	    /* fall through */
-	  case 4:
-	    bi.fputype = FPU_68881;
-	    puts("68881");
-	    break;
-	  case 6:
-	  m68882:
-	    bi.fputype = FPU_68882;
-	    puts("68882");
-	    break;
-	  default:
-	    puts("Unknown FPU type. Assuming no FPU.");
-	    break;
-	}
-    }
-    
-    /* ++roman: If an FPU was announced in the cookie, test
-       whether it is a real hardware FPU or a software emulator!  */
-    if (bi.fputype) {
+    printf("FPU: ");
+    switch( cpu_type ) {
+      case 40: bi.fputype = FPU_68040; puts( "68040" ); break;
+      case 60: bi.fputype = FPU_68060; puts( "68060" ); break;
+      default:
 	if (test_software_fpu()) {
-	    bi.fputype = 0;
-	    puts("FPU: software emulated. Assuming no FPU.");
+	    puts( "none or software emulation" );
 	}
+	else {
+	    if (fpu_idle_frame_size () != 0x18) {
+		bi.fputype = FPU_68882;
+	    	puts("68882");
+	    }
+	    else {
+		bi.fputype = FPU_68881;
+		puts("68881");
+	    }
+	}
+    }
+}
+
+/* Test for Medusa/Hades/Afterburner: These are the machine on which address 0
+ * is writeable.
+ * Further distinction is made by readability of 0x00ff82fe, which gives a bus
+ * error on the Falcon, but not on Medusa/Hades.
+ * Medusa and Hades are separated by reading 0xb0000000, a PCI address that
+ * exists only on Hades (buserr on Medusa).
+ * Return values of the asm are:
+ *  0 = standard machine (0x0 not writeable)
+ *  1 = failed 0x00ff82fe test -> Afterburner
+ *  2 = failed 0xb0000000 test -> Medusa
+ *  3 = all tests passed -> Hades
+ */
+
+static void get_mch_type( void )
+{
+    u_long mch_cookie, ab40_cookie;
+    int rv;
+
+    /* Pass contents of the _MCH cookie to the kernel */
+    getcookie("_MCH", &mch_cookie);
+    bi.mch_cookie = mch_cookie;
+
+    __asm__ __volatile__
+	( "movel	0x8,a0\n\t"	/* save buserr vector */
+	  "movel	sp,a1\n\t" 	/* save stack pointer */
+	  "movew	sr,d2\n\t"	/* save sr */
+	  "orw		#0x700,sr\n\t"	/* disable interrupts */
+	  "moveb	0x0,d1\n\t"	/* save old value of 0x0 */
+	  "movel	#1f,0x8\n\t"	/* setup new buserr vector */
+	  "moveq	#0,%0\n\t"	/* assume no Medusa */
+	  "clrb		0x0\n\t"	/* try to write to 0x0 */
+	  "nop		\n\t"		/* clear insn pipe */
+	  "moveq	#1,%0\n\t"	/* if come here, 0x0 is writeable */
+	  "moveb	d1,0x0\n\t"	/* write back saved value */
+	  "nop		\n\t"
+	  "tstb		0x00ff82fe\n\t"	/* Medusa asserts DTACK here (so no
+					 * buserr), but Falcon with AB40 not */
+	  "nop		\n\t"
+	  "moveq	#2,%0\n\t"	/* if come here, it's a Medusa or
+					 * Hades */
+	  "nop		\n\t"
+	  "tstb		0xb0000000\n\t"	/* PCI address on Hades */
+	  "nop		\n\t"
+	  "moveq	#3,%0\n"	/* if PCI exists, then no Medusa */
+	  "1:\t"
+	  "movel	a1,sp\n\t"	/* restore stack pointer */
+	  "movel	a0,0x8\n\t"	/* restore buserr vector */
+	  "movew	d2,sr"		/* reenable ints */
+	  : "=d" (rv)
+	  : /* no inputs */
+	  : "d1", "d2", "a0", "a1", "memory" );
+
+    bi.mch_type = ATARI_MACH_NORMAL;
+    switch( rv ) {
+      case 1:
+	bi.mch_type = ATARI_MACH_AB40;
+	break;
+      case 2:
+	bi.mch_type = ATARI_MACH_MEDUSA;
+	break;
+      case 3:
+	bi.mch_type = ATARI_MACH_HADES;
+	break;
+    }
+
+    /* Unfortunately, 0x0 isn't writeable on all Afterburners (yes, it seems
+     * so...), so the test above for AB40 may fail. But it surely is an AB40
+     * if an "AB40" cookie exists, or with 99% if it's a Falcon and has a '040
+     * processor. */
+    if (bi.mch_type == ATARI_MACH_NORMAL) {
+	if (getcookie("AB40", &ab40_cookie) != -1 ||
+	    ((bi.mch_cookie >> 16) == ATARI_MCH_FALCON &&
+	     bi.cputype == CPU_68040))
+	    bi.mch_type = ATARI_MACH_AB40;
+    }
+
+    printf( "Model: " );
+    switch( bi.mch_cookie >> 16 ) {
+      case ATARI_MCH_ST:
+	puts( "ST" );
+	break;
+      case ATARI_MCH_STE:
+	if (bi.mch_cookie & 0xffff)
+	    puts( "Mega STE" );
+	else
+	    puts( "STE" );
+	break;
+      case ATARI_MCH_TT:
+	/* Medusa and Hades have TT _MCH cookie */
+	if (bi.mch_type == ATARI_MACH_MEDUSA)
+	    puts( "Medusa" );
+	else if (bi.mch_type == ATARI_MACH_HADES)
+	    puts( "Hades" );
+	else
+	    puts( "TT" );
+	break;
+      case ATARI_MCH_FALCON:
+	printf( "Falcon" );
+	if (bi.mch_type == ATARI_MACH_AB40)
+	    printf( " (with Afterburner040)" );
+	printf( "\n" );
+	break;
+      default:
+	printf( "unknown mach cookie 0x%lx", bi.mch_cookie );
+	break;
     }
 }
 
@@ -430,9 +514,61 @@ static void get_mem_infos( void )
 	printf( "Need at least 256k ST-RAM! Changing -S to 256k.\n" );
     }
     
-    if (!test_medusa()) {
 
-	/* TT RAM tests for non-Medusa machines */
+    if (bi.mch_type == ATARI_MACH_MEDUSA) {
+
+	/* For the Medusa, some things are different... */
+	
+        unsigned long bank1, bank2, medusa_st_ram;
+	int fake_force;
+
+        get_medusa_bank_sizes( &bank1, &bank2 );
+	medusa_st_ram = *phystop & ~(MB - 1);
+        bank1 -= medusa_st_ram;
+
+	/* For the Medusa, load_to_stram is ignored, the kernel is always at
+	 * 0; both kinds of RAM are the same and equally fast */
+	if (load_to_stram)
+	    printf( "(Note: -s ignored on Medusa)\n" );
+
+	ADD_CHUNK( 0, medusa_st_ram,
+		   force_st_size, "Medusa pseudo ST-RAM from bank 1" );
+
+	fake_force = force_tt_size < 0 ? -1 :
+		     force_tt_size <= bank1 ? force_tt_size : bank1;
+        if (!ignore_ttram && bank1 > 0)
+	    ADD_CHUNK( 0x20000000 + medusa_st_ram, bank1,
+		       fake_force, "TT-RAM bank 1" );
+	fake_force = force_tt_size < 0 ? -1 :
+		     force_tt_size <= bank1 ? 0 : force_tt_size - bank1;
+        if (!ignore_ttram && bank2 > 0)
+	    ADD_CHUNK( 0x24000000, bank2,
+		       fake_force, "TT-RAM bank 2" );
+			
+        bi.num_memory = chunk;
+    }
+    else if (bi.mch_type == ATARI_MACH_AB40) {
+
+	/* Assume that only Falcon with a '040 is Afterburner040 */
+
+        struct {
+	    unsigned long start, size;
+	} banks[2];
+	int n_banks;
+
+        n_banks = get_ab040_bank_sizes( 2, (unsigned long *)banks );
+	
+        if (!ignore_ttram && n_banks >= 1)
+	    ADD_CHUNK( banks[0].start, banks[0].size,
+		       force_tt_size, "FastRAM bank 1" );
+        if (!ignore_ttram && n_banks >= 2 && force_tt_size < 0)
+	    ADD_CHUNK( banks[1].start, banks[1].size,
+		       force_tt_size, "FastRAM bank 2" );
+
+    }
+    else {
+
+	/* TT RAM tests for standard machines */
 	struct {
 		unsigned short version; /* version - currently 1 */
 		unsigned long fr_start; /* start addr FastRAM */
@@ -475,7 +611,9 @@ static void get_mem_infos( void )
 			   force_tt_size, "FX alternate RAM" );
 
 	}
+    }
 
+    if (bi.mch_type != ATARI_MACH_MEDUSA) {
 	/* add ST-RAM */
 	ADD_CHUNK( 0, *phystop,
 		   force_st_size, "ST-RAM" );
@@ -489,38 +627,6 @@ static void get_mem_infos( void )
 	    bi.memory[chunk - 1] = bi.memory[0];
 	    bi.memory[0] = temp;
 	}
-    }
-    else {
-
-	/* For the Medusa, some things are different... */
-	
-        unsigned long bank1, bank2, medusa_st_ram;
-	int fake_force;
-
-        get_medusa_bank_sizes( &bank1, &bank2 );
-	medusa_st_ram = *phystop & ~(MB - 1);
-        bank1 -= medusa_st_ram;
-
-	/* For the Medusa, load_to_stram is ignored, the kernel is always at
-	 * 0; both kinds of RAM are the same and equally fast */
-	if (load_to_stram)
-	    printf( "(Note: -s ignored on Medusa)\n" );
-
-	ADD_CHUNK( 0, medusa_st_ram,
-		   force_st_size, "Medusa pseudo ST-RAM from bank 1" );
-
-	fake_force = force_tt_size < 0 ? -1 :
-		     force_tt_size <= bank1 ? force_tt_size : bank1;
-        if (!ignore_ttram && bank1 > 0)
-	    ADD_CHUNK( 0x20000000 + medusa_st_ram, bank1,
-		       fake_force, "TT-RAM bank 1" );
-	fake_force = force_tt_size < 0 ? -1 :
-		     force_tt_size <= bank1 ? 0 : force_tt_size - bank1;
-        if (!ignore_ttram && bank2 > 0)
-	    ADD_CHUNK( 0x24000000, bank2,
-		       fake_force, "TT-RAM bank 2" );
-			
-        bi.num_memory = chunk;
     }
 
     if (extramem_start && extramem_size) {
@@ -567,6 +673,9 @@ int create_machspec_bootinfo(void)
     /* Atari tags */
     if (!add_bi_record(BI_ATARI_MCH_COOKIE, sizeof(bi.mch_cookie),
 		       &bi.mch_cookie))
+	return(0);
+    if (!add_bi_record(BI_ATARI_MCH_TYPE, sizeof(bi.mch_type),
+		       &bi.mch_type))
 	return(0);
     return(1);
 }
@@ -616,44 +725,55 @@ _copyall:
 _copyallend:
 ");
 
-/* Test for a Medusa: This is the only machine on which address 0 is
- * writeable!
- * ...err! On the Afterburner040 (for the Falcon) it's the same... So we do
- * another test with 0x00ff82fe, that gives a bus error on the Falcon, but is
- * in the range where the Medusa always asserts DTACK.
- * On the Hades address 0 is writeable as well and it asserts DTACK on
- * address 0x00ff82fe. To test if the machine is a Hades, address 0xb0000000
- * is tested. On the Medusa this gives a bus error.
- */
-
-static int test_medusa( void )
+static int test_cpu_type (void)
 {
-    int rv = 0;
+    int rv;
+    static char testarray[4] = { 0, 0, 1, 1 };
+    
+    __asm__ __volatile__ (
+	"movel	0x2c,a0\n\t"		/* save line F vector */
+	"movel	sp,a1\n\t"		/* save stack pointer */
+	"movew	sr,d2\n\t"		/* save sr */
+	"orw	#0x700,sr\n\t"		/* disable interrupts */
+	"moveq	#0,%0\n\t"		/* assume 68000 (or 010) */
 
-    __asm__ __volatile__
-	( "movel	0x8,a0\n\t"
-	  "movel	sp,a1\n\t"
-	  "moveb	0x0,d1\n\t"
-	  "movel	#Lberr,0x8\n\t"
-	  "moveq	#0,%0\n\t"
-	  "clrb		0x0\n\t"
-	  "nop		\n\t"
-	  "moveb	d1,0x0\n\t"
-	  "nop		\n\t"
-	  "tstb		0x00ff82fe\n\t"
-	  "nop		\n\t"
-	  "moveq	#1,%0\n\t"
-	  "tstb		0xb0000000\n\t"
-	  "nop		\n\t"
-	  "moveq	#0,%0\n"
-	  "Lberr:\t"
-	  "movel	a1,sp\n\t"
-	  "movel	a0,0x8"
-	  : "=d" (rv)
-	  : /* no inputs */
-	  : "d1", "a0", "a1", "memory" );
+	"moveq	#1,d1\n\t"
+	"tstb	%1@(d1:l:2)\n\t"	/* pre-020 CPU ignores scale and reads
+					 * 0, otherwise 1 */
+	"beq	1f\n\t"			/* if 0 is 68000, end */
+	"moveq	#20,%0\n\t"		/* now assume 68020 */
+
+	"movel	#2f,0x2c\n\t"	 	/* continue if trap */
+	"movel	%1,a2\n\t"
+	"nop	\n\t"
+	".long	0xf0120a00\n\t"		/* pmove tt0,a2@, tt0 only on '030 */
+	"nop	\n\t"
+	"moveq	#30,%0\n\t"		/* surely is 68030 */
+	"bra	1f\n"
+	"2:\t"
+					/* now could be '020 or '040+ */
+	"movel	#1f,0x2c\n\t"	 	/* end if trap */
+	"movel	%1,a2\n\t"
+	"nop	\n\t"
+	".long	0xf622a000\n\t"		/* move16 a2@+,a2@+ only on '040+ */
+	"nop	\n\t"
+	"moveq	#40,%0\n\t"		/* assume 68040 */
+
+	"nop	\n\t"
+	".word	0xf5ca\n\t"		/* plpar a2@, only on '060 */
+	"nop	\n\t"
+	"moveq	#60,%0\n"		/* surely is 68060 */
+
+	"1:\t"
+	"movel	a1,sp\n\t"		/* restore stack */
+	"movel	a0,0x2c\n\t"		/* restore line F vector */
+	"movew	d2,sr"			/* reenable ints */
+	: "=&d" (rv)
+	: "a" (testarray)
+	: "d1", "d2", "a0", "a1", "a2", "memory" );
     return( rv );
 }
+
 
 /* Test if FPU instructions are executed in hardware, or if they're
    emulated in software.  For this, the F-line vector is temporarily
@@ -661,22 +781,25 @@ static int test_medusa( void )
 
 static int test_software_fpu(void)
 {
-    int rv = 0;
+    int rv;
     
     __asm__ __volatile__
-	( "movel	0x2c,a0\n\t"
-	  "movel	sp,a1\n\t"
-	  "movel	#Lfline,0x2c\n\t"
-	  "moveq	#1,%0\n\t"
-	  "fnop 	\n\t"
+	( "movel	0x2c,a0\n\t"	/* save line F vector */
+	  "movel	sp,a1\n\t"	/* save stack pointer */
+	  "movew	sr,d2\n\t"	/* save sr */
+	  "orw		#0x700,sr\n\t"	/* disable interrupts */
+	  "movel	#1f,0x2c\n\t" /* new line F vector */
+	  "moveq	#1,%0\n\t"	/* assume no FPU */
+	  "fnop 	\n\t"		/* exec one FPU insn */
 	  "nop		\n\t"
-	  "moveq	#0,%0\n"
-	  "Lfline:\t"
-	  "movel	a1,sp\n\t"
-	  "movel	a0,0x2c"
+	  "moveq	#0,%0\n"	/* if come here, is a hard FPU */
+	  "1:\t"
+	  "movel	a1,sp\n\t"	/* restore stack */
+	  "movel	a0,0x2c\n\t"	/* restore line F vector */
+	  "movew	d2,sr"		/* reenable ints */
 	  : "=d" (rv)
 	  : /* no inputs */
-	  : "a0", "a1" );
+	  : "d2", "a0", "a1" );
     return rv;
 }
 
@@ -684,14 +807,14 @@ static int test_software_fpu(void)
 static void get_medusa_bank_sizes( u_long *bank1, u_long *bank2 )
 {
     static u_long save_addr;
-    u_long test_base, saved_contents[16];
+    u_long test_base, save_dtt0, saved_contents[16];
 #define	TESTADDR(i)	(*((u_long *)((char *)test_base + i*8*MB)))
 #define	TESTPAT		0x12345678
     unsigned short oldflags;
     int i;
 
     /* This ensures at least that none of the test addresses conflicts
-     * with the test code itself */
+     * with the test code itself; assume that MMU programming is modulo 8MB. */
     test_base = ((unsigned long)&save_addr & 0x007fffff) | 0x20000000;
     *bank1 = *bank2 = 0;
 	
@@ -699,6 +822,16 @@ static void get_medusa_bank_sizes( u_long *bank1, u_long *bank2 )
      * temporarily overwritten, even code of an interrupt handler */
     __asm__ __volatile__ ( "movew sr,%0; oriw #0x700,sr" : "=g" (oldflags) : );
     disable_cache();
+    /* make transparent translation for 0x2xxxxxxx area, enabled for
+     * super+user, non-cacheable/serialized */
+    __asm__ __volatile__ (
+	".chip 68040\n\t"
+	"movec	%/dtt0,%0\n\t"
+	"movec	%1,%/dtt0\n\t"
+	"nop\n\t"
+	".chip 68k"
+	: "=&d" (save_dtt0)
+	: "d" (0x200fe040) );
 	
     /* save contents of the test addresses */
     for( i = 0; i < 16; ++i )
@@ -761,12 +894,133 @@ static void get_medusa_bank_sizes( u_long *bank1, u_long *bank2 )
     /* restore contents of the test addresses and restore interrupt mask */
     for( i = 0; i < 16; ++i )
 	TESTADDR(i) = saved_contents[i];
+    /* remove transparent mapping */
+    __asm__ __volatile__ (
+	".chip 68040\n\t"
+	"movec	%0,%/dtt0\n\t"
+	"nop\n\t"
+	".chip 68k"
+	: /* no outputs */
+	: "d" (save_dtt0) );
     __asm__ __volatile__ ( "movew %0,sr" : : "g" (oldflags) );
 }
 
 #undef TESTADDR
 #undef TESTPAT
 
+
+#define AB40_FAST_START	0x01000000
+#define STEPSIZE	(4*MB)
+#define BANKSIZE	(32*MB)
+#define BANK_PAGES	(BANKSIZE/STEPSIZE)
+
+static __inline__ unsigned long read_transparent( unsigned long addr )
+{
+    unsigned long ttreg_val, save_dtt0, val;
+    
+    ttreg_val = (addr & 0xff000000) | 0xe040;
+    	/* 0xe040: enable super+user, non-cacheable/serialized */
+    __asm__ __volatile__ (
+	".chip 68040\n\t"
+	"movec	%/dtt0,%0\n\t"
+	"movec	%2,%/dtt0\n\t"
+	"nop\n\t"
+	"movel	%3@,%1\n\t"
+	"nop\n\t"
+	"movec	%0,%/dtt0\n\t"
+	".chip 68k"
+	: "=&d" (save_dtt0), "=d" (val)
+	: "d" (ttreg_val), "a" (addr) );
+    return( val );
+}
+
+static __inline__ void write_transparent( unsigned long addr,
+										  unsigned long val )
+{
+    unsigned long ttreg_val, save_dtt0;
+	
+    ttreg_val = (addr & 0xff000000) | 0xe040;
+    	/* 0xe040: enable super+user, non-cacheable/serialized */
+    __asm__ __volatile__ (
+	".chip 68040\n\t"
+	"movec	%/dtt0,%0\n\t"
+	"movec	%1,%/dtt0\n\t"
+	"nop\n\t"
+	"movel	%3,%2@\n\t"
+	"nop\n\t"
+	"movec	%0,%/dtt0\n\t"
+	".chip 68k"
+	: "=&d" (save_dtt0)
+	: "d" (ttreg_val), "a" (addr), "d" (val) );
+}
+
+static __inline__ void pflusha( void )
+{
+    __asm__ __volatile__ ( ".chip 68040; nop; pflusha; nop; .chip 68k" );
+}
+
+static int get_ab040_bank_sizes( int maxres, u_long *result )
+{
+    unsigned long addr, addr2, val, npages, start, end;
+    unsigned long saved_contents[2*BANK_PAGES];
+    unsigned short oldflags;
+    int n_result = 0;
+
+    __asm__ __volatile__ ( "movew %/sr,%0; orw #0x700,%/sr"
+			   : "=d" (oldflags) );
+
+    pflusha();
+    /* write test patterns at addresses */
+    for( addr = AB40_FAST_START+2*BANKSIZE, npages = 2*BANK_PAGES;
+	 npages; --npages ) {
+	addr -= STEPSIZE;
+	saved_contents[npages-1] = read_transparent( addr );
+	write_transparent( addr, addr );
+    }
+    pflusha();
+
+    addr = AB40_FAST_START;
+    npages = 2*BANK_PAGES;
+    while( npages ) {
+	val = read_transparent( addr2 = addr );
+	--npages;
+	addr += STEPSIZE;
+	if (val != addr2)
+	    continue;
+	/* note start addr of real mem (first addr where can read back) */
+	start = addr2;
+	/* loop while can read back, i.e. memory valid */
+	do {
+	    val = read_transparent( addr2 = addr );
+	    --npages;
+	    addr += STEPSIZE;
+	    if (val != addr2)
+		break;
+	} while( npages );
+	end = addr2;
+
+	if (end - start >= MB) {
+	    if (maxres-- > 0) {
+		*result++ = start;
+		*result++ = end - start;
+		++n_result;
+	    }
+	    else
+		npages = 0;
+	}
+    }
+
+    /* restore previous contents */
+    for( addr = AB40_FAST_START+2*BANKSIZE, npages = 2*BANK_PAGES;
+	 npages; --npages ) {
+	addr -= STEPSIZE;
+	write_transparent( addr, saved_contents[npages-1] );
+    }
+    pflusha();
+    
+    __asm__ __volatile__ ( "movew %0,%/sr" : : "d" (oldflags) );
+    return( n_result );
+}
 
 /* Local Variables: */
 /* tab-width: 8     */
