@@ -7,10 +7,13 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.2 1997-07-16 09:29:25 rnhodek Exp $
+# $Id: Makefile,v 1.3 1997-08-10 19:24:50 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.2  1997-07-16 09:29:25  rnhodek
+# Revision 1.3  1997-08-10 19:24:50  rnhodek
+# Use bootp_mod.o only if USE_BOOTP selected.
+#
+# Revision 1.2  1997/07/16 09:29:25  rnhodek
 # Reorganized Makefiles so that all objects are built in
 # {bootstrap,lilo}/{amiga,atari}, not in common anymore. Define IN_BOOTSTRAP or
 # IN_LILO so that common sources can distinguish between the environments.
@@ -22,11 +25,12 @@
 #
 
 COMMON_OBJS = linuxboot.o loadkernel.o bootinf.o stream.o file_mod.o \
-              gunzip_mod.o bootp_mod.o
+              gunzip_mod.o
 AMIGA_COBJS = $(addprefix amiga/,$(COMMON_OBJS))
 ATARI_COBJS = $(addprefix atari/,$(COMMON_OBJS))
 
 ifneq ($(USE_BOOTP),n)
+COMMON_OBJS += bootp_mod.o
 ATARI_COBJS += atari/ethlance.o
 BOOTOPTS += -DETHLL_LANCE
 endif
