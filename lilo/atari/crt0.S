@@ -7,10 +7,17 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: crt0.S,v 1.2 1998-02-23 10:22:52 rnhodek Exp $
+ * $Id: crt0.S,v 1.3 1998-02-24 11:20:55 rnhodek Exp $
  * 
  * $Log: crt0.S,v $
- * Revision 1.2  1998-02-23 10:22:52  rnhodek
+ * Revision 1.3  1998-02-24 11:20:55  rnhodek
+ * Save old vectors before modifying them, and restore them after loader
+ * exits. Otherwise, they would point to unallocated memory afterwards.
+ * Initialize all standard handles to -1 (console).
+ * Print SSW as word.
+ * Additionally print SR.
+ *
+ * Revision 1.2  1998/02/23 10:22:52  rnhodek
  * Many changes to make it work:
  *  - Also provide variable _environ, needed by getenv().
  *  - Moved definition of CurrentFloppy to here from bootmain.c
@@ -150,19 +157,26 @@ end_reloc:
 	jbsr	putc
 
 #ifdef DEBUG_EXCEPTIONS
-	movel #exc_buserr,0x8
-	movel #exc_addrerr,0xc
-	movel #exc_general,0x10
-	movel #exc_general,0x14
-	movel #exc_general,0x18
-	movel #exc_general,0x1c
-	movel #exc_general,0x20
-	movel #exc_general,0x24
-	movel #exc_general,0x28
-	movel #exc_general,0x2c
-	movel #exc_general,0x34
-	movel #exc_general,0x38
-	movel #exc_general,0x3c
+	/* save old vectors */
+	lea	0x8,a0
+	lea	save_vecs,a1
+	movq	#13,d0
+1:	movl	a0@+,a1@+
+	dbra	d0,1b
+	/* overwrite some vectors */	
+	movl	#exc_buserr,0x8
+	movl	#exc_addrerr,0xc
+	movl	#exc_general,0x10
+	movl	#exc_general,0x14
+	movl	#exc_general,0x18
+	movl	#exc_general,0x1c
+	movl	#exc_general,0x20
+	movl	#exc_general,0x24
+	movl	#exc_general,0x28
+	movl	#exc_general,0x2c
+	movl	#exc_general,0x34
+	movl	#exc_general,0x38
+	movl	#exc_general,0x3c
 #endif
 	
 	/* save value of d7 (old contents of _bootdev) */
@@ -225,12 +239,8 @@ end_reloc:
 					 * flags (better use ST-RAM for
 					 * DMAread!) */
 	movl	#dummy_env,a5@(BP_ENV)
-	movb	#-1,a5@(BP_DEVX+0)	/* init standard handles */
-	movb	#-1,a5@(BP_DEVX+1)
-	movb	#-2,a5@(BP_DEVX+2)
-	movb	#-3,a5@(BP_DEVX+3)
-	movb	#-1,a5@(BP_DEVX+4)
-	movb	#-1,a5@(BP_DEVX+5)
+	movl	#-1,a5@(BP_DEVX+0)	/* init standard handles to CON: */
+	movw	#-1,a5@(BP_DEVX+4)
 	
 	/* Clear bss */
 	addl	#3,d3
@@ -269,6 +279,15 @@ end_reloc:
 	trap	#1        /* Mfree(_base), free the loader's TPA */
 	addql	#6,sp
 
+#ifdef DEBUG_EXCEPTIONS
+	/* restore old vectors */
+	lea	0x8,a1
+	lea	save_vecs,a0
+	movq	#13,d0
+1:	movl	a0@+,a1@+
+	dbra	d0,1b
+#endif
+	
 	movl	_ExitAction,d0
 	cmpl	#1,d0
 	bne	1f
@@ -427,9 +446,8 @@ exc_buserr:
 	jbsr	putnum
 	movl	#str_ssw,a0
 	jbsr	puts
-	movq	#0,d0
 	movw	sp@(10),d0
-	jbsr	putnum
+	jbsr	putword
 	movl	#crnl,a0
 	jbsr	puts
 	jbra	exc_common
@@ -476,6 +494,10 @@ exc_common:
 	addl	a0@(d1:l),d0
 	movl	d0,a6
 	jbsr	putnum
+	movl	#str_sr,a0
+	jbsr	puts
+	movw	sp@,d0
+	jbsr	putword
 	
 	movl	#str_dregs,a0
 	jbsr	puts
@@ -565,6 +587,8 @@ str_relpc:
 	.asciz	" relPC="
 str_sp:
 	.asciz	" SP="
+str_sr:
+	.asciz	" SR="
 str_colon:
 	.asciz	": "
 str_dregs:
@@ -599,8 +623,11 @@ exc_names:
 	.long	str_unint
 
 save_regs:
+	.long	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+save_vecs:
 	.long	0,0,0,0,0,0,0,0,0,0,0,0,0,0
-	
+		
 #endif /* DEBUG_EXCEPTIONS */
 	
 /* Local Variables:			*/
