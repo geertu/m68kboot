@@ -7,10 +7,15 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: bootmain.c,v 1.10 1998-03-04 09:14:47 rnhodek Exp $
+ * $Id: bootmain.c,v 1.11 1998-03-05 10:25:34 rnhodek Exp $
  * 
  * $Log: bootmain.c,v $
- * Revision 1.10  1998-03-04 09:14:47  rnhodek
+ * Revision 1.11  1998-03-05 10:25:34  rnhodek
+ * In NO_GUI mode, if user types '?' at the boot prompt, print out a
+ * list of available boot records.
+ * New function ListRecords() for this, copied from monitor.c.
+ *
+ * Revision 1.10  1998/03/04 09:14:47  rnhodek
  * New option 'use_cache' to exec_tos_program().
  * New config var array ProgCache[].
  * Remove strace_{on,off} calls.
@@ -300,6 +305,16 @@ int main( int argc, char *argv[] )
 			}
 #endif
 			label = firstword( &cmdline );
+			if (DontUseGUI && strcmp( label, "?" ) == 0) {
+				cprintf( "\nValid commands: ?"
+#ifndef NO_MONITOR
+						 ", su"
+#endif
+						 "\n" );
+				ListRecords();
+				cprintf( "\n" );
+				continue;
+			}
 			if ((boot_os = (*label ? FindBootRecord( label ) : dflt_os))) {
 				if (boot_os->Password &&
 					strcmp( get_password(), boot_os->Password ) != 0) {
@@ -573,6 +588,33 @@ static void ReadMapData(void)
 		mnt->drive     = *tmnt->drive;
 		mnt->start_sec = *tmnt->start_sec;
 		mnt->rw        = *tmnt->rw;
+	}
+}
+
+
+void ListRecords( void )
+{
+	const struct BootRecord *rec;
+	
+	cprintf( "Boot records:\n" );
+	for( rec = BootRecords; rec; rec = rec->Next ) {
+		cprintf( "  %-31.31s (", rec->Label );
+		if (rec->Alias)
+			cprintf( "alias \"%s\", ", rec->Alias );
+		cprintf( "type " );
+		switch( rec->OSType ? *rec->OSType : BOS_LINUX ) {
+		  case BOS_TOS:		cprintf( "TOS" ); break;
+		  case BOS_LINUX:	cprintf( "Linux" ); break;
+		  case BOS_BOOTB:	cprintf( "bootsector" ); break;
+		  default:			cprintf( "unknown" ); break;
+		}
+		if (rec->Password)
+			cprintf( ", restricted" );
+		if (!is_available( rec ))
+			cprintf( ", incomplete" );
+		if (rec == dflt_os)
+			cprintf( ", default" );
+		cprintf( ")\n" );
 	}
 }
 
