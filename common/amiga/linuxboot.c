@@ -22,9 +22,12 @@
  *  for more details.
  *
  *  History:
+ *	11 Jun 1997 Fix for unpadded gzipped ramdisks with bootinfo interface
+ *		    version 1.0
  *	27 Mar 1997 FPU-less machines couldn't boot kernels that use bootinfo
  *		    interface version 1.0 (Geert)
- *	03 Feb 1997 Implemented kernel decompression (Geert, based on Roman's
+ *	 2 Mar 1997 Updated for the new Zorro ID scheme
+ *	 3 Feb 1997 Implemented kernel decompression (Geert, based on Roman's
  *		    code for ataboot)
  *	30 Dec 1996 Reverted the CPU detection to the old scheme
  *		    New boot parameter override scheme (Geert)
@@ -41,10 +44,13 @@
  *	31 May 1994 Memory thrash problem solved (Geert)
  *	11 May 1994 A3640 MapROM check (Geert)
  * 
- * $Id: linuxboot.c,v 1.3 1997-07-16 14:05:06 rnhodek Exp $
+ * $Id: linuxboot.c,v 1.4 1997-07-17 14:18:54 geert Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.3  1997-07-16 14:05:06  rnhodek
+ * Revision 1.4  1997-07-17 14:18:54  geert
+ * Integrate amiboot 5.6 changes (compr. ramdisk and 2.0 kernel)
+ *
+ * Revision 1.3  1997/07/16 14:05:06  rnhodek
  * Sorted out which headers to use and the like; Amiga bootstrap now compiles.
  * Puts and other generic functions now defined in bootstrap.h
  *
@@ -68,6 +74,7 @@
 #include <errno.h>
 #include <sys/types.h>
 
+#include <linux/version.h>
 #include <linux/linkage.h>
 /*#include <asm/bootinfo.h>*/
 #include <asm/amigahw.h>
@@ -128,10 +135,9 @@ static u_long get_model(u_long chipset);
 static int probe_resident(const char *name);
 static int probe_resource(const char *name);
 static void start_kernel(void (*startfunc)(), char *stackp, char *memptr,
-			 u_long start_mem, u_long mem_size, u_long rd_size,
-			 u_long kernel_size) __attribute__ ((noreturn));
+			 u_long start_mem, u_long kernel_size, u_long rd_dest,
+			 u_long rd_size) __attribute__ ((noreturn));
 asmlinkage u_long maprommed(void);
-asmlinkage u_long check346(void);
 
     /*
      *	Reset functions for nasty Zorro boards
@@ -147,13 +153,27 @@ static void reset_a2060(const struct ConfigDev *cd);
 #endif
 
 struct boardreset {
+#if LINUX_VERSION_CODE >= 0x02012a
+    zorro_id id;
+#else /* old Zorro ID scheme */
     u_short manuf;
     u_short prod;
+#endif /* old Zorro ID scheme */
     const char *name;
     void (*reset)(const struct ConfigDev *cd);
 };
 
 static struct boardreset boardresetdb[] = {
+#if LINUX_VERSION_CODE >= 0x02012a
+    { ZORRO_PROD_HELFRICH_RAINBOW_III, "Rainbow 3", reset_rb3 },
+    { ZORRO_PROD_HELFRICH_PICCOLO_REG, "Piccolo", reset_piccolo },
+    { ZORRO_PROD_HELFRICH_SD64_REG, "SD64", reset_sd64 },
+    { ZORRO_PROD_VILLAGE_TRONIC_ARIADNE, "Ariadne", reset_ariadne },
+    { ZORRO_PROD_HYDRA_SYSTEMS_AMIGANET, "Hydra", reset_hydra },
+#if 0
+    { ZORRO_PROD_CBM_A2060, "A2060", reset_a2060 },
+#endif
+#else /* old Zorro ID scheme */
     { MANUF_HELFRICH1, PROD_RAINBOW3, "Rainbow 3", reset_rb3 },
     { MANUF_HELFRICH2, PROD_PICCOLO_REG, "Piccolo", reset_piccolo },
     { MANUF_HELFRICH2, PROD_SD64_REG, "SD64", reset_sd64 },
@@ -162,6 +182,7 @@ static struct boardreset boardresetdb[] = {
 #if 0
     { MANUF_COMMODORE, PROD_A2060, "A2060", reset_a2060 },
 #endif
+#endif /* old Zorro ID scheme */
 };
 #define NUM_BOARDRESET	sizeof(boardresetdb)/sizeof(*boardresetdb)
 
@@ -398,14 +419,20 @@ u_long linuxboot(const struct linuxboot_args *args)
 	    if (reset_boards) {
 		manuf = bi.autocon[i].cd_Rom.er_Manufacturer;
 		prod = bi.autocon[i].cd_Rom.er_Product;
-		for (j = 0; j < NUM_BOARDRESET; j++)
-		    if ((manuf == boardresetdb[j].manuf) &&
-			(prod == boardresetdb[j].prod)) {
+		for (j = 0; j < NUM_BOARDRESET; j++) {
+#if LINUX_VERSION_CODE >= 0x02012a
+		    if ((manuf == ZORRO_MANUF(boardresetdb[j].id)) &&
+			(prod == ZORRO_PROD(boardresetdb[j].id))) {
+#else /* old Zorro ID scheme */
+                    if ((manuf == boardresetdb[j].manuf) &&
+                        (prod == boardresetdb[j].prod)) {
+#endif /* old Zorro ID scheme */
 			Printf(" [%s - will be reset at kernel boot time]",
 			       boardresetdb[j].name);
 			boardresetfuncs[i] = boardresetdb[j].reset;
 			break;
 		    }
+		}
 	    }
 	    PutChar('\n');
 	}
@@ -527,15 +554,15 @@ u_long linuxboot(const struct linuxboot_args *args)
     if (debugflag) {
 	if (bi.ramdisk.size)
 	    Printf("RAM disk at 0x%08lx, size is %ldK\n",
-		   (u_long)memptr+kernel_size, bi.ramdisk.size>>10);
+		   (u_long)memptr+kernel_size+bi_size, bi.ramdisk.size>>10);
 
 	kernel_debug_infos( start_mem );
 
-	Printf("ramdisk dest top is 0x%08lx\n", start_mem+mem_size);
+	Printf("ramdisk dest is 0x%08lx\n", bi.ramdisk.addr);
 	Printf("ramdisk lower limit is 0x%08lx\n",
-	       (u_long)(memptr+kernel_size));
+	       (u_long)memptr+kernel_size+bi_size);
 	Printf("ramdisk src top is 0x%08lx\n",
-	       (u_long)(memptr+kernel_size)+rd_size);
+	       (u_long)memptr+kernel_size+bi_size+rd_size);
 
 	Puts("\nType a key to continue the Linux/m68k boot...");
 	GetChar();
@@ -571,7 +598,7 @@ u_long linuxboot(const struct linuxboot_args *args)
 
     /* execute the copy-and-go code (from CHIP RAM) */
     start_kernel(startfunc, (char *)stack+TEMP_STACKSIZE, memptr, start_mem,
-		 mem_size, rd_size, kernel_size);
+		 kernel_size, bi.ramdisk.addr, rd_size);
 
     /* Clean up and exit in case of a failure */
 Fail:
@@ -808,14 +835,14 @@ void compat_create_machspec_bootinfo(void)
      */
 
 static void start_kernel(void (*startfunc)(), char *stackp, char *memptr,
-			 u_long start_mem, u_long mem_size, u_long rd_size,
-			 u_long kernel_size)
+			 u_long start_mem, u_long kernel_size, u_long rd_dest,
+			 u_long rd_size)
 {
     register void (*a0)() __asm("a0") = startfunc;
     register char *a2 __asm("a2") = stackp;
     register char *a3 __asm("a3") = memptr;
     register u_long a4 __asm("a4") = start_mem;
-    register u_long d0 __asm("d0") = mem_size;
+    register u_long d0 __asm("d0") = rd_dest;
     register u_long d1 __asm("d1") = rd_size;
     register u_long d2 __asm("d2") = kernel_size;
     register u_long d3 __asm("d3") = bi_size;
@@ -839,7 +866,7 @@ static void start_kernel(void (*startfunc)(), char *stackp, char *memptr,
      *
      *	    a3 = memptr
      *	    a4 = start_mem
-     *	    d0 = mem_size
+     *	    d0 = rd_dest
      *	    d1 = rd_size
      *	    d2 = kernel_size
      *	    d3 = bi_size
@@ -867,18 +894,16 @@ SYMBOL_NAME_STR(copyall) ":
 	dbra	d7,1b		|     *dest++ = *src++
 
 				| /* copy the ramdisk to the top of memory */
-				| /* (from back to front) */
-	movel	a4,a1		| dest = (u_long *)(start_mem+mem_size);
-	addl	d0,a1
-	movel	a3,a2		| limit = (u_long *)(memptr+kernel_size +
-	addl	d2,a2		|		     bi_size);
-	addl	d3,a2
-	movel	a2,a0		| src = (u_long *)((u_long)limit+rd_size);
-	addl	d1,a0
+	movel	a3,a0		| src = (u_long *)(memptr+kernel_size+bi_size);
+	addl	d2,a0
+	addl	d3,a0
+	movel	d0,a1		| dest = (u_long *)rd_dest;
+	movel	a0,a2		| limit = (u_long *)(memptr+kernel_size+
+	addl	d1,a2		|		     bi_size+rd_size);
 1:	cmpl	a0,a2
-	beqs	2f		| while (src > limit)
-	moveb	a0@-,a1@-	|     *--dest = *--src;
-	bras	1b
+	jeq	2f		| while (src > limit)
+	moveb	a0@+,a1@+	|     *dest++ = *src++;
+	jra	1b
 2:
 				| /* jump to start of kernel */
 	movel	a4,a0		| jump_to (start_mem);

@@ -21,10 +21,13 @@
  *  License.  See the file COPYING in the main directory of this archive
  *  for more details.
  * 
- * $Id: linuxboot.h,v 1.3 1997-07-16 14:05:08 rnhodek Exp $
+ * $Id: linuxboot.h,v 1.4 1997-07-17 14:18:55 geert Exp $
  * 
  * $Log: linuxboot.h,v $
- * Revision 1.3  1997-07-16 14:05:08  rnhodek
+ * Revision 1.4  1997-07-17 14:18:55  geert
+ * Integrate amiboot 5.6 changes (compr. ramdisk and 2.0 kernel)
+ *
+ * Revision 1.3  1997/07/16 14:05:08  rnhodek
  * Sorted out which headers to use and the like; Amiga bootstrap now compiles.
  * Puts and other generic functions now defined in bootstrap.h
  *
@@ -41,6 +44,8 @@
 #define _linuxboot_h
 
 
+typedef unsigned int u32;
+
 #include <sys/types.h>
 #define _LINUX_TYPES_H		/* Hack to prevent including <linux/types.h> */
 #include <asm/bootinfo.h>
@@ -52,7 +57,7 @@
      *  Amiboot Version
      */
 
-#define AMIBOOT_VERSION		"5.5"
+#define AMIBOOT_VERSION		"5.6"
 
 
     /*
