@@ -1,0 +1,28 @@
+#!/bin/sh
+set -e
+
+if [ $# -ne 1 ]; then
+	echo "Usage: $0 destination-prefix" 1>&2
+	exit 1
+fi
+PREFIX="$1"
+
+# get machine type
+machtype=`awk '/^Model:/ {print $2}' /proc/hardware | tr A-Z a-z`
+if [ -z "$machtype" ]; then
+	echo "Could not determine machine type!" 1>&2
+	exit 1
+fi
+if [ "$machtype" -ne "atari" -a "$machtype" -ne "amiga" ]; then
+	echo "Unsupported machine type: $machtype" 1>&2
+	exit 1
+fi
+
+install -m755 lilo/$machtype/lilo $PREFIX/sbin/lilo
+install -m644 lilo/$machtype/loader $PREFIX/boot/loader
+if [ ! -f $PREFIX/etc/lilo.conf ]; then
+	install -m644 lilo/$machtype/lilo.conf.example $PREFIX/etc/lilo.conf
+	echo "You have to edit /etc/lilo.conf"
+fi
+
+exit 0
