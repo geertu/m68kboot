@@ -8,7 +8,7 @@ extern char * strcpy(char * dest,const char *src);
 extern char * strncpy(char * dest,const char *src,size_t count);
 extern char * strcat(char * dest, const char * src);
 extern char * strncat(char *dest, const char *src, size_t count);
-extern void * memset(void * s,char c,size_t count);
+extern void * memset(void * s,int c,size_t count);
 extern void * memcpy(void * dest,const void *src,size_t count);
 extern int memcmp(const void * cs,const void * ct,size_t count);
 
