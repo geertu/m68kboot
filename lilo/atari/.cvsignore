@@ -12,3 +12,4 @@ lilo
 rootsect.img
 bootos
 loader.map
+dumpmapfile

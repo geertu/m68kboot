@@ -7,3 +7,4 @@ conf.tab.l.h
 lex.conf.l.c
 loader
 lilo
+dumpmapfile
