@@ -7,10 +7,13 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: bootmain.c,v 1.11 1998-03-05 10:25:34 rnhodek Exp $
+ * $Id: bootmain.c,v 1.12 1998-03-05 11:09:53 rnhodek Exp $
  * 
  * $Log: bootmain.c,v $
- * Revision 1.11  1998-03-05 10:25:34  rnhodek
+ * Revision 1.12  1998-03-05 11:09:53  rnhodek
+ * Also show boot records if "help" is entered.
+ *
+ * Revision 1.11  1998/03/05 10:25:34  rnhodek
  * In NO_GUI mode, if user types '?' at the boot prompt, print out a
  * list of available boot records.
  * New function ListRecords() for this, copied from monitor.c.
@@ -305,7 +308,8 @@ int main( int argc, char *argv[] )
 			}
 #endif
 			label = firstword( &cmdline );
-			if (DontUseGUI && strcmp( label, "?" ) == 0) {
+			if (DontUseGUI &&
+				(strcmp( label, "?" ) == 0 || strcmp( label, "help" ) == 0)) {
 				cprintf( "\nValid commands: ?"
 #ifndef NO_MONITOR
 						 ", su"
