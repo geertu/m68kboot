@@ -11,10 +11,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.c,v 1.17 2004-08-23 16:15:42 joy Exp $
+ * $Id: linuxboot.c,v 1.18 2004-08-23 16:16:20 joy Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.17  2004-08-23 16:15:42  joy
+ * Revision 1.18  2004-08-23 16:16:20  joy
+ * displays ARAnyM for _MCH 0x50000 and adds LF to unknown mach cookie
+ *
+ * Revision 1.17  2004/08/23 16:15:42  joy
  * corrects ramdisk src address printed in debug mode
  *
  * Revision 1.16  2004/08/23 16:14:16  joy
@@ -561,8 +564,11 @@ static void get_mch_type( void )
 	    printf( " (with Afterburner040)" );
 	printf( "\n" );
 	break;
+      case 5:
+	puts( "ARAnyM" );
+	break;
       default:
-	printf( "unknown mach cookie 0x%lx", bi.mch_cookie );
+	printf( "unknown mach cookie 0x%lx\n", bi.mch_cookie );
 	break;
     }
 }
