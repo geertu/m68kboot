@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: mach-parsefuncs.c,v 1.3 1998-02-26 10:34:56 rnhodek Exp $
+ * $Id: mach-parsefuncs.c,v 1.4 1998-03-06 09:50:10 rnhodek Exp $
  * 
  * $Log: mach-parsefuncs.c,v $
- * Revision 1.3  1998-02-26 10:34:56  rnhodek
+ * Revision 1.4  1998-03-06 09:50:10  rnhodek
+ * New option skip-on-keys, and a function to parse it.
+ *
+ * Revision 1.3  1998/02/26 10:34:56  rnhodek
  * New config vars WorkDir, Environ, and BootDrv (global)
  *
  * Revision 1.2  1997/09/19 09:06:59  geert
@@ -42,7 +45,8 @@
 	  | hdropts g_tmpmnt						\
 	  | hdropts g_execprog						\
 	  | hdropts g_bootdrv						\
-	  | hdropts setenv
+	  | hdropts setenv							\
+	  | hdropts skiponkeys
 
 #define MACH_BOOTOPTS							\
 	  | bootopts type							\
@@ -130,7 +134,59 @@ static int AddTmpMnt( int dev, unsigned long start, unsigned int drive,
     new->rw = CopyLong(rw_flag);
     return( i );
 }
-	
+
+
+static struct modif {
+	char *name;
+	u_long mask;
+} modifiers[] = {
+	{ "rshift",   0x01 },
+	{ "lshift",   0x02 },
+	{ "shift",    0x03 },
+	{ "control",  0x04 },
+	{ "alt",      0x08 },
+	{ "capslock", 0x10 },
+	{ NULL, 0 }
+};
+
+static int isprefix( const char *s1, const char *s2 )
+{
+    char c1, c2;
+
+    while (*s1) {
+		c1 = tolower(*s1++);
+		c2 = tolower(*s2++);
+		if (!c2 || c1 != c2)
+			return( 0 );
+    }
+    return( 1 );
+}
+
+static unsigned long ParseKeyMask( const char *str )
+{
+	char *str2, *p;
+	u_long mask = 0;
+	struct modif *mod;
+
+	/* copy string for strdup (which modifies its arg) */
+	if (!(str2 = strdup( str )))
+		Error_NoMemory();
+
+	for( p = strtok( str2, " \t" ); p; p = strtok( NULL, " \t" ) ) {
+		for( mod = modifiers; mod->name; ++mod ) {
+			if (isprefix( p, mod->name )) {
+				mask |= mod->mask;
+				break;
+			}
+		}
+		if (!mod->name)
+			conferror( "Invalid modifier name\n" );
+	}
+
+	free( str2 );
+	return( mask );
+}
+
 /* Local Variables: */
 /* tab-width: 4     */
 /* End:             */
