@@ -7,10 +7,14 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.1 1997-08-12 15:27:07 rnhodek Exp $
+# $Id: Makefile,v 1.2 1998-02-23 10:16:21 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.1  1997-08-12 15:27:07  rnhodek
+# Revision 1.2  1998-02-23 10:16:21  rnhodek
+# Added rule for atari/bootos utility.
+# Generate a map file for loader.tos, for debugging exception dumps.
+#
+# Revision 1.1  1997/08/12 15:27:07  rnhodek
 # Import of Amiga and newly written Atari lilo sources, with many mods
 # to separate out common parts.
 #
@@ -28,7 +32,13 @@ atari/loader: atari/rootsect.b atari/loader.tos
 
 atari/loader.tos: $(LOADER_OBJS) $(ATARI_COBJS)
 	@# discard all symbols and locals
-	$(ATARI_COMPILE) -s -nostdlib -Wl,-x -o $@ $^ -lmint -lgem
+	$(ATARI_COMPILE) -s -Wl,-M -nostdlib -Wl,-x -o $@ $^ -lmint -lgem | \
+	perl -ne 'printf "%08x %s\n", eval($$2), $$1 \
+	          if /^  (\S+): (0x\S+)$$/ && $$1 ne "gcc2_compiled.";' | \
+	sort >atari/loader.map
+
+atari/bootos: atari/bootos.o
+	$(CC) -o $@ $^
 
 # rootsect.S compiled by Linux gcc
 rootsect.o: rootsect.S
