@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: mach-parsefuncs.c,v 1.2 1997-09-19 09:06:59 geert Exp $
+ * $Id: mach-parsefuncs.c,v 1.3 1998-02-26 10:34:56 rnhodek Exp $
  * 
  * $Log: mach-parsefuncs.c,v $
- * Revision 1.2  1997-09-19 09:06:59  geert
+ * Revision 1.3  1998-02-26 10:34:56  rnhodek
+ * New config vars WorkDir, Environ, and BootDrv (global)
+ *
+ * Revision 1.2  1997/09/19 09:06:59  geert
  * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
  *
  * Revision 1.1  1997/08/12 15:27:10  rnhodek
@@ -37,7 +40,9 @@
 	  | hdropts cpu_cookie						\
 	  | hdropts fpu_cookie						\
 	  | hdropts g_tmpmnt						\
-	  | hdropts g_execprog
+	  | hdropts g_execprog						\
+	  | hdropts g_bootdrv						\
+	  | hdropts setenv
 
 #define MACH_BOOTOPTS							\
 	  | bootopts type							\
