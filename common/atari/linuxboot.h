@@ -11,10 +11,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.h,v 1.4 1998-02-19 19:44:10 rnhodek Exp $
+ * $Id: linuxboot.h,v 1.5 1998-04-07 09:36:58 rnhodek Exp $
  * 
  * $Log: linuxboot.h,v $
- * Revision 1.4  1998-02-19 19:44:10  rnhodek
+ * Revision 1.5  1998-04-07 09:36:58  rnhodek
+ * Add definition of __u32, which is used in 2.1.90+ zorro.h
+ *
+ * Revision 1.4  1998/02/19 19:44:10  rnhodek
  * Integrated changes from ataboot 3.0 to 3.2
  *
  * Revision 1.3  1997/07/18 12:10:38  rnhodek
@@ -39,6 +42,7 @@
 #include <sys/types.h>
 #define _LINUX_TYPES_H		/* Hack to prevent including <linux/types.h> */
 typedef unsigned int u32;	/* for <linux/zorro.h> */
+typedef unsigned int __u32; /* for 2.1.90+ zorro.h */
 #include <asm/bootinfo.h>
 #include <asm/setup.h>
 
