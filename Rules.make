@@ -1,10 +1,13 @@
 #
 # common definitions and rules for Makefiles
 #
-# $Id: Rules.make,v 1.4 1997-07-16 13:29:10 rnhodek Exp $
+# $Id: Rules.make,v 1.5 1997-07-16 13:39:36 rnhodek Exp $
 #
 # $Log: Rules.make,v $
-# Revision 1.4  1997-07-16 13:29:10  rnhodek
+# Revision 1.5  1997-07-16 13:39:36  rnhodek
+# KERNEL_HEADERS var to find kernel headers
+#
+# Revision 1.4  1997/07/16 13:29:10  rnhodek
 # Add targets to make .i and .s files; remove those files on make clean
 #
 # Revision 1.3  1997/07/16 10:32:48  rnhodek
@@ -23,9 +26,12 @@
 
 .PHONY: all amiga atari clean distclean dep force
 
-INC = -I.. -I$(MACH) -I. -I../common/$(MACH) -I../common \
-      -idirafter /usr/local/m68k-linux/include \
-      -idirafter /usr/m68k-linux/include -idirafter /usr/include
+INC = -I.. -I$(MACH) -I. -I../common/$(MACH) -I../common
+ifdef KERNEL_HEADERS
+INC += -I$(KERNEL_HEADERS)
+endif
+INC += -idirafter /usr/local/m68k-linux/include \
+       -idirafter /usr/m68k-linux/include -idirafter /usr/include
 
 AMIGA_COMPILE = $(AMIGA_HOSTCC) $(AMIGA_HOSTINC) $(AMIGA_HOSTFLAGS) \
                 $(BOOTOPTS) $(INC) $(SUBDEF)

@@ -7,10 +7,13 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.4 1997-07-16 13:29:09 rnhodek Exp $
+# $Id: Makefile,v 1.5 1997-07-16 13:39:36 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.4  1997-07-16 13:29:09  rnhodek
+# Revision 1.5  1997-07-16 13:39:36  rnhodek
+# KERNEL_HEADERS var to find kernel headers
+#
+# Revision 1.4  1997/07/16 13:29:09  rnhodek
 # Add targets to make .i and .s files; remove those files on make clean
 #
 # Revision 1.3  1997/07/16 10:32:48  rnhodek
@@ -37,6 +40,12 @@
 BOOTOPTS  = -DBOOTINFO_COMPAT_1_0 # -DAOUT_KERNEL
 
 USE_BOOTP = n
+
+# define with path to Linux/68k kernel headers, if not in the standard
+# places /usr/local/m68k-linux/include/linux, /usr/m68k-linux/include/linux,
+# or /usr/include/linux.
+# KERNEL_HEADERS = $(HOME)/src/linux/include
+
 ifneq ($(USE_BOOTP),n)
 BOOTOPTS += -DUSE_BOOTP
 endif
