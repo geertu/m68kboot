@@ -7,10 +7,14 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: bootstrap.h,v 1.3 1997-07-30 21:42:51 rnhodek Exp $
+ * $Id: bootstrap.h,v 1.4 1998-02-24 11:18:50 rnhodek Exp $
  * 
  * $Log: bootstrap.h,v $
- * Revision 1.3  1997-07-30 21:42:51  rnhodek
+ * Revision 1.4  1998-02-24 11:18:50  rnhodek
+ * Define Printf (used in common sources) to be cprintf instead of simple printf.
+ * Need menu.h for this, too.
+ *
+ * Revision 1.3  1997/07/30 21:42:51  rnhodek
  * Fix defition of Puts; make boot_exit a normal function
  *
  * Revision 1.2  1997/07/16 15:06:25  rnhodek
@@ -28,12 +32,14 @@
 #ifndef _bootstrap_h
 #define _bootstrap_h
 
+#include <menu.h>
+
 #define	boot_exit		exit
 
 #define Puts(str)		fputs( (str), stdout )
 #define	GetChar			getchar
 #define	PutChar			putchar
-#define	Printf			printf
+#define	Printf			cprintf
 #define Alloc			malloc
 #define Free			free
 #define ReAlloc(p,o,n)	realloc((p),(n))
