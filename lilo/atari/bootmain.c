@@ -7,10 +7,14 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: bootmain.c,v 1.14 1998-03-10 10:25:18 rnhodek Exp $
+ * $Id: bootmain.c,v 1.15 1998-03-16 10:45:18 schwab Exp $
  * 
  * $Log: bootmain.c,v $
- * Revision 1.14  1998-03-10 10:25:18  rnhodek
+ * Revision 1.15  1998-03-16 10:45:18  schwab
+ * Do auto boot wait loop as do..while.
+ * Rename putenv to Putenv to avoid name clash with lib.
+ *
+ * Revision 1.14  1998/03/10 10:25:18  rnhodek
  * New option "message": print before showing the prompt.
  * When waiting for auto boot, also stop on chars from the serial port.
  * Add "help" to list of valid commands.
@@ -182,7 +186,7 @@ static void ReadMapData( void);
 static unsigned int parse_serial_params( const char *param );
 static void patch_cookies( void );
 static void setup_environ( void );
-static void putenv( const char *str );
+static void Putenv( const char *str );
 static void set_cookie( const char *name, u_long value );
 static void cache_ctrl( int on_flag );
 static char *firstword( char **str );
@@ -256,7 +260,7 @@ int main( int argc, char *argv[] )
 						 "Waiting %ld seconds for shift key: ",
 						 *BootOptions->Delay );
 			}
-			while( _hz_200 < timeout) {
+			do {
 				sec = (_hz_200 - timebase)/HZ;
 				if (sec != oldsec) {
 					cprintf( "." );
@@ -269,7 +273,7 @@ int main( int argc, char *argv[] )
 						serial_getc();
 					goto no_auto_boot;
 				}
-			}
+			} while (_hz_200 < timeout);
 			cprintf( "\nDoing auto boot.\n" );
 			AutoBoot = 1;
 			goto boot_default;
@@ -834,9 +838,9 @@ static void setup_environ( void )
 		char env_path[4] = "X:\\";
 		_bootdev = *BootOptions->BootDrv;
 		/* create a BIOS compatible PATH= variable (same strange syntax...) */
-		putenv( "PATH=" );
+		Putenv( "PATH=" );
 		env_path[0] = *BootOptions->BootDrv + 'A';
-		putenv( env_path );
+		Putenv( env_path );
 		/* change current dir to <_bootdrv>:\ */
 		if (_drvbits & (1 << _bootdev)) {
 			Dsetdrv( *BootOptions->BootDrv );
@@ -849,7 +853,7 @@ static void setup_environ( void )
 
 	for( i = 0; i < MAX_ENVIRON; ++i ) {
 		if (BootOptions->Environ[i])
-			putenv( BootOptions->Environ[i] );
+			Putenv( BootOptions->Environ[i] );
 	}
 }
 
@@ -860,7 +864,7 @@ static void setup_environ( void )
  * Ptermres() and keep this space resident, so we can push our enviroment also
  * to other processes started later by TOS.
  */
-static void putenv( const char *str )
+static void Putenv( const char *str )
 {
 	static char *env_end = NULL;
 	extern char *_base; /* really (BASEPAGE *) */
