@@ -7,10 +7,14 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: bootstrap.h,v 1.2 1997-07-16 15:06:24 rnhodek Exp $
+ * $Id: bootstrap.h,v 1.3 1997-08-12 15:18:25 rnhodek Exp $
  * 
  * $Log: bootstrap.h,v $
- * Revision 1.2  1997-07-16 15:06:24  rnhodek
+ * Revision 1.3  1997-08-12 15:18:25  rnhodek
+ * Moved AmigaOS inline funcs to extr header inline-funcs.h; the functions
+ * can't be compiled under Linux
+ *
+ * Revision 1.2  1997/07/16 15:06:24  rnhodek
  * Replaced all call to libc functions puts, printf, malloc, ... in common code
  * by the capitalized generic function/macros. New generic function ReAlloc, need
  * by load_ramdisk.
@@ -22,6 +26,9 @@
 
 #ifndef _bootstrap_h
 #define _bootstrap_h
+
+#include "linuxboot.h"
+#include "inline-funcs.h"
 
 #define Alloc(size)		AllocVec((size),MEMF_FAST|MEMF_PUBLIC)
 #define Free(p)			FreeVec(p)
