@@ -7,10 +7,16 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: rootsect.S,v 1.2 1998-02-19 20:39:42 rnhodek Exp $
+ * $Id: rootsect.S,v 1.3 1998-02-23 10:26:27 rnhodek Exp $
  * 
  * $Log: rootsect.S,v $
- * Revision 1.2  1998-02-19 20:39:42  rnhodek
+ * Revision 1.3  1998-02-23 10:26:27  rnhodek
+ * Load address, not contents, of lilo_string to %a3
+ * Start of crt0.S is at offset 1536 (not 512) bytes of malloc-ed area,
+ * since bootblock and map sector are loaded again.
+ * Fix/extend some comments.
+ *
+ * Revision 1.2  1998/02/19 20:39:42  rnhodek
  * Fix wrong registers
  *
  * Revision 1.1  1997/08/12 15:27:12  rnhodek
@@ -93,7 +99,7 @@ start:
 	btst	#3,%d0			/* ALT pressed? */
 	jbne	back_to_rom
 
-	movl	%pc@(lilo_string),%a3
+	lea	%pc@(lilo_string),%a3
 /* Output an 'L' to indicate LILO started booting */
 	jbsr	putlc
 	
@@ -150,7 +156,9 @@ start:
 /* Output an 'O' to indicate that we got the map sector */
 	jbsr	putlc
 
-/* load all the sector chunks the map sector tells us */
+/* load all the sector chunks the map sector tells us
+ * (%d4 (device) still valid, %a4 set up just above)
+ */
 	movw	#N_MAPENTRIES-2,%d3
 	addql	#6,%a5			/* skip first entry in map sector,
 					 * it's the file length */
@@ -173,19 +181,26 @@ load_end:
 	/* continued in second sector... */
 	jbra	second_part
 #else
-	/* Jump to start of loaded program (512 bytes behind start of map
-	 * sector)
+	/* Jump to start of loaded program
+	 * (this is 3*SECTOR_SIZE behind the load start, since the first
+	 * 512 byte are occupied by the map sector, and 1024 are the
+	 * bootsector and the map sector again, because those are mapped at
+	 * the start of loader.patched!
 	 */
-	jbra	%a6@(512)
+	jbra	%a6@(1536)
 #endif		
 
 
-/* Print next character in "LILO", %a3 is pointer into string */
+/* Print next character in "LILO", %a3 is pointer into string
+ * clobbered: %d1
+ */
 putlc:
 	movb	%a3@+,%d1
 	/* fall through to putc */
 			
-/* Print a character in %d1; no clobbered registers */
+/* Print a character in %d1
+ * clobbered: nothing
+ */
 putc:
 	movml	%d0-%d2/%a0-%a2,%sp@-
 	movw	%d1,%sp@-
@@ -239,7 +254,7 @@ back_to_rom:
  *   %d0: BIOS error code (0 = OK)
  *   %sr: set for %d0
  * Clobbered registers:
- *   %d1,%d2,%a0-%a2
+ *   %d1,%d2,%a0-%a2 (%d0 is retval)
  *
  * If the device number is positive or 0, it's a DMAread number: 0..7 are ACSI
  * devices with IDs 0..7, 8..15 are ACSI devices with IDs 0..7, and 16 and 17
