@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: gunzip_mod.c,v 1.2 1997-07-16 15:06:23 rnhodek Exp $
+ * $Id: gunzip_mod.c,v 1.3 1997-07-18 11:07:08 rnhodek Exp $
  * 
  * $Log: gunzip_mod.c,v $
- * Revision 1.2  1997-07-16 15:06:23  rnhodek
+ * Revision 1.3  1997-07-18 11:07:08  rnhodek
+ * Added sfilesize() call & Co. to streams
+ *
+ * Revision 1.2  1997/07/16 15:06:23  rnhodek
  * Replaced all call to libc functions puts, printf, malloc, ... in common code
  * by the capitalized generic function/macros. New generic function ReAlloc, need
  * by load_ramdisk.
@@ -76,6 +79,7 @@ MODULE gunzip_mod = {
 	gunzip_fillbuf,
 	NULL,						/* cannot skip */
 	gunzip_close,
+	NULL,						/* can't determine size of file at open time */
 	MOD_REST_INIT
 };
 

@@ -7,11 +7,14 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: file_mod.c,v 1.1 1997-07-15 09:45:37 rnhodek Exp $
+ * $Id: file_mod.c,v 1.2 1997-07-18 11:07:08 rnhodek Exp $
  * 
  * $Log: file_mod.c,v $
- * Revision 1.1  1997-07-15 09:45:37  rnhodek
- * Initial revision
+ * Revision 1.2  1997-07-18 11:07:08  rnhodek
+ * Added sfilesize() call & Co. to streams
+ *
+ * Revision 1.1.1.1  1997/07/15 09:45:37  rnhodek
+ * Import sources into CVS
  *
  * 
  */
@@ -20,6 +23,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
+
+#include "bootstrap.h"
 #include "stream.h"
 
 /***************************** Prototypes *****************************/
@@ -28,6 +34,7 @@ static int file_open( const char *name );
 static long file_fillbuf( void *buf );
 static int file_skip( long cnt );
 static int file_close( void );
+static long file_filesize( void );
 
 /************************* End of Prototypes **************************/
 
@@ -41,6 +48,7 @@ MODULE file_mod = {
 	file_fillbuf,
 	file_skip,
 	file_close,
+	file_filesize,
 	MOD_REST_INIT
 };
 
@@ -68,6 +76,17 @@ static int file_skip( long cnt )
 static int file_close( void )
 {
 	return( close( fd ) );
+}
+
+static long file_filesize( void )
+{
+	long pos, size;
+
+	pos = lseek( fd, 0, SEEK_CUR );
+	if ((size = lseek( fd, 0, SEEK_END )) == -1)
+		Printf( "seek to end of file failed: %s\n", strerror(errno) );
+	lseek( fd, pos, SEEK_SET );
+	return( size );
 }
 
 

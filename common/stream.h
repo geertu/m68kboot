@@ -7,11 +7,14 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: stream.h,v 1.1 1997-07-15 09:45:37 rnhodek Exp $
+ * $Id: stream.h,v 1.2 1997-07-18 11:07:09 rnhodek Exp $
  * 
  * $Log: stream.h,v $
- * Revision 1.1  1997-07-15 09:45:37  rnhodek
- * Initial revision
+ * Revision 1.2  1997-07-18 11:07:09  rnhodek
+ * Added sfilesize() call & Co. to streams
+ *
+ * Revision 1.1.1.1  1997/07/15 09:45:37  rnhodek
+ * Import sources into CVS
  *
  * 
  */
@@ -31,6 +34,7 @@ typedef struct _module {
     int (*skip)( long cnt );			/* skip data (for seek), optional,
 										 * returns amount  skipped */
     int (*close)( void );				/* close the module */
+    long (*filesize)( void );			/* return size of data */
     /* data maintained by general streams layer */
     char *buf;							/* current buffer */
     char *bufp;							/* pointer into buffer */
@@ -54,6 +58,7 @@ MODULE *currmod;		/* currently active module */
 void stream_init( void );
 void stream_push( MODULE *mod );
 int sopen( const char *name );
+long sfilesize( void );
 long sread( void *buf, long cnt );
 int sseek( long offset, int whence );
 int sclose( void );

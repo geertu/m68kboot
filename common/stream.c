@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  *
- * $Id: stream.c,v 1.3 1997-07-17 14:21:57 geert Exp $
+ * $Id: stream.c,v 1.4 1997-07-18 11:07:08 rnhodek Exp $
  * 
  * $Log: stream.c,v $
- * Revision 1.3  1997-07-17 14:21:57  geert
+ * Revision 1.4  1997-07-18 11:07:08  rnhodek
+ * Added sfilesize() call & Co. to streams
+ *
+ * Revision 1.3  1997/07/17 14:21:57  geert
  * Fix typos in comments
  *
  * Revision 1.2  1997/07/16 15:06:24  rnhodek
@@ -47,6 +50,10 @@
  *
  *   sopen(name): Open the stream, NAME is the name of a file or some other
  *     entity to access.
+ *
+ *   sfilesize(): Return size of file, or -1 if the size cannot be determined
+ *     (e.g. BOOTP/TFTP, gunzip). Should be called only immediately after
+ *     sopen().
  *
  *   sread(buf,cnt): Read data from the stream, just like the Unix read()
  *     function. Returns number of bytes written to BUF. This is lower than
@@ -96,6 +103,9 @@
  *
  *   close(): Close this module and do any deinitializations necessary. Return
  *     0 for ok, < 0 for error.
+ *
+ *   filesize(): Return size of file. This method is optional and if not
+ *     present, sfilesize() will return -1.
  *
  */
 
@@ -230,6 +240,16 @@ int sopen( const char *name )
 	}
 	UP_MOD();
 	stream_dont_display--;
+	return( rv );
+}
+
+long sfilesize( void )
+{
+	long rv;
+	
+	DOWN_MOD();
+	rv = currmod->filesize ? currmod->filesize() : -1;
+	UP_MOD();
 	return( rv );
 }
 
