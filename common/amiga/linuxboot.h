@@ -21,10 +21,13 @@
  *  License.  See the file COPYING in the main directory of this archive
  *  for more details.
  * 
- * $Id: linuxboot.h,v 1.9 2000-06-04 17:14:55 dorchain Exp $
+ * $Id: linuxboot.h,v 1.10 2000-06-15 18:39:31 dorchain Exp $
  * 
  * $Log: linuxboot.h,v $
- * Revision 1.9  2000-06-04 17:14:55  dorchain
+ * Revision 1.10  2000-06-15 18:39:31  dorchain
+ * Checksumm inline asm was overoptimized by gcc
+ *
+ * Revision 1.9  2000/06/04 17:14:55  dorchain
  * Fixed compile errors.
  * it still doesn't work for me
  *
@@ -76,13 +79,14 @@ typedef unsigned int __u32;
 #include <asm/bootinfo.h>
 #include <asm/setup.h>
 #include <linux/zorro.h>
+#include "version.h"
 
 
     /*
      *  Amiboot Version
      */
 
-#define AMIBOOT_VERSION		"5.6"
+#define AMIBOOT_VERSION		VERSION /* Make this the same as main version */
 
 
     /*

@@ -13,10 +13,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo.l.c,v 1.8 2000-06-04 17:14:55 dorchain Exp $
+ * $Id: lilo.l.c,v 1.9 2000-06-15 18:39:32 dorchain Exp $
  * 
  * $Log: lilo.l.c,v $
- * Revision 1.8  2000-06-04 17:14:55  dorchain
+ * Revision 1.9  2000-06-15 18:39:32  dorchain
+ * Checksumm inline asm was overoptimized by gcc
+ *
+ * Revision 1.8  2000/06/04 17:14:55  dorchain
  * Fixed compile errors.
  * it still doesn't work for me
  *
@@ -256,14 +259,14 @@ static void FixChecksum(void)
 
 static u_long CalcChecksum(void)
 {
-    u_long _res;
+    u_long _null, _res ; /* to avoid gcc optimizer collapsing registers */
     struct BootBlock *bb = &BootBlock;
 
     __asm __volatile ("1: addl %0@+,%1;"
-		      "   addxl %5,%1;"
-		      "   dbf %4,1b;"
-		      : "=a" (bb), "=d" (_res)
-		      : "0" (bb), "1" (0), "d" (255), "d" (0));
+		      "   addxl %2,%1;"
+		      "   dbf %5,1b;"
+		      : "=a" (bb), "=d" (_res), "=d" (_null)
+		      : "0" (bb), "1" (0), "d" (255), "2" (0));
     return(~_res);
 }
 
