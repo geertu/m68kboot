@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: loader.c,v 1.2 1997-09-19 09:06:54 geert Exp $
+ * $Id: loader.c,v 1.3 1998-03-10 10:23:11 rnhodek Exp $
  * 
  * $Log: loader.c,v $
- * Revision 1.2  1997-09-19 09:06:54  geert
+ * Revision 1.3  1998-03-10 10:23:11  rnhodek
+ * New option "message": print before showing the prompt.
+ *
+ * Revision 1.2  1997/09/19 09:06:54  geert
  * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
  *
  * Revision 1.1  1997/08/12 15:27:04  rnhodek
@@ -246,6 +249,11 @@ u_long Main(struct IOStdReq *bootrequest)
 	}
     }
 
+    /* If a message is defined, display it now. */
+    /* NOT TESTED YET! */
+    if (BootOptions->Message)
+	Puts( "%s\n", BootOptions->Message );
+	
     do {
 	DefaultBootRecord = FindBootRecord(NULL);
 
