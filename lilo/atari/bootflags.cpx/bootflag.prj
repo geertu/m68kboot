@@ -1,0 +1,8 @@
+bootflag.cp
+=
+cpxstart.s
+bootflag.c
+tcstdlib.lib
+tcgemlib.lib
+tctoslib.lib
+
