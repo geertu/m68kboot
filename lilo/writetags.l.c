@@ -6,10 +6,15 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: writetags.l.c,v 1.4 1998-02-19 20:40:13 rnhodek Exp $
+ * $Id: writetags.l.c,v 1.5 1998-02-24 11:13:38 rnhodek Exp $
  * 
  * $Log: writetags.l.c,v $
- * Revision 1.4  1998-02-19 20:40:13  rnhodek
+ * Revision 1.5  1998-02-24 11:13:38  rnhodek
+ * In WriteTags(), print filename passed as argument instead of constant.
+ * In WriteZeroTag(), don't modify file position, otherwise TAG_LILO is
+ * overwritten.
+ *
+ * Revision 1.4  1998/02/19 20:40:13  rnhodek
  * Make things compile again
  *
  * Revision 1.3  1997/09/19 09:06:49  geert
@@ -77,7 +82,7 @@ void WriteTags( const char *fname )
 	}
 
     if (Verbose)
-		printf("Creating map file `%s'\n", MapFile);
+		printf("Creating map file `%s'\n", fname);
     if ((fd = open(fname, O_CREAT|O_RDWR|O_TRUNC, S_IRUSR|S_IWUSR)) == -1)
 		Error_Open(fname);
 	
@@ -202,7 +207,7 @@ static void WriteZeroTag( int fd, const char *fname )
 		Error_Ioctl(fname, "FIGETBSZ");
     sectors_per_block = blksize/HARD_SECTOR_SIZE;
 
-	if ((pos = lseek( fd, 0, SEEK_SET )) == -1)
+	if ((pos = lseek( fd, 0, SEEK_CUR )) == -1)
 		Error_Seek(fname);
 	/* The first blksize-pos bytes fill up the current block that also
 	 * contains TAG_LILO; the next blksize ones are really used for mapping
