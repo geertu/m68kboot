@@ -11,11 +11,14 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.c,v 1.18 2004-08-23 16:16:20 joy Exp $
+ * $Id: linuxboot.c,v 1.19 2004-08-23 16:31:01 joy Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.18  2004-08-23 16:16:20  joy
- * displays ARAnyM for _MCH 0x50000 and adds LF to unknown mach cookie
+ * Revision 1.19  2004-08-23 16:31:01  joy
+ * with this patch ramdisk is loaded to TT/FastRAM even if kernel is in ST-RAM (unless user asked specifically for ramdisk in ST-RAM with new '-R' option in the bootargs). This fixes (or rather works around) problems with ST-RAM swap in kernels 2.4.x. It even helps booting on machines with less RAM. And it also protects the kernel from overwriting by ramdisk. Another switch '-V' additionally protects the Shifter/VIDEL VideoRAM from overwriting by ramdisk
+ *
+ * Revision 1.18  2004/08/23 16:16:20  joy
+ * displays ARAnyM for _MCH 0x50000 and adds LF to unknown
  *
  * Revision 1.17  2004/08/23 16:15:42  joy
  * corrects ramdisk src address printed in debug mode
@@ -133,6 +136,8 @@ static u_long *cookiejar;
 int debugflag = 0;		/* debugging */
 int ignore_ttram = 0;		/* ignore TT RAM */
 int load_to_stram = 0;		/* put kernel into ST RAM */
+int ramdisk_to_stram = 0;	/* put ramdisk into ST RAM */
+int ramdisk_below_videoram = 0;	/* don't let ramdisk overwrite videoram */
 int force_st_size = -1;		/* force size of ST RAM (-1=autodetect) */
 int force_tt_size = -1;		/* force size of TT RAM (-1=autodetect) */
 unsigned long extramem_start=0;	/* start of extra memory block (0=none) */
@@ -142,6 +147,8 @@ char *ramdisk_name = NULL;	/* name of ramdisk image */
 char command_line[CL_SIZE];	/* kernel command line */
 
 unsigned long userstk;
+
+int stram_chunk = 0;		/* index of bi.memory[] ST-RAM block */
 
 /* these are defined in the mover code */
 extern char copyall, copyallend;
@@ -279,13 +286,38 @@ void linux_boot( void )
 
     /* Locate ramdisk in dest. memory */
     if (rd_size) {
-	if (rd_size + kernel_size > mem_size - MB/2 && bi.num_memory > 1)
-	    /* If running low on ST ram load ramdisk into alternate ram.  */
-	    bi.ramdisk.addr = (u_long) bi.memory[1].addr + bi.memory[1].size -
-			      rd_size;
-	else
-	    /* Else hopefully there is enough ST ram. */
-	    bi.ramdisk.addr = (u_long)start_mem + mem_size - rd_size;
+	u_long ramdisk_end;
+	/* by default put ramdisk into kernel memory block */
+	int ramdisk_chunk = 0;
+	if (ramdisk_to_stram)
+	    ramdisk_chunk = stram_chunk;  /* user wants ramdisk in ST-RAM */
+	else {
+	    /* if kernel is in ST-RAM then first chunk is not TT-RAM */
+	    if (stram_chunk == 0 && bi.num_memory > 1)
+		ramdisk_chunk = 1; /* go for the second chunk */
+	}
+	
+	/* if ramdisk is in same memory as kernel */
+	if (ramdisk_chunk == 0) {
+	    /* make sure they fit */
+	    if ( (rd_size + kernel_size) > (bi.memory[0].size - MB/2) )
+		ERROR( "Not enough memory for kernel and ramdisk (%ld kB)\n",
+		       (rd_size + kernel_size) / 1024 );
+	}
+
+	ramdisk_end = (u_long) bi.memory[ramdisk_chunk].addr
+		             + bi.memory[ramdisk_chunk].size;
+
+	/* if ramdisk respects videoram and is in ST-RAM */
+	if (ramdisk_below_videoram && ramdisk_end < TT_RAM_BASE) {
+	    /* make sure it doesn't overlap the videoram */
+	    u_long videoram = (u_long)Physbase();
+	    if (ramdisk_end > videoram)
+		/* put ramdisk below videoram */
+		ramdisk_end = videoram;
+	}
+
+	bi.ramdisk.addr = ramdisk_end - rd_size;
     }
     
     /* create the bootinfo structure (set bi_size to a value) */
@@ -618,6 +650,8 @@ static void get_mem_infos( void )
 	 * 0; both kinds of RAM are the same and equally fast */
 	if (load_to_stram)
 	    printf( "(Note: -s ignored on Medusa)\n" );
+	if (ramdisk_to_stram)
+	    printf( "(Note: -R ignored on Medusa)\n" );
 
 	ADD_CHUNK( 0, medusa_st_ram,
 		   force_st_size, "Medusa pseudo ST-RAM from bank 1" );
@@ -715,6 +749,7 @@ static void get_mem_infos( void )
 	ADD_CHUNK( 0, *phystop,
 		   force_st_size, "ST-RAM" );
         bi.num_memory = chunk;
+	stram_chunk = chunk - 1; /* remember ST-RAM block index */
 
 	/* If the user wants the kernel to reside in ST-RAM, put the ST-RAM
 	 * block first in the list of mem blocks; the kernel is always located
@@ -723,6 +758,7 @@ static void get_mem_infos( void )
 	    struct mem_info temp = bi.memory[chunk - 1];
 	    bi.memory[chunk - 1] = bi.memory[0];
 	    bi.memory[0] = temp;
+	    stram_chunk = 0;	/* ST-RAM block index changed */
 	}
     }
 

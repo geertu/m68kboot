@@ -43,10 +43,13 @@
  *      19 Feb 1994 Changed everything so that it works? (rdv)
  *      14 Mar 1994 New mini-copy routine used (rdv)
  *
- * $Id: bootstrap.c,v 1.6 1998-12-14 10:03:59 schwab Exp $
+ * $Id: bootstrap.c,v 1.7 2004-08-23 16:31:00 joy Exp $
  * 
  * $Log: bootstrap.c,v $
- * Revision 1.6  1998-12-14 10:03:59  schwab
+ * Revision 1.7  2004-08-23 16:31:00  joy
+ * with this patch ramdisk is loaded to TT/FastRAM even if kernel is in ST-RAM (unless user asked specifically for ramdisk in ST-RAM with new '-R' option in the bootargs). This fixes (or rather works around) problems with ST-RAM swap in kernels 2.4.x. It even helps booting on machines with less RAM. And it also protects the kernel from overwriting by ramdisk. Another switch '-V' additionally protects the Shifter/VIDEL VideoRAM from overwriting by ramdisk
+ *
+ * Revision 1.6  1998/12/14 10:03:59  schwab
  * (parse_size): Use tolower instead of islower to
  * convert to lower case.
  *
@@ -101,6 +104,8 @@ static void help( void )
 	"  -k<file>: Use <file> as kernel image (defaults: vmlinux, vmlinux.gz)\n"
 	"  -r<file>: Load ramdisk <file>\n"
 	"  -s: load kernel to ST-RAM\n"
+	"  -R: load ramdisk to ST-RAM\n"
+	"  -V: protect VideoRAM from overwriting by ramdisk\n"
 	"  -t: ignore TT-RAM\n"
 #ifdef USE_BOOTP
 	"  -n: no BOOTP\n"
@@ -120,7 +125,7 @@ static void usage( void )
 {
     fprintf( stderr,
 	     "Usage:\n"
-	     "\tbootstrap [-dnstST] [-k kernel_executable] "
+	     "\tbootstrap [-dnstSTRV] [-k kernel_executable] "
 	     "[-r ramdisk_file] [-m start:size] [kernel options...]\n");
     getchar();
     exit(EXIT_FAILURE);
@@ -144,13 +149,19 @@ int main( int argc, char *argv[] )
 	get_default_args( &argc, &argv );
 
     /* check arguments */
-    while ((ch = getopt(argc, argv, "dntsS:T:k:r:m:")) != EOF)
+    while ((ch = getopt(argc, argv, "ndtsRVS:T:k:r:m:")) != EOF)
 	switch (ch) {
 	  case 'd':
 	    debugflag = 1;
 	    break;
 	  case 't':
 	    ignore_ttram = 1;
+	    break;
+	  case 'R':
+	    ramdisk_to_stram = 1;
+	    break;
+	  case 'V':
+	    ramdisk_below_videoram = 1;
 	    break;
 	  case 'T':
 	    force_tt_size = parse_size( optarg );

@@ -11,10 +11,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.h,v 1.8 2004-08-15 11:49:00 geert Exp $
+ * $Id: linuxboot.h,v 1.9 2004-08-23 16:31:02 joy Exp $
  * 
  * $Log: linuxboot.h,v $
- * Revision 1.8  2004-08-15 11:49:00  geert
+ * Revision 1.9  2004-08-23 16:31:02  joy
+ * with this patch ramdisk is loaded to TT/FastRAM even if kernel is in ST-RAM (unless user asked specifically for ramdisk in ST-RAM with new '-R' option in the bootargs). This fixes (or rather works around) problems with ST-RAM swap in kernels 2.4.x. It even helps booting on machines with less RAM. And it also protects the kernel from overwriting by ramdisk. Another switch '-V' additionally protects the Shifter/VIDEL VideoRAM from overwriting by ramdisk
+ *
+ * Revision 1.8  2004/08/15 11:49:00  geert
  * Add missing Centurbo2 support that I found in atari-bootstrap package
  * (from Petr Stehlik)
  *
@@ -73,6 +76,8 @@
 extern int debugflag;
 extern int ignore_ttram;
 extern int load_to_stram;
+extern int ramdisk_to_stram;
+extern int ramdisk_below_videoram;
 extern int force_st_size;
 extern int force_tt_size;
 extern unsigned long extramem_start;
