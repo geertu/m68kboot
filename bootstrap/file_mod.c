@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: file_mod.c,v 1.2 1997-07-18 11:07:08 rnhodek Exp $
+ * $Id: file_mod.c,v 1.2 1997-07-18 12:30:47 rnhodek Exp $
  * 
  * $Log: file_mod.c,v $
- * Revision 1.2  1997-07-18 11:07:08  rnhodek
+ * Revision 1.2  1997-07-18 12:30:47  rnhodek
+ * Moved file_mod.c from common/ to bootstrap/
+ *
+ * Revision 1.2  1997/07/18 11:07:08  rnhodek
  * Added sfilesize() call & Co. to streams
  *
  * Revision 1.1.1.1  1997/07/15 09:45:37  rnhodek
