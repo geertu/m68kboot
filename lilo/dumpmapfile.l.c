@@ -1,16 +1,17 @@
 /*
- *  Amiga Linux/m68k Loader
+ *  Linux/m68k Loader
  *
  *  Dump the contents of a map file (for debugging)
  *
- *  © Copyright 1996 by Geert Uytterhoeven
- *		       (Geert.Uytterhoeven@cs.kuleuven.ac.be)
+ *  (C) Copyright 1996-98 by
+ *      Geert Uytterhoeven (Geert.Uytterhoeven@cs.kuleuven.ac.be)
+ *  and Roman Hodek (Roman.Hodek@informatik.uni-erlangen.de)
  *
  *  --------------------------------------------------------------------------
  *
  *  Usage:
  *
- *      fakeboot [-v|--verbose] [<mapfile>]
+ *      dumpmapfile [-v|--verbose] [<mapfile>]
  *
  *  With:
  *
@@ -28,13 +29,51 @@
 #include <stdio.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <errno.h>
 #include <string.h>
 #include <sys/fcntl.h>
 
-#include "../lilo.h"
+#include "config.h"
 
+/* special tag type */
+#define TAGTYPE_RAW	999
+
+/* Dummy definition for symbols references from tagdef.c */
+char *BootOptions __attribute__((unused));
+char *BootRecords __attribute__((unused));
+char *Files __attribute__((unused));
+char *MountPointList __attribute__((unused));
+
+#include "tagdef.c"
+#include "tagnames.c"
+
+/* table and tag section structure for tags without a section */
+TAGTAB SpecialTags_table[] = {
+    { TAG_LILO, TAGTYPE_RAW, 0, 0 },
+    { TAG_ZEROHOLE, TAGTYPE_RAW, 0, 0 },
+    { TAG_EOF, TAGTYPE_RAW, 0, 0 },
+    { (u_long)-1, 0, 0, 0 }
+};
+
+TAGSECT SpecialTagSect = {
+    "none",
+    NULL, -1, 999999, 999999, SpecialTags_table, 0
+};
+
+/* dummy TAGTAB for start/end tags without own meaning */
+TAGTAB DummyTagEnt;
+
+/* additional tag names */
+struct TagName MoreTagNames[] = {
+    { TAG_LILO, "TAG_LILO" },
+    { TAG_ZEROHOLE, "TAG_ZEROHOLE" },
+    { TAG_EOF, "TAG_EOF" }
+};
 
 static const char *ProgramName;
+
+static u_char *MapData;
+static u_long MapSize, MapOffset = 0;
 
 
 void __attribute__ ((noreturn, format (printf, 1, 2))) Die(const char *fmt, ...)
@@ -54,15 +93,88 @@ void __attribute__ ((noreturn)) Usage(void)
     Die("Usage: %s [-v|--verbose] [mapfile]\n", ProgramName);
 }
 
+    /*
+     *	Get the Name for a Tag
+     */
+
+const char *GetTagName(u_long tag)
+{
+    u_int i;
+
+    for (i = 0; i < arraysize(TagNames); i++)
+	if (TagNames[i].Tag == tag)
+	    return(TagNames[i].Name);
+    for (i = 0; i < arraysize(MoreTagNames); i++)
+	if (MoreTagNames[i].Tag == tag)
+	    return(MoreTagNames[i].Name);
+    return(NULL);
+}
+
+   /*
+    * Find tag section started by 'tag'
+    */
+
+TAGTAB *FindTagDescr( u_long tag, TAGSECT **ts )
+{
+    int i;
+    TAGTAB *p;
+
+    /* first look for tags without a section */
+    for( p = SpecialTags_table; p->Tag != (u_long)-1; ++p ) {
+	if (p->Tag == tag) {
+	    if (ts)
+		*ts = &SpecialTagSect;
+	    return( p );
+	}
+    }
+    
+    
+    /* loop over tag sections */
+    for( i = 0; i < arraysize(TagSections); ++i ) {
+	/* loop over tags in that section */
+	for( p = TagSections[i].tag_table; p->Tag; ++p ) {
+	    if (p->Tag == tag) {
+		if (ts)
+		    *ts = &TagSections[i];
+		return( p );
+	    }
+	}
+	if (tag == TagSections[i].start_tag || tag == TagSections[i].end_tag) {
+	    if (ts)
+		*ts = &TagSections[i];
+	    return( &DummyTagEnt );
+	}
+    }
+    return( NULL );
+}
+
+    /*
+     *	Get the Next Tag from the Map Data
+     */
+
+const struct TagRecord *GetNextTag(void)
+{
+    static const struct TagRecord *tr = NULL;
+
+    if (tr)
+	MapOffset += sizeof(struct TagRecord)+tr->Size;
+    if (MapOffset+sizeof(struct TagRecord) > MapSize)
+	Die("Tag %lu extends beyond end of file\n", tr->Tag);
+    tr = (struct TagRecord *)&MapData[MapOffset];
+    return(tr);
+}
+
+
 
 int main(int argc, char *argv[])
 {
-    int fh, size = 0;
-    u_char *data;
+    int fh;
     const struct TagRecord *tr;
-    u_long offset = 0;
     const char *mapfile = NULL;
     int verbose = 0;
+    TAGTAB *tag_ent;
+    TAGSECT *tag_sect;
+    const char *tag_name;
 
     ProgramName = argv[0];
     argc--;
@@ -85,149 +197,81 @@ int main(int argc, char *argv[])
 
     if ((fh = open(mapfile, O_RDONLY)) == -1)
 	Die("open %s: %s\n", mapfile, strerror(errno));
-    if ((size = lseek(fh, 0, SEEK_END)) == -1)
+    if ((MapSize = lseek(fh, 0, SEEK_END)) == -1)
 	Die("lseek %s: %s\n", mapfile, strerror(errno));
-    if (!(data = malloc(size)))
+    if (!(MapData = malloc(MapSize)))
 	Die("No memory\n");
     if (lseek(fh, 0, SEEK_SET) == -1)
 	Die("lseek %s: %s\n", mapfile, strerror(errno));
-    if (read(fh, data, size) != size)
+    if (read(fh, MapData, MapSize) != MapSize)
 	Die("read %s: %s\n", mapfile, strerror(errno));
     close(fh);
 
-    while (1) {
-	tr = (struct TagRecord *)&data[offset];
+    do {
+	tr = GetNextTag();
 	if (verbose)
-	    printf("0x%08lx: tag = 0x%08lx, size = 0x%08lx\n\t", offset,
+	    printf("0x%08lx: tag = %lu, size = %lu\n\t", MapOffset,
 		   tr->Tag, tr->Size);
-	switch (tr->Tag) {
-	    case TAG_LILO:
-		printf("  TAG_LILO: File Identification\n");
-		break;
-	    case TAG_EOF:
-		printf("  TAG_EOF: End of File\n");
-		break;
-	    case TAG_HEADER:
-		printf("    TAG_HEADER: Start of Boot Options\n");
-		break;
-	    case TAG_HEADER_END:
-		printf("    TAG_HEADER_END: End of Boot Options\n");
-		break;
-	    case TAG_DEFAULT:
-		printf("      TAG_DEFAULT: Default Boot Record = `%s'\n",
-		       (char *)tr->Data);
-		break;
-	    case TAG_AUTO:
-		printf("      TAG_AUTO: Auto = %ld\n", tr->Data[0]);
-		break;
-	    case TAG_TIME_OUT:
-		printf("      TAG_TIME_OUT: Time Out = %ld seconds\n",
-		       tr->Data[0]);
-		break;
-	    case TAG_AUX:
-		printf("      TAG_AUX: Aux = %ld\n", tr->Data[0]);
-		break;
-	    case TAG_BAUD:
-		printf("      TAG_BAUD: Baud = %ld\n", tr->Data[0]);
-		break;
-	    case TAG_MASTER_PASSWORD:
-		printf("      TAG_MASTER_PASSWORD: Master Password = `%s'\n",
-		       (char *)tr->Data);
-		break;
-	    case TAG_DEBUG:
-		printf("      TAG_DEBUG: Debug = %ld\n", tr->Data[0]);
-		break;
-	    case TAG_PROMPT:
-		printf("      TAG_PROMPT: Boot Prompt = `%s'\n",
-		       (char *)tr->Data);
-		break;
-	    case TAG_KICKRANGE:
-		printf("      TAG_KICKRANGE: Valid Kickstart Range = %d-%d\n",
-		       ((u_short *)tr->Data)[0], ((u_short *)tr->Data)[1]);
-		break;
-	    case TAG_G_CHIP_RAM_SIZE:
-		printf("      TAG_G_CHIP_RAM_SIZE: 0x%08lx bytes of Chip RAM\n",
-		       tr->Data[0]);
-		break;
-	    case TAG_G_FAST_RAM_CHUNK:
-		printf("      TAG_G_FAST_RAM_CHUNK: 0x%08lx bytes at 0x%08lx\n",
-		       tr->Data[1], tr->Data[0]);
-		break;
-	    case TAG_G_MODEL:
-		printf("      TAG_G_MODEL: Model = %ld\n", tr->Data[0]);
-		break;
-	    case TAG_G_PROCESSOR:
-		printf("      TAG_G_PROCESSOR: Processor = %ld\n", tr->Data[0]);
-		break;
-	    case TAG_BOOT_RECORD:
-		printf("    TAG_BOOT_RECORD: Start of Boot Record `%s'\n",
-		       (char *)tr->Data);
-		break;
-	    case TAG_BOOT_RECORD_END:
-		printf("    TAG_BOOT_RECORD_END: End of Boot Record\n");
-		break;
-	    case TAG_ALIAS:
-		printf("      TAG_ALIAS: Alias Label = `%s'\n",
-		       (char *)tr->Data);
-		break;
-	    case TAG_OS_TYPE:
-		printf("      TAG_OS_TYPE: Operating System type = %ld\n",
-		       tr->Data[0]);
-		break;
-	    case TAG_KERNEL:
-		printf("      TAG_KERNEL: Kernel Image = `%s'\n",
-		       (char *)tr->Data);
-		break;
-	    case TAG_ARGUMENTS:
-		printf("      TAG_ARGUMENTS: Boot Arguments = `%s'\n",
-		       (char *)tr->Data);
-		break;
-	    case TAG_PASSWORD:
-		printf("      TAG_PASSWORD: Boot Record Password = `%s'\n",
-		       (char *)tr->Data);
-		break;
-	    case TAG_CHIP_RAM_SIZE:
-		printf("      TAG_CHIP_RAM_SIZE: 0x%08lx bytes of Chip RAM\n",
-		       tr->Data[0]);
-		break;
-	    case TAG_FAST_RAM_CHUNK:
-		printf("      TAG_FAST_RAM_CHUNK: 0x%08lx bytes at 0x%08lx\n",
-		       tr->Data[1], tr->Data[0]);
-		break;
-	    case TAG_MODEL:
-		printf("      TAG_MODEL: Model = %ld\n", tr->Data[0]);
-		break;
-	    case TAG_RAMDISK:
-		printf("      TAG_RAMDISK: Ramdisk Image = `%s'\n",
-		       (char *)tr->Data);
-		break;
-	    case TAG_PROCESSOR:
-		printf("      TAG_PROCESSOR: Processor = %ld\n", tr->Data[0]);
-		break;
-	    case TAG_FILE_DEF:
-		printf("    TAG_FILE_DEF: Start of File Definition `%s'\n",
-		       (char *)tr->Data);
-		break;
-	    case TAG_FILE_DEF_END:
-		printf("    TAG_FILE_DEF_END: End of File Definition\n");
-		break;
-	    case TAG_VECTOR:
-		printf("      TAG_VECTOR: Vector containing %ld bytes\n",
-		       tr->Data[0]);
-		break;
-	    default:
-		printf("    <UNKNOWN>\n");
-		break;
+
+	if (!(tag_ent = FindTagDescr( tr->Tag, &tag_sect ))) {
+	    printf( "<UNKNOWN TAG #%lu>\n", tr->Tag );
+	    continue;
 	}
-	offset += sizeof(struct TagRecord)+tr->Size;
-	if (offset > size) {
-	    puts("Warning: Beyond end of file");
+	if (!(tag_name = GetTagName( tr->Tag )))
+	    /* shoudn't happen */
+	    tag_name = "<NO NAME>";
+
+	if (tr->Tag == tag_sect->start_tag) {
+	    printf( "[Start of a %s section]\n", tag_sect->name );
+	    if (tag_ent == &DummyTagEnt)
+		continue;
+	    if (verbose)
+		printf( "\t" );
+	}
+	if (tr->Tag == tag_sect->end_tag) {
+	    printf( "[End of a %s section]\n", tag_sect->name );
+	    if (tag_ent == &DummyTagEnt)
+		continue;
+	    if (verbose)
+		printf( "\t" );
+	}
+	
+	printf( "%s: ", tag_name );
+	if (tr->Size == 0)
+	    printf( "no data\n" );
+	else if (tr->Tag == TAG_VECTOR) {
+	    const struct vecent *vector = (const struct vecent *)tr->Data;
+	    int i;
+	    /* special case */
+	    printf( "file size %lu bytes, device %u, entries:\n",
+		    vector[0].start, vector[0].length );
+	    for( i = 1; vector[i].length; i++ ) {
+		printf( "\tat %8lu %6u sectors\n",
+			vector[i].start, vector[i].length );
+	    }
+	}
+	else switch( tag_ent->Type ) {
+	  case TAGTYPE_INT:
+	  case TAGTYPE_ARRAY:
+	    printf( "0x%08lx\n", *(u_long *)tr->Data );
+	    break;
+	
+	  case TAGTYPE_STR:
+	  case TAGTYPE_CARRAY:
+	    printf( "`%s'\n", (char *)tr->Data );
+	    break;
+	    
+	  case TAGTYPE_RAW:
+	    printf( "%lu bytes of raw data\n", tr->Size );
 	    break;
 	}
-	if (tr->Tag == TAG_EOF)
-	    break;
-    }
-    if (offset < size)
-	printf("Warning: Left %ld bytes\n", size-offset);
+    } while( tr->Tag != TAG_EOF );
+    
+    if (MapOffset+sizeof(struct TagRecord)+tr->Size < MapSize)
+	printf("Warning: Left %ld bytes\n", MapSize-MapOffset);
     return(0);
 }
+
+/* Local Variables: */
+/* tab-width: 8     */
+/* End:             */
