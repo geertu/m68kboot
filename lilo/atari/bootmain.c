@@ -7,10 +7,17 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: bootmain.c,v 1.13 1998-03-05 12:29:48 rnhodek Exp $
+ * $Id: bootmain.c,v 1.14 1998-03-10 10:25:18 rnhodek Exp $
  * 
  * $Log: bootmain.c,v $
- * Revision 1.13  1998-03-05 12:29:48  rnhodek
+ * Revision 1.14  1998-03-10 10:25:18  rnhodek
+ * New option "message": print before showing the prompt.
+ * When waiting for auto boot, also stop on chars from the serial port.
+ * Add "help" to list of valid commands.
+ * New boot record option "restricted": modify test when to prompt for password.
+ * ListRecords(): change text printed for passwd-protected/restricted records.
+ *
+ * Revision 1.13  1998/03/05 12:29:48  rnhodek
  * Replace another printf by cprintf.
  *
  * Revision 1.12  1998/03/05 11:09:53  rnhodek
@@ -255,9 +262,11 @@ int main( int argc, char *argv[] )
 					cprintf( "." );
 					oldsec = sec;
 				}
-				if (Kbshift( -1 ) & 0xff) {
+				if ((Kbshift( -1 ) & 0xff) || serial_instat()) {
 					/* any modifier or mouse button pressed */
 					cprintf( "\nAuto boot canceled.\n" );
+					if (serial_instat())
+						serial_getc();
 					goto no_auto_boot;
 				}
 			}
@@ -288,6 +297,19 @@ int main( int argc, char *argv[] )
 							  *BootOptions->ProgCache[i] : 1 );
 	}
 
+	/* If a message is defined, display it now after processing the auto boot
+	 * and initializing a video board, but before opening the VDI workstation
+	 * (which clears the screen) */
+	if (BootOptions->Message) {
+		cprintf( "%s\n", BootOptions->Message );
+		/* Wait for a key before clearing the screen */
+		if (!DontUseGUI) {
+			cprintf( "Press any key to continue\n" );
+			waitkey();
+			cprintf( "\n" );
+		}
+	}
+	
 	/* now initialize the VDI, after we executed the TOS programs (which could
 	 * have been gfx board drivers) */
 	if (!DontUseGUI)
@@ -313,7 +335,7 @@ int main( int argc, char *argv[] )
 			label = firstword( &cmdline );
 			if (DontUseGUI &&
 				(strcmp( label, "?" ) == 0 || strcmp( label, "help" ) == 0)) {
-				cprintf( "\nValid commands: ?"
+				cprintf( "\nValid commands: ?, help"
 #ifndef NO_MONITOR
 						 ", su"
 #endif
@@ -323,11 +345,18 @@ int main( int argc, char *argv[] )
 				continue;
 			}
 			if ((boot_os = (*label ? FindBootRecord( label ) : dflt_os))) {
+				/* Prompt for a password if there is one and either:
+				 *  - Restricted is false
+				 *  - Restricted is true and there's a command line
+				 */
 				if (boot_os->Password &&
-					strcmp( get_password(), boot_os->Password ) != 0) {
-					menu_error( "Bad password!" );
-					free( cmdline );
-					continue;
+					(!(boot_os->Restricted && *boot_os->Restricted) ||
+					 *cmdline)) {
+					if (strcmp( get_password(), boot_os->Password ) != 0) {
+						menu_error( "Bad password!" );
+						free( cmdline );
+						continue;
+					}
 				}
 				if (!is_available( boot_os )) {
 					printf( "Not all necessary data defined for this OS! "
@@ -616,7 +645,9 @@ void ListRecords( void )
 		  default:			cprintf( "unknown" ); break;
 		}
 		if (rec->Password)
-			cprintf( ", restricted" );
+			cprintf( ", password" );
+		if (rec->Restricted)
+			cprintf( " for cmd line" );
 		if (!is_available( rec ))
 			cprintf( ", incomplete" );
 		if (rec == dflt_os)
