@@ -7,10 +7,13 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: monitor.c,v 1.2 1997-09-19 09:07:00 geert Exp $
+ * $Id: monitor.c,v 1.3 1998-02-24 11:21:18 rnhodek Exp $
  * 
  * $Log: monitor.c,v $
- * Revision 1.2  1997-09-19 09:07:00  geert
+ * Revision 1.3  1998-02-24 11:21:18  rnhodek
+ * Fix typo.
+ *
+ * Revision 1.2  1997/09/19 09:07:00  geert
  * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
  *
  * Revision 1.1  1997/08/12 15:27:12  rnhodek
@@ -112,7 +115,7 @@ static const struct command commands[] = {
 	{ "exec", do_exec,
 	  " <path>                Execute a TOS program" },
 	{ "boot", do_boot,
-	  " <partit> [<driver>]   Boot bootsector or TOS )with driver)" }
+	  " <partit> [<driver>]   Boot bootsector or TOS (with driver)" }
 };
 
 
