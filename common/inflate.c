@@ -2,11 +2,16 @@
  * This inflate.c has been copied from Linux 2.1.42 lib/inflate.c for the m68k
  * bootstrappers.
  *
- * $Id: inflate.c,v 1.1 1997-07-15 09:45:37 rnhodek Exp $
+ * $Id: inflate.c,v 1.2 1997-07-16 15:06:23 rnhodek Exp $
  * 
  * $Log: inflate.c,v $
- * Revision 1.1  1997-07-15 09:45:37  rnhodek
- * Initial revision
+ * Revision 1.2  1997-07-16 15:06:23  rnhodek
+ * Replaced all call to libc functions puts, printf, malloc, ... in common code
+ * by the capitalized generic function/macros. New generic function ReAlloc, need
+ * by load_ramdisk.
+ *
+ * Revision 1.1.1.1  1997/07/15 09:45:37  rnhodek
+ * Import sources into CVS
  *
  * 
  */
@@ -421,7 +426,7 @@ DEBG1("3 ");
         z = 1 << j;             /* table entries for j-bit table */
 
         /* allocate and link in new table */
-        if ((q = (struct huft *)malloc((z + 1)*sizeof(struct huft))) ==
+        if ((q = (struct huft *)Alloc((z + 1)*sizeof(struct huft))) ==
             (struct huft *)NULL)
         {
           if (h)
@@ -509,7 +514,7 @@ struct huft *t;         /* table to free */
   while (p != (struct huft *)NULL)
   {
     q = (--p)->v.t;
-    free((char*)p);
+    Free((char*)p);
     p = q;
   } 
   return 0;

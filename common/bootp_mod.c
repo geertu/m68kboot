@@ -7,11 +7,16 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: bootp_mod.c,v 1.1 1997-07-15 09:45:37 rnhodek Exp $
+ * $Id: bootp_mod.c,v 1.2 1997-07-16 15:06:22 rnhodek Exp $
  * 
  * $Log: bootp_mod.c,v $
- * Revision 1.1  1997-07-15 09:45:37  rnhodek
- * Initial revision
+ * Revision 1.2  1997-07-16 15:06:22  rnhodek
+ * Replaced all call to libc functions puts, printf, malloc, ... in common code
+ * by the capitalized generic function/macros. New generic function ReAlloc, need
+ * by load_ramdisk.
+ *
+ * Revision 1.1.1.1  1997/07/15 09:45:37  rnhodek
+ * Import sources into CVS
  *
  * 
  */
@@ -21,6 +26,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "bootstrap.h"
 #include "bootp.h"
 #include "stream.h"
 
@@ -258,7 +264,7 @@ static int bootp_open( const char *name )
 	/* Check if a Ethernet interface is present and determine the Ethernet
 	 * address */
 	if (check_ethif() < 0) {
-		printf( "No Ethernet interface found -- no remote boot possible.\n" );
+		Printf( "No Ethernet interface found -- no remote boot possible.\n" );
 		goto try_next;
 	}
 
@@ -345,27 +351,27 @@ static int bootp( char *image_name )
 
 		if ((err = udp_send( (UDP *)&req, sizeof(req.bootp),
 							 UDP_BOOTPC, UDP_BOOTPS )) < 0) {
-			printf( "bootp send: %s\n", ErrStr[-err-1] );
+			Printf( "bootp send: %s\n", ErrStr[-err-1] );
 			continue;
 		}
 		
 		if ((err = udp_rcv( (UDP *)reply, &len,
 							UDP_BOOTPS, UDP_BOOTPC )) < 0) {
-			printf( "bootp rcv: %s\n", ErrStr[-err-1] );
+			Printf( "bootp rcv: %s\n", ErrStr[-err-1] );
 			continue;
 		}
 		if (len < sizeof(struct bootp)) {
-			printf( "received short BOOTP packet (%d bytes)\n", len );
+			Printf( "received short BOOTP packet (%d bytes)\n", len );
 			continue;
 		}
 
 		if (reply->bootp.xid == rancopy)
 			/* Ok, got the answer */
 			break;
-		printf( "bootp: xid mismatch\n" );
+		Printf( "bootp: xid mismatch\n" );
 	}
 	if (retry >= BOOTP_RETRYS) {
-		printf( "No response from a bootp server\n" );
+		Printf( "No response from a bootp server\n" );
 		return( -1 );
 	}
 	
@@ -375,17 +381,17 @@ static int bootp( char *image_name )
 	bootp_haveaddr = 1;
 	
 	if (!addr_printed) {
-		printf( "\nBoot server is " );
+		Printf( "\nBoot server is " );
 		if (strlen(reply->bootp.sname) > 0)
-			printf( "%s, IP ", reply->bootp.sname );
+			Printf( "%s, IP ", reply->bootp.sname );
 		print_ip( ServerIPaddr );
-		printf( ", HW address " );
+		Printf( ", HW address " );
 		print_hw( ServerHwaddr );
-		printf( "\n" );
+		Printf( "\n" );
 
-		printf( "My IP address is " );
+		Printf( "My IP address is " );
 		print_ip( MyIPaddr );
-		printf( "\n" );
+		Printf( "\n" );
 
 		addr_printed = 1;
 	}
@@ -423,7 +429,7 @@ static int tftp_start( char *image_name )
 									   strlen(image_name) + 1 +
 									   strlen( "octect" ) +1,
 						 tftp_mytid, UDP_TFTP )) < 0) {
-		printf( "TFTP RREQ: %s\n", ErrStr[-err-1] );
+		Printf( "TFTP RREQ: %s\n", ErrStr[-err-1] );
 		if (--retries > 0)
 			goto repeat_req;
 		return( -1 );
@@ -439,7 +445,7 @@ static int tftp_start( char *image_name )
 	if ((tftp_bufsize = tftp_rcv( tftp_buf )) < 0)
 		return( -1 );
 
-	printf( "Receiving file %s\n", image_name );
+	Printf( "Receiving file %s\n", image_name );
 	return( 0 );
 }
 	
@@ -463,7 +469,7 @@ static int tftp_rcv( char *buf )
 	retries = 5;
   repeat_data:
 	if ((err = udp_rcv( (UDP *)rpkt, &len, tftp_rtid, tftp_mytid )) < 0) {
-		printf( "TFTP rcv: %s\n", ErrStr[-err-1] );
+		Printf( "TFTP rcv: %s\n", ErrStr[-err-1] );
 		if (--retries > 0)
 			goto repeat_data;
 		return( -1 );
@@ -474,14 +480,14 @@ static int tftp_rcv( char *buf )
 	
 	if (rpkt->tftp.opcode == TFTP_ERROR) {
 		if (strlen(rpkt->tftp.error.str) > 0)
-			printf( "TFTP error: %s\n", rpkt->tftp.error.str );
+			Printf( "TFTP error: %s\n", rpkt->tftp.error.str );
 		else
-			printf( "TFTP error #%d (no description)\n",
+			Printf( "TFTP error #%d (no description)\n",
 					rpkt->tftp.error.errcode );
 		return( -1 );
 	}
 	else if (rpkt->tftp.opcode != TFTP_DATA) {
-		printf( "Bad TFTP packet type: %d\n", rpkt->tftp.opcode );
+		Printf( "Bad TFTP packet type: %d\n", rpkt->tftp.opcode );
 		if (--retries > 0)
 			goto repeat_data;
 		return( -1 );
@@ -504,7 +510,7 @@ static int tftp_rcv( char *buf )
 	spkt.tftp.ack.nr = tftp_blk;
 	if ((err = udp_send( (UDP *)&spkt, sizeof(spkt.tftp.ack),
 						 tftp_mytid, tftp_rtid )) < 0) {
-		printf( "TFTP ACK: %s\n", ErrStr[-err-1] );
+		Printf( "TFTP ACK: %s\n", ErrStr[-err-1] );
 		if (--retries > 0)
 			goto repeat_ack;
 		return( -1 );
@@ -615,20 +621,20 @@ static int udp_rcv( UDP *pkt, int *len, int fromport, int atport )
 		goto repeat;
 	}
 	else if (pkt->ether.type != 0x0800) {
-		printf( "Unknown Ethernet packet type %04x received\n",
+		Printf( "Unknown Ethernet packet type %04x received\n",
 				pkt->ether.type );
 		goto repeat;
 	}
 
 	/* IP layer */
 	if (MyIPaddr != IP_Unknown_Addr && pkt->ip.dst_addr != MyIPaddr) {
-		printf( "Received packet for wrong IP address\n" );
+		Printf( "Received packet for wrong IP address\n" );
 		goto repeat;
 	}
 	if (ServerIPaddr != IP_Unknown_Addr &&
 		ServerIPaddr != IP_Broadcast_Addr &&
 		pkt->ip.src_addr != ServerIPaddr) {
-		printf( "Received packet from wrong server\n" );
+		Printf( "Received packet from wrong server\n" );
 		goto repeat;
 	}
 	/* If IP header is longer than 5 longs, delete the options */
@@ -639,11 +645,11 @@ static int udp_rcv( UDP *pkt, int *len, int fromport, int atport )
 	
 	/* UDP layer */
 	if (fromport != 0 && pkt->udp.src_port != fromport) {
-		printf( "Received packet from wrong port %d\n", pkt->udp.src_port );
+		Printf( "Received packet from wrong port %d\n", pkt->udp.src_port );
 		goto repeat;
 	}
 	if (pkt->udp.dst_port != atport) {
-		printf( "Received packet at wrong port %d\n", pkt->udp.dst_port );
+		Printf( "Received packet at wrong port %d\n", pkt->udp.dst_port );
 		goto repeat;
 	}
 
@@ -659,7 +665,7 @@ static int udp_rcv( UDP *pkt, int *len, int fromport, int atport )
 static void print_ip( IPADDR addr )
 
 {
-	printf( "%ld.%ld.%ld.%ld",
+	Printf( "%ld.%ld.%ld.%ld",
 			(addr >> 24) & 0xff,
 			(addr >> 16) & 0xff,
 			(addr >>  8) & 0xff,
@@ -670,7 +676,7 @@ static void print_ip( IPADDR addr )
 static void print_hw( HWADDR addr )
 
 {
-	printf( "%02x:%02x:%02x:%02x:%02x:%02x",
+	Printf( "%02x:%02x:%02x:%02x:%02x:%02x",
 			addr[0], addr[1], addr[2], addr[3], addr[4], addr[5] );
 }
 
@@ -695,7 +701,7 @@ static int check_ethif( void )
 		return( -1 );
 
 	if (Ethif->init() < 0) {
-		printf( "Ethernet interface initialization failed\n" );
+		Printf( "Ethernet interface initialization failed\n" );
 		return( -1 );
 	}
 	Ethif->get_hwaddr( &MyHwaddr );
@@ -708,39 +714,39 @@ static void dump_packet( UDP *pkt )
 {	int		i, l;
 	unsigned char *p;
 	
-	printf( "Packet dump:\n" );
+	Printf( "Packet dump:\n" );
 
-	printf( "Ethernet header:\n" );
-	printf( "  dst addr: " ); print_hw( pkt->ether.dst_addr ); printf( "\n" );
-	printf( "  src addr: " ); print_hw( pkt->ether.src_addr ); printf( "\n" );
-	printf( "  type: %04x\n", pkt->ether.type );
+	Printf( "Ethernet header:\n" );
+	Printf( "  dst addr: " ); print_hw( pkt->ether.dst_addr ); Printf( "\n" );
+	Printf( "  src addr: " ); print_hw( pkt->ether.src_addr ); Printf( "\n" );
+	Printf( "  type: %04x\n", pkt->ether.type );
 
-	printf( "IP header:\n" );
-	printf( "  version: %d\n", pkt->ip.version );
-	printf( "  hdr len: %d\n", pkt->ip.ihl );
-	printf( "  tos: %d\n", pkt->ip.tos );
-	printf( "  tot_len: %d\n", pkt->ip.tot_len );
-	printf( "  id: %d\n", pkt->ip.id );
-	printf( "  frag_off: %d\n", pkt->ip.frag_off );
-	printf( "  ttl: %d\n", pkt->ip.ttl );
-	printf( "  prot: %d\n", pkt->ip.protocol );
-	printf( "  src addr: " ); print_ip( pkt->ip.src_addr ); printf( "\n" );
-	printf( "  dst addr: " ); print_ip( pkt->ip.dst_addr ); printf( "\n" );
+	Printf( "IP header:\n" );
+	Printf( "  version: %d\n", pkt->ip.version );
+	Printf( "  hdr len: %d\n", pkt->ip.ihl );
+	Printf( "  tos: %d\n", pkt->ip.tos );
+	Printf( "  tot_len: %d\n", pkt->ip.tot_len );
+	Printf( "  id: %d\n", pkt->ip.id );
+	Printf( "  frag_off: %d\n", pkt->ip.frag_off );
+	Printf( "  ttl: %d\n", pkt->ip.ttl );
+	Printf( "  prot: %d\n", pkt->ip.protocol );
+	Printf( "  src addr: " ); print_ip( pkt->ip.src_addr ); Printf( "\n" );
+	Printf( "  dst addr: " ); print_ip( pkt->ip.dst_addr ); Printf( "\n" );
 
-	printf( "UDP header:\n" );
-	printf( "  src port: %d\n", pkt->udp.src_port );
-	printf( "  dst port: %d\n", pkt->udp.dst_port );
-	printf( "  len: %d\n", pkt->udp.len );
+	Printf( "UDP header:\n" );
+	Printf( "  src port: %d\n", pkt->udp.src_port );
+	Printf( "  dst port: %d\n", pkt->udp.dst_port );
+	Printf( "  len: %d\n", pkt->udp.len );
 
-	printf( "Data:" );
+	Printf( "Data:" );
 	l = pkt->udp.len - sizeof(pkt->udp);
 	p = (unsigned char *)&pkt->udp + sizeof(pkt->udp);
 	for( i = 0; i < l; ++i ) {
 		if ((i % 32) == 0)
-			printf( "\n  %04x ", i );
-		printf( "%02x ", *p++ );
+			Printf( "\n  %04x ", i );
+		Printf( "%02x ", *p++ );
 	}
-	printf( "\n" );
+	Printf( "\n" );
 }
 #endif
 

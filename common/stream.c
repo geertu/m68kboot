@@ -7,11 +7,16 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  *
- * $Id: stream.c,v 1.1 1997-07-15 09:45:37 rnhodek Exp $
+ * $Id: stream.c,v 1.2 1997-07-16 15:06:24 rnhodek Exp $
  * 
  * $Log: stream.c,v $
- * Revision 1.1  1997-07-15 09:45:37  rnhodek
- * Initial revision
+ * Revision 1.2  1997-07-16 15:06:24  rnhodek
+ * Replaced all call to libc functions puts, printf, malloc, ... in common code
+ * by the capitalized generic function/macros. New generic function ReAlloc, need
+ * by load_ramdisk.
+ *
+ * Revision 1.1.1.1  1997/07/15 09:45:37  rnhodek
+ * Import sources into CVS
  *
  * 
  *
@@ -96,6 +101,7 @@
 #include <fcntl.h>
 #include <minmax.h>
 
+#include "bootstrap.h"
 #include "stream.h"
 
 /* definition of the dummy head module */
@@ -142,23 +148,23 @@ void stream_push( MODULE *mod )
 /* ------------------------------------------------------------------------ */
 /*									Macros									*/
 
-/* go up and down the stream */
-#define DOWN_MOD()														\
-    do {																\
-	if (!(currmod = currmod->down)) {									\
-	    fprintf( stderr, "Internal error: bottom-most module %s calls "	\
-		     "downstreams!\n", currmod->name );							\
-	    exit( 1 );														\
-	}																	\
-    } while(0)
+/* go up and down the stream */										\
+#define DOWN_MOD()													\
+	do {															\
+		if (!(currmod = currmod->down)) {							\
+	    	Printf( "Internal error: bottom-most module %s calls "	\
+					"downstreams!\n", currmod->name );				\
+		    exit( 1 );												\
+		}															\
+	} while(0)
 
-#define UP_MOD()													\
-    do {															\
-	if (!(currmod = currmod->up)) {									\
-	    fprintf( stderr, "Internal error: topmost module %s calls "	\
-		     "upstreams!\n", currmod->name );						\
-	    exit( 1 );													\
-	}																\
+#define UP_MOD()												\
+	do {														\
+		if (!(currmod = currmod->up)) {							\
+			Printf( "Internal error: topmost module %s calls "	\
+					"upstreams!\n", currmod->name );			\
+			exit( 1 );											\
+		}														\
     } while(0)
 
 /* macros for accessing the methods of current module */
@@ -212,9 +218,9 @@ int sopen( const char *name )
 		currmod->buf_cnt    =
 		currmod->eof        = 0;
 		currmod->last_shown = -1;
-		if (!(currmod->buf = malloc( currmod->maxbuf ))) {
-			fprintf( stderr, "Out of buffer memory for module %s\n",
-					 currmod->name );
+		if (!(currmod->buf = Alloc( currmod->maxbuf ))) {
+			Printf( "Out of buffer memory for module %s\n",
+					currmod->name );
 			exit( 1 );
 		}
 		currmod->bufp = currmod->buf;
@@ -294,8 +300,8 @@ int sseek( long offset, int whence )
 	  case SEEK_END:
 	  default:
 		/* not supported */
-		fprintf( stderr, "Unsupported seek operation for module %s\n",
-				 currmod->name );
+		Printf( "Unsupported seek operation for module %s\n",
+				currmod->name );
 		RETURN( -1 );
 	}
 
@@ -307,11 +313,11 @@ int sseek( long offset, int whence )
 		long bufstartpos = currmod->fpos - (currmod->bufp - currmod->buf);
 		long back;
 		if (!currmod->buf_cnt || newpos < bufstartpos) {
-			fprintf( stderr, "Unsupported backward seek in module %s "
-					 "(bufstart=%ld, dstpos=%ld)\n",
-					 currmod->name,
-					 currmod->buf_cnt ? bufstartpos : -1,
-					 newpos );
+			Printf( "Unsupported backward seek in module %s "
+					"(bufstart=%ld, dstpos=%ld)\n",
+					currmod->name,
+					currmod->buf_cnt ? bufstartpos : -1,
+					newpos );
 			RETURN( -1 );
 		}
 		back = currmod->fpos - newpos;
@@ -368,12 +374,12 @@ int sclose( void )
 	int rv;
 
 	stream_show_progress();
-	printf( "\n" );
+	Printf( "\n" );
 	stream_dont_display++;
 	DOWN_MOD();
 
 	rv = MOD_CLOSE();
-	free( currmod->buf );
+	Free( currmod->buf );
 
 	UP_MOD();
 	stream_dont_display--;
@@ -394,17 +400,19 @@ static void stream_show_progress( void )
 		return;
 	currmod->last_shown = spos;
 
-	printf( "\r" );
+	Printf( "\r" );
 	for( p = head_mod.down; p; p = p->down ) {
 		if (!p->fpos && notnull)
 			break;
 		if (p->fpos)
 			notnull = 1;
-		printf( " %c %7ld %-8s ",
+		Printf( " %c %7ld %-8s ",
 				rotchar[(p->fpos / max(p->maxbuf,1<<SHOW_SHIFT)) & 3],
 				p->fpos, p->name );
 	}
+#ifdef atarist
 	fflush( stdout );
+#endif
 }
 
 /* Local Variables: */

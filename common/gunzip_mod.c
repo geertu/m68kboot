@@ -7,11 +7,16 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: gunzip_mod.c,v 1.1 1997-07-15 09:45:37 rnhodek Exp $
+ * $Id: gunzip_mod.c,v 1.2 1997-07-16 15:06:23 rnhodek Exp $
  * 
  * $Log: gunzip_mod.c,v $
- * Revision 1.1  1997-07-15 09:45:37  rnhodek
- * Initial revision
+ * Revision 1.2  1997-07-16 15:06:23  rnhodek
+ * Replaced all call to libc functions puts, printf, malloc, ... in common code
+ * by the capitalized generic function/macros. New generic function ReAlloc, need
+ * by load_ramdisk.
+ *
+ * Revision 1.1.1.1  1997/07/15 09:45:37  rnhodek
+ * Import sources into CVS
  *
  * 
  */
@@ -21,6 +26,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "bootstrap.h"
 #include "bootp.h"
 #include "stream.h"
 
@@ -103,7 +109,6 @@ static long bytes_out = 0;
 
 #define STATIC static
 
-FILE *xfile;
 
 static int gunzip_open( const char *name )
 {
@@ -132,26 +137,25 @@ static int gunzip_open( const char *name )
 	rv = sread( buf, 2 );
 	sseek( 0, SEEK_SET );
 	if (rv < 2) {
-		fprintf( stderr, "File shorter than 2 bytes, can't test for gzip\n" );
+		Printf( "File shorter than 2 bytes, can't test for gzip\n" );
 		return( -1 );
 	}
     if (buf[0] != 037 || (buf[1] != 0213 && buf[1] != 0236))
 		/* not compressed, remove this module from the stream */
 		return( 1 );
 
-	if (!(gunzip_stack = malloc( GUNZIP_STACK_SIZE ))) {
-		fprintf( stderr, "Out of memory for gunzip stack!\n" );
+	if (!(gunzip_stack = Alloc( GUNZIP_STACK_SIZE ))) {
+		Printf( "Out of memory for gunzip stack!\n" );
 		return( -1 );
 	}
 	gunzip_sp = 0;
 
-	if (!(inbuf = malloc( INBUFSIZ ))) {
-		fprintf( stderr, "Out of memory for gunzip input buffer!\n" );
+	if (!(inbuf = Alloc( INBUFSIZ ))) {
+		Printf( "Out of memory for gunzip input buffer!\n" );
 		return( -1 );
 	}
 
-	printf( "Decompressing %s\n", myname );
-xfile = fopen( "x", "wb" );
+	Printf( "Decompressing %s\n", myname );
 	return( 0 );
 }
 
@@ -172,10 +176,9 @@ static long gunzip_fillbuf( void *buf )
 
 static int gunzip_close( void )
 {
-	free( gunzip_stack );
-	free( inbuf );
+	Free( gunzip_stack );
+	Free( inbuf );
 	sclose();
-fclose(xfile);
 	return( 0 );
 }
 
@@ -297,7 +300,6 @@ static void flush_window( void )
     }
     crc = c;
 	bytes_out += (ulg)outcnt;
-fwrite( window, outcnt, 1, xfile );
 
 	/* return to call_gunzip(), next call to it resumes here */
 	RETURN_TO_MAIN_STACK();
@@ -307,8 +309,7 @@ fwrite( window, outcnt, 1, xfile );
 
 static void error( char *x )
 {
-	fflush(stdout);
-    fprintf( stderr, "\n%s\n", x);
+    Printf( "\n%s\n", x);
     exit_code = 1;
 }
 

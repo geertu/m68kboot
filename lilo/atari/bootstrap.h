@@ -7,10 +7,15 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id $
+ * $Id: bootstrap.h,v 1.2 1997-07-16 15:06:25 rnhodek Exp $
  * 
  * $Log: bootstrap.h,v $
- * Revision 1.1  1997-07-16 12:59:13  rnhodek
+ * Revision 1.2  1997-07-16 15:06:25  rnhodek
+ * Replaced all call to libc functions puts, printf, malloc, ... in common code
+ * by the capitalized generic function/macros. New generic function ReAlloc, need
+ * by load_ramdisk.
+ *
+ * Revision 1.1  1997/07/16 12:59:13  rnhodek
  * Add definitions for generic output and memory allocation
  *
  *
@@ -28,6 +33,7 @@
 #define	Printf			printf
 #define Alloc			malloc
 #define Free			free
+#define ReAlloc(p,o,n)	realloc((p),(n))
 
 #endif  /* _bootstrap_h */
 

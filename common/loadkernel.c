@@ -11,10 +11,15 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: loadkernel.c,v 1.2 1997-07-16 14:03:35 rnhodek Exp $
+ * $Id: loadkernel.c,v 1.3 1997-07-16 15:06:23 rnhodek Exp $
  * 
  * $Log: loadkernel.c,v $
- * Revision 1.2  1997-07-16 14:03:35  rnhodek
+ * Revision 1.3  1997-07-16 15:06:23  rnhodek
+ * Replaced all call to libc functions puts, printf, malloc, ... in common code
+ * by the capitalized generic function/macros. New generic function ReAlloc, need
+ * by load_ramdisk.
+ *
+ * Revision 1.2  1997/07/16 14:03:35  rnhodek
  * On errors, clean up and return 0 instead of exit
  *
  * Revision 1.1.1.1  1997/07/15 09:45:37  rnhodek
@@ -38,6 +43,7 @@
 #include <linux/elf.h>
 #include <asm/page.h>
 
+#include "bootstrap.h"
 #include "loadkernel.h"
 #include "bootstrap.h"
 #include "stream.h"
@@ -53,14 +59,14 @@ extern MODULE bootp_mod;
 /* to make error handling shorter... */
 #define ERROR(fmt,rest...)			\
     do {					\
-	fprintf( stderr, fmt, ##rest );		\
+	Printf( fmt, ##rest );			\
 	cleanup();				\
 	return( 0 );				\
     } while(0)
 
 #define SERROR(fmt,rest...)			\
     do {					\
-	fprintf( stderr, fmt, ##rest );		\
+	Printf( fmt, ##rest );			\
 	sclose();				\
 	cleanup();				\
 	return( 0 );				\
@@ -120,8 +126,8 @@ unsigned long open_kernel( const char *kernel_name )
 	    SERROR( "Invalid ELF header contents in kernel\n" );
 
 	/* Load the program headers */
-	kernel_phdrs = (Elf32_Phdr *)malloc( kexec_elf.e_phnum *
-					     sizeof (Elf32_Phdr) );
+	kernel_phdrs = (Elf32_Phdr *)Alloc( kexec_elf.e_phnum *
+					    sizeof (Elf32_Phdr) );
 	if (!kernel_phdrs)
 	    SERROR( "Unable to allocate memory for program headers\n" );
 	sseek( kexec_elf.e_phoff, SEEK_SET );
@@ -223,18 +229,18 @@ void kernel_debug_infos( unsigned long base )
     
     if (elf_kernel) {
 	for (i = 0; i < kexec_elf.e_phnum; i++) {
-	    printf ("Kernel segment %d at %#lx, size %d\n", i,
+	    Printf ("Kernel segment %d at %#lx, size %d\n", i,
 		    base + kernel_phdrs[i].p_vaddr - PAGE_SIZE,
 		    kernel_phdrs[i].p_memsz);
 	}
     }
 #ifdef AOUT_KERNEL
     else {
-	printf ("\nKernel text at %#lx, code size %d\n",
+	Printf ("\nKernel text at %#lx, code size %d\n",
 		start_mem, kexec.a_text);
-	printf ("Kernel data at %#lx, data size %d\n",
+	Printf ("Kernel data at %#lx, data size %d\n",
 		start_mem + kexec.a_text, kexec.a_data );
-	printf ("Kernel bss  at %#lx, bss  size %d\n",
+	Printf ("Kernel bss  at %#lx, bss  size %d\n",
 		start_mem + kexec.a_text + kexec.a_data, kexec.a_bss );
     }
 #endif
@@ -274,15 +280,17 @@ unsigned long load_ramdisk( const char *ramdisk_name )
 	ERROR( "Unable to open ramdisk file %s\n", ramdisk_name );
 	
     do {
-	rdptr = realloc( rdptr, (++n_rdptrs)*sizeof(char *) );
-	if (!rdptr || !(rdptr[n_rdptrs-1] = malloc( RD_CHUNK_SIZE )))
+	rdptr = ReAlloc( rdptr, n_rdptrs*sizeof(char *),
+			        (n_rdptrs+1)*sizeof(char *) );
+	if (!rdptr || !(rdptr[n_rdptrs] = Alloc( RD_CHUNK_SIZE )))
 	    SERROR( "Out of memory for ramdisk image\n" );
+	++n_rdptrs;
 	
 	n = sread( rdptr[n_rdptrs-1], RD_CHUNK_SIZE );
 	if (n < 0)
 	    SERROR( "Error while reading ramdisk image\n" );
 	if (n == 0) {
-	    free( rdptr[n_rdptrs-1]);
+	    Free( rdptr[n_rdptrs-1]);
 	    break;
 	}
 	rd_size += n;
@@ -308,13 +316,13 @@ void move_ramdisk( void *dst, unsigned long rd_size )
     for( ; left > RD_CHUNK_SIZE;
 	 ++srcp, dst += RD_CHUNK_SIZE, left -= RD_CHUNK_SIZE ) {
 	memcpy( dst, *srcp, RD_CHUNK_SIZE );
-	free( *srcp );
+	Free( *srcp );
     }
     if (left) {
 	memcpy( dst, *srcp, left );
-	free( *srcp );
+	Free( *srcp );
     }
-    free( rdptr );
+    Free( rdptr );
     rdptr = NULL;
 }
 
@@ -324,14 +332,14 @@ static void cleanup( void )
     int i;
     
     if (kernel_phdrs) {
-	free( kernel_phdrs );
+	Free( kernel_phdrs );
 	kernel_phdrs = NULL;
     }
 
     if (rdptr) {
 	for( i = 0; i < n_rdptrs; ++i )
-	    free( rdptr[i] );
-	free( rdptr );
+	    Free( rdptr[i] );
+	Free( rdptr );
     }
 }
 

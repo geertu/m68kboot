@@ -17,10 +17,15 @@
 ** License.  See the file COPYING in the main directory of this archive
 ** for more details.
 **
-** $Id: bootstrap.h,v 1.3 1997-07-16 14:05:01 rnhodek Exp $
+** $Id: bootstrap.h,v 1.4 1997-07-16 15:06:15 rnhodek Exp $
 ** 
 ** $Log: bootstrap.h,v $
-** Revision 1.3  1997-07-16 14:05:01  rnhodek
+** Revision 1.4  1997-07-16 15:06:15  rnhodek
+** Replaced all call to libc functions puts, printf, malloc, ... in common code
+** by the capitalized generic function/macros. New generic function ReAlloc, need
+** by load_ramdisk.
+**
+** Revision 1.3  1997/07/16 14:05:01  rnhodek
 ** Sorted out which headers to use and the like; Amiga bootstrap now compiles.
 ** Puts and other generic functions now defined in bootstrap.h
 **
@@ -176,6 +181,21 @@ static __inline void DeleteMsgPort(struct MsgPort *port)
 #define	Printf(fmt,rest...)	(fprintf(stderr,fmt,##rest), fflush(stderr))
 #define Alloc(size)			AllocVec((size),MEMF_FAST|MEMF_PUBLIC)
 #define Free(p)				FreeVec(p)
+#define	ReAlloc(ptr,oldsize,newsize)				\
+	({												\
+		void *__ptr = (ptr);						\
+		void *__newptr;								\
+		size_t __oldsize = (oldsize);				\
+		size_t __newsize = (newsize);				\
+													\
+		if ((__newptr = Alloc( __newsize ))) {		\
+			memcpy( __newptr, __ptr, __oldsize );	\
+			Free( __ptr );							\
+		}											\
+		__newptr;									\
+	})
+		
+	 
 
 #endif  /* _bootstrap_h */
 
