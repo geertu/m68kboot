@@ -7,10 +7,20 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: menu.c,v 1.3 1997-09-19 09:06:59 geert Exp $
+ * $Id: menu.c,v 1.4 1998-02-25 10:37:36 rnhodek Exp $
  * 
  * $Log: menu.c,v $
- * Revision 1.3  1997-09-19 09:06:59  geert
+ * Revision 1.4  1998-02-25 10:37:36  rnhodek
+ * New argument 'doprompt' to read_line().
+ * Use correct length in show_cmdline().
+ * Make asm in v_gtext() look nicer.
+ * In read_line():
+ *  - Print backspaces as "\b \b" in case \b only goes back but doesn't delete.
+ *  - Case for ASC_CR was missing.
+ *  - Echo was missing for normal characters.
+ *  - Fix wrong usage of sizeof.
+ *
+ * Revision 1.3  1997/09/19 09:06:59  geert
  * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
  *
  * Revision 1.2  1997/08/23 20:48:04  rnhodek
@@ -157,7 +167,7 @@ char *boot_menu( const char *dflt_label )
 	unsigned long timeout = 0;
 
 	if (NoGUI) {
-		read_line( 1 );
+		read_line( 1, 1 );
 		if (!cmdline[strspn( cmdline, " " )])
 			strcpy( cmdline, dflt_label );
 		return( cmdline );
@@ -647,7 +657,7 @@ static void delete( int dst, int src, int len )
 static void show_cmdline( int start, int end, int newc )
 {
 	char *line = (EchoMode == ECHO_STARS) ? stars : cmdline;
-	int len = strlen(line), savec;
+	int len = strlen(cmdline), savec;
 
 	v_hide_c(grh);
 	reverse();
@@ -682,14 +692,15 @@ static void show_cmdline( int start, int end, int newc )
  * Read a line from a "dumb" terminal; only editing is BS or DEL (both delete
  * backwards), and ^U (deletes whole line)
  */
-char *read_line( int dotimeout )
+char *read_line( int dotimeout, int doprompt )
 {
 	unsigned long timeout = 0;
 	unsigned int len = 0;
 	char c;
 	
 	*cmdline = 0;
-	cprintf( "%s", Prompt );
+	if (doprompt)
+		cprintf( "%s", Prompt );
 
 	if (dotimeout && BootOptions->TimeOut)
 		timeout = _hz_200 + *BootOptions->TimeOut * HZ;
@@ -704,19 +715,24 @@ char *read_line( int dotimeout )
 		  process_key:
 			if ((c == ASC_BS || c == ASC_DEL) && len > 0) {
 				cmdline[len--] = 0;
-				cprintf( "\b" );
+				cprintf( "\b \b" );
 			}
 			else if (c == CTRL_U) {
 				while( len-- )
-					cprintf( "\b" );
+					cprintf( "\b \b" );
 				*cmdline = 0;
 			}
+			else if (c == ASC_CR || c == ASC_LF) {
+				cprintf( "\n" );
+				break;
+			}
 			else if (c >= ' ' || c == ASC_TAB) {
-				if (len == sizeof(cmdline-1))
+				if (len == sizeof(cmdline)-1)
 					cprintf( "\a" );
 				else {
 					if (c == ASC_TAB)
 						c = ' ';
+					cprintf( "%c", c );
 					cmdline[len++] = c;
 					cmdline[len] = 0;
 				}
@@ -979,10 +995,11 @@ int v_gtext( int h, int x, int y, char *s )
 	cntrl[4] = 0;
 	cntrl[6] = h;
   
-	asm( "movl %0,d1\n\t"
-         "movw #115,d0\n\t"
-         "trap #2"
-       : : "g" (&VDIPARS) );
+	__asm__ __volatile__
+		( "movl %0,d1\n\t"
+		  "movw #115,d0\n\t"
+		  "trap #2"
+		  : : "g" (&VDIPARS) );
 	return( 0 );
 }
 
