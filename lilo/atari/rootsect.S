@@ -7,10 +7,13 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: rootsect.S,v 1.4 1998-03-06 09:51:32 rnhodek Exp $
+ * $Id: rootsect.S,v 1.5 1998-03-12 09:26:51 rnhodek Exp $
  * 
  * $Log: rootsect.S,v $
- * Revision 1.4  1998-03-06 09:51:32  rnhodek
+ * Revision 1.5  1998-03-12 09:26:51  rnhodek
+ * In aprint_error, save error number (in %d0) around call to Mfree.
+ *
+ * Revision 1.4  1998/03/06 09:51:32  rnhodek
  * Implement new option skip-on-keys: New field 'modif_mask' which
  * contains a mask to and the Kbshift() return value with.
  *
@@ -219,15 +222,17 @@ putc:
 
 /* free memory pointed to by %a6, then print error number and exit */
 aprint_error:
+	movl	%d0,sp@-		/* save error number */
 	movl	%a6,%sp@-
 	movw	#73,%sp@-
 	trap	#1
 	addql	#6,%sp
+	movl	sp@+,%d0
 	/* fall through to print_error */
 
 /* Print the error number in %d0 and a newline, then exit */
 print_error:
-	neg	%d0			/* make positive */
+	negl	%d0			/* make positive */
 	divuw	#10,%d0			/* dividend in low word, remainder
 					 * in high word of %d0 */
 	addl	#0x300030,%d0		/* make ASCII digits out of them */
