@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: mach-rules.y,v 1.6 1998-03-06 09:50:25 rnhodek Exp $
+ * $Id: mach-rules.y,v 1.7 1998-03-10 10:26:34 rnhodek Exp $
  * 
  * $Log: mach-rules.y,v $
- * Revision 1.6  1998-03-06 09:50:25  rnhodek
+ * Revision 1.7  1998-03-10 10:26:34  rnhodek
+ * New boot record option "restricted".
+ *
+ * Revision 1.6  1998/03/06 09:50:25  rnhodek
  * New option skip-on-keys.
  *
  * Revision 1.5  1998/03/04 09:18:03  rnhodek
@@ -245,6 +248,13 @@ bootrec: "bootrec" STRING bootopts "endrec"
 		if (!AddBootRecord(&BootRecord))
 		    conferror( "Duplicate boot record label or alias" );
 		ClearBootRecord();
+	};
+
+restricted: "restricted" opt_bool
+	{
+		if (BootRecord.Restricted)
+		    Redefinition((char *)$1);
+		BootRecord.Restricted = CopyLong($2);
 	};
 
 ignorettram: "ignore-tt-ram" opt_bool

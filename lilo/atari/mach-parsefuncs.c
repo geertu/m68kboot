@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: mach-parsefuncs.c,v 1.4 1998-03-06 09:50:10 rnhodek Exp $
+ * $Id: mach-parsefuncs.c,v 1.5 1998-03-10 10:26:21 rnhodek Exp $
  * 
  * $Log: mach-parsefuncs.c,v $
- * Revision 1.4  1998-03-06 09:50:10  rnhodek
+ * Revision 1.5  1998-03-10 10:26:21  rnhodek
+ * New boot record option "restricted".
+ *
+ * Revision 1.4  1998/03/06 09:50:10  rnhodek
  * New option skip-on-keys, and a function to parse it.
  *
  * Revision 1.3  1998/02/26 10:34:56  rnhodek
@@ -50,6 +53,7 @@
 
 #define MACH_BOOTOPTS							\
 	  | bootopts type							\
+	  | bootopts restricted						\
 	  | bootopts ignorettram					\
 	  | bootopts loadtostram					\
 	  | bootopts forcestram						\
