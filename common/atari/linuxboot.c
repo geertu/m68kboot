@@ -11,10 +11,14 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.c,v 1.7 1998-02-19 19:44:10 rnhodek Exp $
+ * $Id: linuxboot.c,v 1.8 1998-02-25 10:33:29 rnhodek Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.7  1998-02-19 19:44:10  rnhodek
+ * Revision 1.8  1998-02-25 10:33:29  rnhodek
+ * Move call to Super() to bootstrap-specific file bootstrap.c, and
+ * remove it from linuxboot.c.
+ *
+ * Revision 1.7  1998/02/19 19:44:10  rnhodek
  * Integrated changes from ataboot 3.0 to 3.2
  *
  * Revision 1.6  1997/07/18 12:10:38  rnhodek
@@ -135,12 +139,6 @@ void linux_boot( void )
     u_long memreq;
     u_long rd_size;		/* size of ramdisk and array of pointers to
 				 * its data */
-
-    /* We have to access some system variables to get
-     * the information we need, so we must switch to
-     * supervisor mode first.
-     */
-    userstk = Super(0L);
 
     /* get the info we need from the cookie-jar */
     cookiejar = *_p_cookies;

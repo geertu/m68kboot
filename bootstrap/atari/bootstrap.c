@@ -43,10 +43,14 @@
  *      19 Feb 1994 Changed everything so that it works? (rdv)
  *      14 Mar 1994 New mini-copy routine used (rdv)
  *
- * $Id: bootstrap.c,v 1.4 1998-02-19 20:40:12 rnhodek Exp $
+ * $Id: bootstrap.c,v 1.5 1998-02-25 10:33:16 rnhodek Exp $
  * 
  * $Log: bootstrap.c,v $
- * Revision 1.4  1998-02-19 20:40:12  rnhodek
+ * Revision 1.5  1998-02-25 10:33:16  rnhodek
+ * Move call to Super() to bootstrap-specific file bootstrap.c, and
+ * remove it from linuxboot.c.
+ *
+ * Revision 1.4  1998/02/19 20:40:12  rnhodek
  * Make things compile again
  *
  * Revision 1.3  1998/02/19 19:44:10  rnhodek
@@ -194,6 +198,12 @@ int main( int argc, char *argv[] )
 		    "line too long!\n", *argv );
 	}
     }
+
+    /* We have to access some system variables to get
+     * the information we need, so we must switch to
+     * supervisor mode first.
+     */
+    userstk = Super(0L);
 
     linux_boot();
     /* never reached */
