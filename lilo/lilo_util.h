@@ -6,10 +6,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo_util.h,v 1.3 1997-09-19 09:06:48 geert Exp $
+ * $Id: lilo_util.h,v 1.4 1998-03-17 12:32:20 rnhodek Exp $
  * 
  * $Log: lilo_util.h,v $
- * Revision 1.3  1997-09-19 09:06:48  geert
+ * Revision 1.4  1998-03-17 12:32:20  rnhodek
+ * New global vars MaxVectorSector{Number,Count}.
+ *
+ * Revision 1.3  1997/09/19 09:06:48  geert
  * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
  *
  * Revision 1.2  1997/08/12 21:51:02  rnhodek
@@ -55,6 +58,8 @@ extern char *LoaderData;
 extern int LoaderSize;
 extern const struct vecent *LoaderVector;
 extern int LoaderNumBlocks;
+extern u_long MaxVectorSectorNumber;
+extern u_long MaxVectorSectorCount;
 
 extern void CheckVectorDevice( const char *name, dev_t device,
 							   struct vecent *vector );
