@@ -7,10 +7,14 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.8 1998-03-06 09:47:07 rnhodek Exp $
+# $Id: Makefile,v 1.9 1998-03-16 10:44:27 schwab Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.8  1998-03-06 09:47:07  rnhodek
+# Revision 1.9  1998-03-16 10:44:27  schwab
+# Make sure to build $(MACH)/tag* files first.
+# Clean up clean target (replace {amiga,atari}/ by simple */.
+#
+# Revision 1.8  1998/03/06 09:47:07  rnhodek
 # Add dumpmapfile to list of targets.
 #
 # Revision 1.7  1998/02/23 10:14:50  rnhodek
@@ -66,7 +70,7 @@ ATARI_HOSTAS = $(ATARI_HOSTCC) -D__ASSEMBLY__
 M68K_CC = m68k-linux-gcc
 M68K_AS = $(M68K_CC) -D__ASSEMBLY__
 
-all: $(MACH)
+all: $(MACH)/tagdef.c $(MACH)/tagdef.h $(MACH)/tagnames.c $(MACH)
 
 amiga: amiga/loader amiga/lilo amiga/dumpmapfile
 
@@ -79,16 +83,16 @@ atari/lilo: $(ATARI_LINUX_OBJS)
 	$(CC) -o $@ $^
 
 clean:
-	rm -f $(AMIGA_OBJS) $(ATARI_OBJS) {amiga,atari}/*.[iso] \
-          {.,amiga,atari}/#*# {.,amiga,atari}/core atari/*.{b,img}
-	rm -f atari/{loader,loader.tos}
-	rm -f {amiga,atari}/conf.{y,tab.*}
-	rm -f {amiga,atari}/lex.*
-	rm -f {amiga,atari}/{tagdef.[ch],tagnames.c}
+	rm -f $(AMIGA_OBJS) $(ATARI_OBJS) */*.[iso] \
+          \#*\# */\#*\# core */core atari/*.b atari/*.img
+	rm -f atari/loader atari/loader.tos
+	rm -f */conf.y */conf.tab.*
+	rm -f */lex.*
+	rm -f */tagdef.[ch] */tagnames.c
 	rm -f atari/loader.map
 
 distclean: clean
-	rm -f {amiga,atari}/.depend
+	rm -f */.depend
 	rm -f amiga/lilo atari/lilo
 
 clean-depend: force
