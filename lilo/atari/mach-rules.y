@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: mach-rules.y,v 1.5 1998-03-04 09:18:03 rnhodek Exp $
+ * $Id: mach-rules.y,v 1.6 1998-03-06 09:50:25 rnhodek Exp $
  * 
  * $Log: mach-rules.y,v $
- * Revision 1.5  1998-03-04 09:18:03  rnhodek
+ * Revision 1.6  1998-03-06 09:50:25  rnhodek
+ * New option skip-on-keys.
+ *
+ * Revision 1.5  1998/03/04 09:18:03  rnhodek
  * New config var array ProgCache[] as option to 'exec'.
  * WorkDir and ProgCache also for record-specific exec's.
  *
@@ -203,6 +206,11 @@ setenv: "setenv" STRING
 		if (i == arraysize(Config.Options.Environ))
 		    conferror("Too many environment variables");
 		Config.Options.Environ[i] = (const char *)$2;
+	};
+
+skiponkeys: "skip-on-keys" STRING
+	{
+		Config.SkipOnKeys = CopyLong( ParseKeyMask( (const char *)$2 ));
 	};
 
 bootrec: "bootrec" STRING bootopts "endrec"
