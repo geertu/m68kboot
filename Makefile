@@ -7,10 +7,13 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.9 1998-02-19 21:52:13 rnhodek Exp $
+# $Id: Makefile,v 1.10 1998-02-19 22:00:31 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.9  1998-02-19 21:52:13  rnhodek
+# Revision 1.10  1998-02-19 22:00:31  rnhodek
+# Fix/rewrite check-modified and check-needed
+#
+# Revision 1.9  1998/02/19 21:52:13  rnhodek
 # Added release, check-modified, and check-need targets.
 #
 # Revision 1.8  1998/02/19 21:27:06  rnhodek
@@ -152,7 +155,7 @@ release:
 	cvs tag RELEASE-`echo $(VER) | sed 's/\./-/g'`
 
 check-modified:
-	@modified=`cvs status 2>/dev/null | awk '/Status:/ { if ($$4 != "Up-to-date") print $$2 }'`; \
+	@modified=`cvs status 2>&1 | awk 'BEGIN { OFS="" } /Examining/ { dir=$$NF } /Status:/ { if ($$4 != "Up-to-date") print dir, "/", $$2 }'`; \
 	if [ "x$$modified" = "x" ]; then \
 		echo "No modified files."; \
 	else \
@@ -161,7 +164,7 @@ check-modified:
 	fi
 
 check-need:
-	@cvs status 2>/dev/null | awk '/Status:/ { if ($$4 != "Needs") { print $$2, $$4, $$5 }'
+	@cvs status 2>&1 | awk 'BEGIN { OFS="" } /Examining/ { dir=$$NF } /Status:/ { if ($$4 == "Needs") print dir, "/", $$2, ": ", $$4, " ", $$5 }'
 
 bootstrap/%.i bootstrap/%.s:
 	$(MAKE) -C bootstrap MACH=$(dir $(subst bootstrap/,,$@)) $(subst bootstrap/,,$@)
