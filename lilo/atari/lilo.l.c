@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: lilo.l.c,v 1.12 1998-04-06 01:40:59 dorchain Exp $
+ * $Id: lilo.l.c,v 1.13 1998-07-15 08:26:46 schwab Exp $
  * 
  * $Log: lilo.l.c,v $
- * Revision 1.12  1998-04-06 01:40:59  dorchain
+ * Revision 1.13  1998-07-15 08:26:46  schwab
+ * Don't declare WriteLoader here.
+ *
+ * Revision 1.12  1998/04/06 01:40:59  dorchain
  * make loader linux-elf.
  * made amiga bootblock working again
  * compiled, but not tested bootstrap
@@ -97,7 +100,6 @@ static void WriteLoaderMap( void );
 static void CreateMapFile( void);
 static int check_checksum( void *buf );
 static void recalc_checksum( void *buf );
-static void WriteLoader( void);
 static void Usage( void);
 
 /************************* End of Prototypes **************************/
