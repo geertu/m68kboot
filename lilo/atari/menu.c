@@ -7,10 +7,13 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: menu.c,v 1.1 1997-08-12 15:27:10 rnhodek Exp $
+ * $Id: menu.c,v 1.2 1997-08-23 20:48:04 rnhodek Exp $
  * 
  * $Log: menu.c,v $
- * Revision 1.1  1997-08-12 15:27:10  rnhodek
+ * Revision 1.2  1997-08-23 20:48:04  rnhodek
+ * Added some debugging printf
+ *
+ * Revision 1.1  1997/08/12 15:27:10  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -334,7 +337,9 @@ void graf_init( const unsigned long *video_res )
 
 	if (NoGUI)
 		return;
-	
+	if (Debug)
+		printf( "Initializing VDI workstation\n" );
+
 #ifdef AES
 	appl_init();
 	grh = graf_handle( &dum, &dum, &dum, &dum );
@@ -390,6 +395,8 @@ void graf_deinit( void )
 		/* try to put alpha cursor to last screen line */
 		sprintf( buf, "\033Y%c \n", scr_h/lineht );
 		Cconws( buf );
+		if (Debug)
+			printf( "Closed VDI workstation\n" );
 	}
 }
 
