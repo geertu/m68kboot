@@ -11,10 +11,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.c,v 1.9 1998-02-26 10:05:42 rnhodek Exp $
+ * $Id: linuxboot.c,v 1.10 1998-06-12 11:40:03 rnhodek Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.9  1998-02-26 10:05:42  rnhodek
+ * Revision 1.10  1998-06-12 11:40:03  rnhodek
+ * Fix recognition of last 4 MB of memory on AB040.
+ *
+ * Revision 1.9  1998/02/26 10:05:42  rnhodek
  * Also strip "bootp:" prefixes for BOOT_IMAGE= option.
  * Fix test whether there's enough test to add BOOT_IMAGE=.
  *
@@ -1000,7 +1003,7 @@ static int get_ab040_bank_sizes( int maxres, u_long *result )
 	    if (val != addr2)
 		break;
 	} while( npages );
-	end = addr2;
+	end = npages ? addr2 : addr;
 
 	if (end - start >= MB) {
 	    if (maxres-- > 0) {
