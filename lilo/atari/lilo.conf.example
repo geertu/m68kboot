@@ -19,6 +19,7 @@ header
 	mount "/dev/sda1" on C:
 	mount "/dev/sda3" on D:
 	exec "C:\AUTO\NVDI.PRG" workdir "C:\"
+#	exec "C:\FOO.PRG" workdir "C:\" no-cache
 endheader
 
 bootrec "TOS"
