@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: loader.h,v 1.1 1997-08-12 15:27:05 rnhodek Exp $
+ * $Id: loader.h,v 1.2 1997-09-19 09:06:54 geert Exp $
  * 
  * $Log: loader.h,v $
- * Revision 1.1  1997-08-12 15:27:05  rnhodek
+ * Revision 1.2  1997-09-19 09:06:54  geert
+ * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+ *
+ * Revision 1.1  1997/08/12 15:27:05  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -97,7 +100,7 @@ extern struct BootData BootData;
 
 extern const struct BootRecord *FindBootRecord(const char *name);
 extern void Puts(const char *str);
-extern void PutChar(char c);
+extern void PutChar(int c);
 extern void Printf(const char *fmt, ...);
 extern char *ReadCommandLine(void);
 extern void ListRecords(void);

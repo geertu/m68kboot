@@ -7,10 +7,13 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: menu.c,v 1.2 1997-08-23 20:48:04 rnhodek Exp $
+ * $Id: menu.c,v 1.3 1997-09-19 09:06:59 geert Exp $
  * 
  * $Log: menu.c,v $
- * Revision 1.2  1997-08-23 20:48:04  rnhodek
+ * Revision 1.3  1997-09-19 09:06:59  geert
+ * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+ *
+ * Revision 1.2  1997/08/23 20:48:04  rnhodek
  * Added some debugging printf
  *
  * Revision 1.1  1997/08/12 15:27:10  rnhodek
@@ -311,7 +314,7 @@ char *get_password( void )
 static int init_labels( const char *dflt_label )
 {
 	struct BootRecord *p;
-	unsigned i;
+	unsigned int i;
 	int dflt_idx = -1;
 
 	/* copy labels from boot records, limit length to LABELWIDTH */
@@ -682,7 +685,7 @@ static void show_cmdline( int start, int end, int newc )
 char *read_line( int dotimeout )
 {
 	unsigned long timeout = 0;
-	unsigned len = 0;
+	unsigned int len = 0;
 	char c;
 	
 	*cmdline = 0;

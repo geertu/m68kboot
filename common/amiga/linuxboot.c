@@ -44,10 +44,13 @@
  *	31 May 1994 Memory thrash problem solved (Geert)
  *	11 May 1994 A3640 MapROM check (Geert)
  * 
- * $Id: linuxboot.c,v 1.7 1997-08-10 19:22:55 rnhodek Exp $
+ * $Id: linuxboot.c,v 1.8 1997-09-19 09:06:40 geert Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.7  1997-08-10 19:22:55  rnhodek
+ * Revision 1.8  1997-09-19 09:06:40  geert
+ * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+ *
+ * Revision 1.7  1997/08/10 19:22:55  rnhodek
  * Moved AmigaOS inline funcs to extr header inline-funcs.h; the functions
  * can't be compiled under Linux
  *
@@ -131,12 +134,8 @@ struct compat_bootinfo compat_bootinfo;
 #define reset_boards	linuxboot_args->reset_boards
 #define baud		linuxboot_args->baud
 
-#define Open		linuxboot_args->open
-#define Seek		linuxboot_args->seek
-#define Read		linuxboot_args->read
-#define Close		linuxboot_args->close
-#define FileSize	linuxboot_args->filesize
 #define Sleep		linuxboot_args->sleep
+
 
     /*
      *  Function Prototypes
@@ -144,6 +143,7 @@ struct compat_bootinfo compat_bootinfo;
 
 static u_long get_chipset(void);
 static void get_processor(u_long *cpu, u_long *fpu, u_long *mmu);
+u_long ckcpu346(void);
 static u_long get_model(u_long chipset);
 static int probe_resident(const char *name);
 static int probe_resource(const char *name);
@@ -670,6 +670,9 @@ static void get_processor(u_long *cpu, u_long *fpu, u_long *mmu)
     else if (SysBase->AttnFlags & AFF_68020)
 	*cpu = CPU_68020;
 
+    if (*cpu == CPU_68030 || *cpu == CPU_68040 || *cpu == CPU_68060)
+	*cpu = Supervisor(ckcpu346);
+
     if (*cpu == CPU_68040 || *cpu == CPU_68060) {
 	if (SysBase->AttnFlags & AFF_FPU40)
 	    *fpu = *cpu;
@@ -680,6 +683,53 @@ static void get_processor(u_long *cpu, u_long *fpu, u_long *mmu)
 
     *mmu = *cpu;
 }
+
+/*
+ * Distinguish between 68030, 68040 and 68060 CPU
+ */
+
+/*
+ * WARNING: CPU type are hardwired in this function!
+ * (Does anyone know how to stringize the contents of a CPP macro?)
+ */
+
+asm(".text
+	.align 4\n"
+SYMBOL_NAME_STR(ckcpu346) ":
+| Register Usage:
+| %d0	return value (cpu type)
+| %d2   saved status register
+| %a2   saved VBR
+| %a3	saved line F trap vector
+| %a4	saved stack pointer
+| %a5	temporary copy of VBR
+
+	.chip 68060
+	moveml	%d2/%a2-%a5,%sp@-	| save registers
+	movec	%vbr,%a2		| get vbr
+	movew	%sr,%d2			| save IPL
+	orw	#0x700,%sr		| disable ints
+	movel	%a2@(11*4),%a3		| save old trap vector (Line F)
+	movel	#1f,%a2@(11*4)		| set L1 as new vector
+	movel	%sp,%a4			| save stack pointer
+	moveql	#2,%d0			| value with exception (030)
+	move	%a2,%a5			| we move the vbr to itself
+	nop				| clear instruction pipeline
+	move16	%a5@+,%a5@+		| the 030 test instruction
+	nop				| clear instruction pipeline
+	movel	%a4,%sp			| restore stack pointer
+	moveql	#4,%d0			| value with exception (040)
+	nop				| clear instruction pipeline
+	plpar	%a2@			| the 040 test instruction
+	nop				| clear instruction pipeline
+	moveql	#8,%d0			| value if we come here
+1:	movel	%a4,%sp			| restore stack pointer
+	movel	%a3,%a2@(11*4)		| restore trap vector
+	movew	%d2,%sr			| restore IPL
+	moveml	%sp@+,%d2/%a2-%a5	| restore registers
+	rte
+	.chip 68030
+");
 
     /*
      *	Determine the Amiga Model

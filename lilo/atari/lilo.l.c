@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: lilo.l.c,v 1.3 1997-08-23 23:09:35 rnhodek Exp $
+ * $Id: lilo.l.c,v 1.4 1997-09-19 09:06:56 geert Exp $
  * 
  * $Log: lilo.l.c,v $
- * Revision 1.3  1997-08-23 23:09:35  rnhodek
+ * Revision 1.4  1997-09-19 09:06:56  geert
+ * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+ *
+ * Revision 1.3  1997/08/23 23:09:35  rnhodek
  * New parameter 'set_bootdev' to parse_device
  * Fix handling of XGM partitions
  * Minor output enhancements
@@ -52,7 +55,7 @@ static void add_dev_cache( const char *name, int devno, unsigned long
                            start, int start_valid, int is_xgm );
 static void get_partition_start( const char *device, int is_xgm, unsigned
                                  long *start );
-static int get_SCSI_id( const char *device, unsigned major );
+static int get_SCSI_id( const char *device, unsigned int major );
 static void get_XGM_sector( const char *device, unsigned long *start );
 static void CreateBootBlock( void );
 static void CreateMapFile( void);
@@ -183,8 +186,8 @@ struct devent {
 	char *name;
 	int devno;
 	unsigned long start;
-	unsigned start_valid : 1;
-	unsigned is_xgm : 1;
+	unsigned int start_valid : 1;
+	unsigned int is_xgm : 1;
 } *device_cache = NULL;
 
 
@@ -193,7 +196,7 @@ void parse_device( char *device, int *devnum, unsigned long *start,
 {
 	struct devent *dc;
 	struct stat stbuf;
-	unsigned major, minor;
+	unsigned int major, minor;
 	int is_xgm = 0;
 	int len = strlen(device);
 
@@ -339,9 +342,9 @@ static void get_partition_start( const char *device, int is_xgm,
 }
 
 
-static int get_SCSI_id( const char *device, unsigned major )
+static int get_SCSI_id( const char *device, unsigned int major )
 {
-	unsigned idlun[2], id, lun;
+	unsigned int idlun[2], id, lun;
 	int fd;
 
 	if ((fd = open( device, O_RDONLY )) < 0)

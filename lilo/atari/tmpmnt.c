@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: tmpmnt.c,v 1.1 1997-08-12 15:27:13 rnhodek Exp $
+ * $Id: tmpmnt.c,v 1.2 1997-09-19 09:07:00 geert Exp $
  * 
  * $Log: tmpmnt.c,v $
- * Revision 1.1  1997-08-12 15:27:13  rnhodek
+ * Revision 1.2  1997-09-19 09:07:00  geert
+ * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+ *
+ * Revision 1.1  1997/08/12 15:27:13  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -31,13 +34,13 @@
 
 
 #define MAX_DRIVES	16
-static unsigned my_drives = 0;
+static unsigned int my_drives = 0;
 static struct drv_param {
-	unsigned dev;
+	unsigned int dev;
 	unsigned long start;
 	unsigned long secsize;
-	unsigned mediach;
-	unsigned rw;
+	unsigned int mediach;
+	unsigned int rw;
 } drv_param[MAX_DRIVES];
 static _BPB global_bpb;
 
@@ -77,8 +80,8 @@ static void uninstall_vectors( void );
 static int remove_vector( unsigned long *vec, const char *vecname );
 static long do_rwabs( int first_arg )
 	__attribute__ ((unused));
-	static _BPB *do_getbpb( unsigned drv );
-static long do_mediach( unsigned _drv )
+	static _BPB *do_getbpb( unsigned int drv );
+static long do_mediach( unsigned int _drv )
 	__attribute__ ((unused));
 
 /************************* End of Prototypes **************************/
@@ -286,11 +289,11 @@ static long do_rwabs( int first_arg )
 {
 	/* get 16 bit arguments */
 	unsigned short *argp = (unsigned short *)&first_arg;
-	unsigned rwflag = *argp++;
+	unsigned int rwflag = *argp++;
 	char    *buffer = *((char **)argp)++;
-	unsigned cnt = *argp++;
+	unsigned int cnt = *argp++;
 	unsigned long sector = *argp++;
-	unsigned drv = *argp++;
+	unsigned int drv = *argp++;
 	struct drv_param *dp = &drv_param[drv];
 	long err;
 	
@@ -317,7 +320,7 @@ static long do_rwabs( int first_arg )
 
 
 /* do_getbpb is called with 32bit drv, because it's also called from C code */
-static _BPB *do_getbpb( unsigned drv )
+static _BPB *do_getbpb( unsigned int drv )
 {
 	struct drv_param *dp = &drv_param[drv];
 	struct boot_sector *boot;
@@ -363,9 +366,9 @@ static _BPB *do_getbpb( unsigned drv )
 }
 
 
-static long do_mediach( unsigned _drv )
+static long do_mediach( unsigned int _drv )
 {
-	unsigned drv = *(unsigned short *)&_drv;
+	unsigned int drv = *(unsigned short *)&_drv;
 	
 	if (drv_param[drv].mediach) {
 		drv_param[drv].mediach++;

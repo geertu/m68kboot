@@ -7,11 +7,14 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: ethlance.c,v 1.1 1997-07-15 09:45:38 rnhodek Exp $
+ * $Id: ethlance.c,v 1.2 1997-09-19 09:06:43 geert Exp $
  * 
  * $Log: ethlance.c,v $
- * Revision 1.1  1997-07-15 09:45:38  rnhodek
- * Initial revision
+ * Revision 1.2  1997-09-19 09:06:43  geert
+ * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+ *
+ * Revision 1.1.1.1  1997/07/15 09:45:38  rnhodek
+ * Import sources into CVS
  *
  * 
  */
@@ -77,7 +80,7 @@ struct lance_packet {
 struct lance_init_block {
 	unsigned short	mode;		/* Pre-set mode */
 	unsigned char	hwaddr[6];	/* Physical ethernet address */
-	unsigned		filter[2];	/* Multicast filter (unused). */
+	unsigned int	filter[2];	/* Multicast filter (unused). */
 	/* Receive and transmit ring base, along with length bits. */
 	struct ringdesc	rx_ring;
 	struct ringdesc	tx_ring;

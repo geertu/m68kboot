@@ -7,10 +7,13 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: monitor.c,v 1.1 1997-08-12 15:27:12 rnhodek Exp $
+ * $Id: monitor.c,v 1.2 1997-09-19 09:07:00 geert Exp $
  * 
  * $Log: monitor.c,v $
- * Revision 1.1  1997-08-12 15:27:12  rnhodek
+ * Revision 1.2  1997-09-19 09:07:00  geert
+ * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+ *
+ * Revision 1.1  1997/08/12 15:27:12  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -45,7 +48,7 @@ static struct BootRecord *CurrRec;
 
 static int monitor_command( void );
 static void exec_command( int argc, const char *argv[], const struct
-                          command *commands, unsigned ncommands );
+                          command *commands, unsigned int ncommands );
 static void parse_line( char *line, int *argcp, const char **argvp[] );
 static void show_help( int argc, const char *argv[] );
 static void show_version( int argc, const char *argv[] );
@@ -75,7 +78,7 @@ static void set_bootdrv( int argc, const char *argv[] );
 static void set_device( int argc, const char *argv[] );
 static void set_sector( int argc, const char *argv[] );
 static void show_partition( int argc, const char *argv[] );
-static void show_part_info( unsigned n, struct partition *pi, unsigned long
+static void show_part_info( unsigned int n, struct partition *pi, unsigned long
                             offset );
 static void do_mount( int argc, const char *argv[] );
 static void do_umount( int argc, const char *argv[] );
@@ -148,7 +151,8 @@ static int monitor_command( void )
 
 
 static void exec_command( int argc, const char *argv[],
-						  const struct command *commands, unsigned ncommands )
+						  const struct command *commands,
+						  unsigned int ncommands )
 {
 	int i;
 
@@ -565,7 +569,7 @@ static void show_partition( int argc, const char *argv[] )
 	struct BootBlock *rs = (struct BootBlock *)_dskbuf;
 	struct BootBlock *xrs = rs + 1;
 	struct partition *pi;
-	unsigned num = 0;
+	unsigned int num = 0;
 	unsigned long sec, extoffset;
 	int dev;
 	long err;
@@ -604,7 +608,7 @@ static void show_partition( int argc, const char *argv[] )
 	}
 }
 
-static void show_part_info( unsigned n, struct partition *pi,
+static void show_part_info( unsigned int n, struct partition *pi,
 							unsigned long offset )
 {
 	cprintf( "  %2u: %c%c%c $%02x  %9lu %9lu%s kByte\n",

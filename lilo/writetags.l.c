@@ -6,10 +6,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: writetags.l.c,v 1.2 1997-08-12 21:51:04 rnhodek Exp $
+ * $Id: writetags.l.c,v 1.3 1997-09-19 09:06:49 geert Exp $
  * 
  * $Log: writetags.l.c,v $
- * Revision 1.2  1997-08-12 21:51:04  rnhodek
+ * Revision 1.3  1997-09-19 09:06:49  geert
+ * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+ *
+ * Revision 1.2  1997/08/12 21:51:04  rnhodek
  * Written last missing parts of Atari lilo and made everything compile
  *
  * Revision 1.1  1997/08/12 15:26:59  rnhodek
@@ -185,7 +188,7 @@ static void WriteTagString(int fd, u_long tag, const char *s)
 static void WriteZeroTag( int fd, const char *fname )
 {
 	u_long blksize, zerosize, offset, start;
-	unsigned sectors_per_block;
+	unsigned int sectors_per_block;
 	off_t pos;
 	char *zeros;
 	dev_t dev;

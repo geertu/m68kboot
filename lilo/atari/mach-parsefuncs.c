@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: mach-parsefuncs.c,v 1.1 1997-08-12 15:27:10 rnhodek Exp $
+ * $Id: mach-parsefuncs.c,v 1.2 1997-09-19 09:06:59 geert Exp $
  * 
  * $Log: mach-parsefuncs.c,v $
- * Revision 1.1  1997-08-12 15:27:10  rnhodek
+ * Revision 1.2  1997-09-19 09:06:59  geert
+ * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+ *
+ * Revision 1.1  1997/08/12 15:27:10  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -97,8 +100,8 @@ static int SerialSpeedCode( int speed )
 }
 
 
-static int AddTmpMnt( int dev, unsigned long start, unsigned drive,
-					   unsigned rw_flag )
+static int AddTmpMnt( int dev, unsigned long start, unsigned int drive,
+					   unsigned int rw_flag )
 {
 	int i;
     struct TagTmpMnt **p, *new;

@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: config.h,v 1.2 1997-08-23 22:47:30 rnhodek Exp $
+ * $Id: config.h,v 1.3 1997-09-19 09:06:56 geert Exp $
  * 
  * $Log: config.h,v $
- * Revision 1.2  1997-08-23 22:47:30  rnhodek
+ * Revision 1.3  1997-09-19 09:06:56  geert
+ * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+ *
+ * Revision 1.2  1997/08/23 22:47:30  rnhodek
  * Added forgotten icdpart in struct BootBlock
  *
  * Revision 1.1  1997/08/12 15:27:08  rnhodek
@@ -74,8 +77,8 @@ struct BootBlock {
 struct tmpmnt {
     int device;		/* BIOS device number */
     unsigned long start_sec;	/* abs. start sector of partition */
-    unsigned drive;			/* drive number (0=A:, 1=B:, ... */
-    unsigned rw;			/* read/write flag */
+    unsigned int drive;			/* drive number (0=A:, 1=B:, ... */
+    unsigned int rw;			/* read/write flag */
 };
 
 

@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: config_common.h,v 1.1 1997-08-12 15:26:56 rnhodek Exp $
+ * $Id: config_common.h,v 1.2 1997-09-19 09:06:45 geert Exp $
  * 
  * $Log: config_common.h,v $
- * Revision 1.1  1997-08-12 15:26:56  rnhodek
+ * Revision 1.2  1997-09-19 09:06:45  geert
+ * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+ *
+ * Revision 1.1  1997/08/12 15:26:56  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -60,7 +63,7 @@ typedef struct {
     u_long start_tag;		/* start tag */
     u_long end_tag;		/* end tag */
     TAGTAB *tag_table;		/* tag table for parsing */
-    unsigned rec_size;		/* size of one list element */
+    unsigned int rec_size;	/* size of one list element */
 } TAGSECT;
 
 #define TAG_LILO		LILO_ID	/* File Identification */

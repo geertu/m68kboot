@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.	See the file COPYING for more details.
  * 
- * $Id: head.l.S,v 1.1 1997-08-12 15:27:03 rnhodek Exp $
+ * $Id: head.l.S,v 1.2 1997-09-19 09:06:53 geert Exp $
  * 
  * $Log: head.l.S,v $
- * Revision 1.1  1997-08-12 15:27:03  rnhodek
+ * Revision 1.2  1997-09-19 09:06:53  geert
+ * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+ *
+ * Revision 1.1  1997/08/12 15:27:03  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -20,46 +23,10 @@
 
 #include <linux/linkage.h>
 
-#include "bootlib.h"
+#include "amigaos.h"
 
 
-    /*
-     *	Alert Codes
-     */
-
-AT_DeadEnd		= 0x80000000
-AN_LILO			= AT_DeadEnd+0x4c000000 | Lilo Alert Base CC000000
-AG_NoMemory		= 0x00010000
-AG_BadParm              = 0x00080000
-NOT_ENOUGH_MEMORY	= AN_LILO+AG_NoMemory	| Yields Alert Code CC010000
-HUNK_ERROR		= AN_LILO+AG_BadParm	| Yields Alert Code CC080000
-
-    /*
-     *	Memory Allocation
-     */
-
-MEMF_PUBLIC		= 1
-MEMF_CLEAR		= 0x10000
-MEMF_PUB_CLR		= MEMF_PUBLIC+MEMF_CLEAR
-
-    /*
-     *	Exec Library Vector Offsets
-     */
-
-LVOAlert		= -0x6c
-LVOAllocVec		= -0x2ac
-LVOFreeVec		= -0x2b2
-
-    /*
-     *  DOS Hunks
-     */
-
-HUNK_CODE		= 1001
-HUNK_DATA		= 1002
-HUNK_BSS		= 1003
-HUNK_RELOC32		= 1004
-HUNK_END		= 1010
-HUNK_HEADER		= 1011
+AN_LILO = AT_DeadEnd+0x4c000000
 
 
 .text
@@ -67,14 +34,14 @@ HUNK_HEADER		= 1011
     /*
      *	Header for an AmigaOS Load Module
      *
-     *	    in:	    d0 = LiloTable
+     *	    in:	    d0 = BootRequest
      *
      *	    out:    d0 = result
      */
 
 ENTRY(_HeadStart)
 		moveml	%d2-%d5/%a2-%a6,%sp@-
-		movel	%d0,%a5			| LiloTable
+		movel	%d0,%a5			| BootRequest
 		movel	4:w,%a6			| SysBase
 
     /*
@@ -164,8 +131,7 @@ HunkEnd:	addql	#1,%d2
 
 		movel	%a2@(4),%a0		| First Hunk in Segment Table
 		movel	%a5,%d0
-		movel	%a5@(Lilo_Exec),%a1
-		jsr	%a1@
+		jbsr	Exec
 		movel	%d0,%d3			| Result
 
     /*
@@ -175,29 +141,70 @@ HunkEnd:	addql	#1,%d2
 		movel	%a2,%a3			| Segment Table
 		movel	%a2@+,%d2
 1:		movel	%a2@+,%a1
-		jbsr	%a6@(LVOFreeVec)
+		jsr	%a6@(LVOFreeVec)
 		subql	#1,%d2
 		jne	1b
 		movel	%a3,%a1
-		jbsr	%a6@(LVOFreeVec)
+		jsr	%a6@(LVOFreeVec)
 
 		movel	%d3,%d0
 		moveml	%sp@+,%d2-%d5/%a2-%a6
 		rts
 
 
-HunkError:	movel	#HUNK_ERROR,%d7
+HunkError:	movel	#AN_LILO+AG_BadParm,%d7
 		jmp	%a6@(LVOAlert)
 
 Malloc4:	asll	#2,%d0
-		movel	#MEMF_PUB_CLR,%d1
+		movel	#MEMF_PUBLIC+MEMF_CLEAR,%d1
 		jsr	%a6@(LVOAllocVec)
 		tstl	%d0
 		jeq	NoMemory
 		rts
 
-NoMemory:	movel	#NOT_ENOUGH_MEMORY,%d7
+NoMemory:	movel	#AN_LILO+AG_NoMemory,%d7
 		jmp	%a6@(LVOAlert)
+
+
+    /*
+     *	Execute a Loaded File
+     *
+     *	    in:	    a0 = data
+     *		    d0 = arg
+     *
+     *	    out:    d0 = result
+     */
+
+Exec:		moveml	%d2/%a2/%a5,%sp@-
+		movel	%a0,%a2
+		movel	%d0,%d2
+		lea	%a6@(LVOCacheClearU),%a1
+		cmpw	#37,%a6@(LIB_VERSION)
+		jcc	Cache37			| Only V37+
+
+		lea	%pc@(Cache36),%a1	| Home-made Cache Flush
+
+Cache37:	jsr	%a1@			| Do the Flush
+		movel	%d2,%d0			| Pass Args
+		jsr	%a2@			| Call Loaded Program
+		moveml	%sp@+,%d2/%a2/%a5
+		rts
+
+Cache36:	lea	%pc@(CacheSV),%a5
+		jmp	%a6@(LVOSuperVisor)
+
+    /*
+     *	This code only runs on pre-2.0 (also early A3000 Boot ROMs)
+     *	I assume there are still a lot of these (I have one too 8)
+     *
+     *	No need to check for 040, because this ROM doesn't work at all
+     *	on anything but a 030...
+     */
+
+CacheSV:	movec	%cacr,%d0
+		orw	#0x00000808,%d0		| clear 030 caches
+		movec	%d0,%cacr
+		rte
 
 
 ENTRY(_HeadEnd)
@@ -208,4 +215,3 @@ ENTRY(_HeadEnd)
      */
 
 LoadModuleData:
-

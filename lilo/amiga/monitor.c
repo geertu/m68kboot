@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: monitor.c,v 1.1 1997-08-12 15:27:05 rnhodek Exp $
+ * $Id: monitor.c,v 1.2 1997-09-19 09:06:54 geert Exp $
  * 
  * $Log: monitor.c,v $
- * Revision 1.1  1997-08-12 15:27:05  rnhodek
+ * Revision 1.2  1997-09-19 09:06:54  geert
+ * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+ *
+ * Revision 1.1  1997/08/12 15:27:05  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -286,9 +289,9 @@ static void DumpInfo(const struct BootData *data)
     if (!data->NumMemory)
 	Puts("[nummem]  Memory Blocks:    auto\n");
     else {
-	Printf("[nummem]  Memory Blocks:    %ld\n", data->NumMemory);
+	Printf("[nummem]  Memory Blocks:    %d\n", data->NumMemory);
 	for (i = 0; i < data->NumMemory; i++)
-	    Printf("[mem %2ld]  0x%08lx: 0x%08lx bytes\n", i+1,
+	    Printf("[mem %2d]  0x%08lx: 0x%08lx bytes\n", i+1,
 		   data->FastChunks[i].Address, data->FastChunks[i].Size);
     }
     PutChar('\n');

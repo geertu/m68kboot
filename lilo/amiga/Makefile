@@ -8,10 +8,13 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.1 1997-08-12 15:26:59 rnhodek Exp $
+# $Id: Makefile,v 1.2 1997-09-19 09:06:50 geert Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.1  1997-08-12 15:26:59  rnhodek
+# Revision 1.2  1997-09-19 09:06:50  geert
+# Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+#
+# Revision 1.1  1997/08/12 15:26:59  rnhodek
 # Import of Amiga and newly written Atari lilo sources, with many mods
 # to separate out common parts.
 #
@@ -22,5 +25,5 @@ LOADER_OBJS = $(addprefix amiga/,loader.o linuxboot.o monitor.o \
                                  $(LOADER_COBJS))
 
 amiga/loader: $(LOADER_OBJS) $(AMIGA_COBJS)
-	$(AMIGA_COMPILE) -noixemul -s -o $@ $^
+	$(AMIGA_COMPILE) -noixemul -nostartfiles -s -o $@ $^
 

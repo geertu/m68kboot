@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: mach-rules.y,v 1.2 1997-08-23 23:09:50 rnhodek Exp $
+ * $Id: mach-rules.y,v 1.3 1997-09-19 09:06:59 geert Exp $
  * 
  * $Log: mach-rules.y,v $
- * Revision 1.2  1997-08-23 23:09:50  rnhodek
+ * Revision 1.3  1997-09-19 09:06:59  geert
+ * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+ *
+ * Revision 1.2  1997/08/23 23:09:50  rnhodek
  * New parameter 'set_bootdev' to parse_device
  *
  * Revision 1.1  1997/08/12 15:27:10  rnhodek
@@ -116,7 +119,7 @@ cpu_cookie: "cpu" NUMBER
 
 fpu_cookie: "fpu" fpucode
 	{
-		unsigned code;
+		unsigned int code;
 		if (Config.Options.FPU_cookie)
 		    Redefinition((char *)$1);
 		switch( $2 ) {

@@ -6,10 +6,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo_util.h,v 1.2 1997-08-12 21:51:02 rnhodek Exp $
+ * $Id: lilo_util.h,v 1.3 1997-09-19 09:06:48 geert Exp $
  * 
  * $Log: lilo_util.h,v $
- * Revision 1.2  1997-08-12 21:51:02  rnhodek
+ * Revision 1.3  1997-09-19 09:06:48  geert
+ * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+ *
+ * Revision 1.2  1997/08/12 21:51:02  rnhodek
  * Written last missing parts of Atari lilo and made everything compile
  *
  * Revision 1.1  1997/08/12 15:26:57  rnhodek
@@ -21,6 +24,8 @@
 
 #ifndef _lilo_util_h
 #define _lilo_util_h
+
+#ifndef __ASSEMBLY__
 
 #include "config.h"
 
@@ -87,10 +92,13 @@ void PatchLoader( void);
 /************************* End of Prototypes **************************/
 
 #undef MAJOR
-#define	MAJOR(dev)	(((unsigned)(dev) >> 8) & 0xff)
+#define	MAJOR(dev)	(((unsigned int)(dev) >> 8) & 0xff)
 #undef MINOR
-#define	MINOR(dev)	((unsigned)(dev) & 0xff)
+#define	MINOR(dev)	((unsigned int)(dev) & 0xff)
+
+#endif /* __ASSEMBLY__ */
 
 #define HARD_SECTOR_SIZE	512
+#define HARD_SECTOR_SIZE_SHIFT	9
 
 #endif  /* _lilo_util_h */

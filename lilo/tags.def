@@ -1,8 +1,11 @@
 #
-# $Id: tags.def,v 1.1 1997-08-12 15:26:58 rnhodek Exp $
+# $Id: tags.def,v 1.2 1997-09-19 09:06:49 geert Exp $
 #
 # $Log: tags.def,v $
-# Revision 1.1  1997-08-12 15:26:58  rnhodek
+# Revision 1.2  1997-09-19 09:06:49  geert
+# Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+#
+# Revision 1.1  1997/08/12 15:26:58  rnhodek
 # Import of Amiga and newly written Atari lilo sources, with many mods
 # to separate out common parts.
 #
@@ -23,7 +26,7 @@ BO DEBUG	int	-		Debug		Debug Flag
 BO PROMPT	str	-		Prompt		Boot Prompt
 
 #
-# Definition of a Entity to Boot
+# Definition of an Entity to Boot
 #
 #          struct tag   tagno	loader anchor	Config.	name
 BR section BootRecord	2000	BootRecords	Records	Boot Records
@@ -38,7 +41,7 @@ BR PASSWORD	str	-		Password	Password
 BR RAMDISK	str	-		Ramdisk		Ramdisk Image
 
 #
-# Definition for a File
+# Definition of a File
 #
 #          struct tag   tagno	loader anchor	Config.	name
 FI section FileDef	3000	Files		Files	File Definitions

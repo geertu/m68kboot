@@ -21,10 +21,13 @@
  *  License.  See the file COPYING in the main directory of this archive
  *  for more details.
  * 
- * $Id: linuxboot.h,v 1.6 1997-08-12 15:26:55 rnhodek Exp $
+ * $Id: linuxboot.h,v 1.7 1997-09-19 09:06:42 geert Exp $
  * 
  * $Log: linuxboot.h,v $
- * Revision 1.6  1997-08-12 15:26:55  rnhodek
+ * Revision 1.7  1997-09-19 09:06:42  geert
+ * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+ *
+ * Revision 1.6  1997/08/12 15:26:55  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -126,11 +129,6 @@ struct linuxboot_args {
     int keep_video;
     int reset_boards;
     u_int baud;
-    int (*open)(const char *path);
-    int (*seek)(int fd, int offset);
-    int (*read)(int fd, char *buf, int count);
-    void (*close)(int fd);
-    int (*filesize)(const char *path);
     void (*sleep)(u_long micros);
 };
 

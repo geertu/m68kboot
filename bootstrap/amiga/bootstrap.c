@@ -28,10 +28,13 @@
 ** License.  See the file COPYING in the main directory of this archive
 ** for more details.
 **
-** $Id: bootstrap.c,v 1.3 1997-08-10 19:22:53 rnhodek Exp $
+** $Id: bootstrap.c,v 1.4 1997-09-19 09:06:22 geert Exp $
 ** 
 ** $Log: bootstrap.c,v $
-** Revision 1.3  1997-08-10 19:22:53  rnhodek
+** Revision 1.4  1997-09-19 09:06:22  geert
+** Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+**
+** Revision 1.3  1997/08/10 19:22:53  rnhodek
 ** Moved AmigaOS inline funcs to extr header inline-funcs.h; the functions
 ** can't be compiled under Linux
 **
@@ -82,11 +85,6 @@ struct linuxboot_args args;
 
 static void Usage(void) __attribute__ ((noreturn));
 int main(int argc, char *argv[]);
-static int Open(const char *path);
-static int Seek(int fd, int offset);
-static int Read(int fd, char *buf, int count);
-static void Close(int fd);
-static int FileSize(const char *path);
 static void Sleep(u_long micros);
 
 
@@ -236,11 +234,6 @@ int main(int argc, char *argv[])
     args.keep_video = keep_video;
     args.reset_boards = 1;
     args.baud = baud;
-    args.open = Open;
-    args.seek = Seek;
-    args.read = Read;
-    args.close = Close;
-    args.filesize = FileSize;
     args.sleep = Sleep;
 
     /* Do The Right Stuff */
@@ -254,38 +247,6 @@ int main(int argc, char *argv[])
     /*
      *  Routines needed by linuxboot
      */
-
-static int Open(const char *path)
-{
-    return(open(path, O_RDONLY));
-}
-
-static int Seek(int fd, int offset)
-{
-    return(lseek(fd, offset, SEEK_SET));
-}
-
-
-static int Read(int fd, char *buf, int count)
-{
-    return(read(fd, buf, count));
-}
-
-static void Close(int fd)
-{
-    close(fd);
-}
-
-static int FileSize(const char *path)
-{
-    int fd, size = -1;
-
-    if ((fd = open(path, O_RDONLY)) != -1) {
-	size = lseek(fd, 0, SEEK_END);
-	close(fd);
-    }
-    return(size);
-}
 
 static void Sleep(u_long micros)
 {

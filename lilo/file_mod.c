@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: file_mod.c,v 1.1 1997-08-12 15:26:56 rnhodek Exp $
+ * $Id: file_mod.c,v 1.2 1997-09-19 09:06:46 geert Exp $
  * 
  * $Log: file_mod.c,v $
- * Revision 1.1  1997-08-12 15:26:56  rnhodek
+ * Revision 1.2  1997-09-19 09:06:46  geert
+ * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+ *
+ * Revision 1.1  1997/08/12 15:26:56  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -78,7 +81,7 @@ static int file_open( const char *name )
 
 static long file_fillbuf( void *buf )
 {
-	unsigned len;
+	unsigned int len;
 	long err;
 
 	if (CurrCnt == 0)
@@ -99,7 +102,7 @@ static long file_fillbuf( void *buf )
 
 static int file_skip( long cnt )
 {
-	unsigned len;
+	unsigned int len;
 	long pos = currmod->fpos;
 
 	while( cnt >= 512 ) {

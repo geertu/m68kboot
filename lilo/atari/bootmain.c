@@ -7,10 +7,13 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: bootmain.c,v 1.2 1997-08-23 20:47:50 rnhodek Exp $
+ * $Id: bootmain.c,v 1.3 1997-09-19 09:06:55 geert Exp $
  * 
  * $Log: bootmain.c,v $
- * Revision 1.2  1997-08-23 20:47:50  rnhodek
+ * Revision 1.3  1997-09-19 09:06:55  geert
+ * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+ *
+ * Revision 1.2  1997/08/23 20:47:50  rnhodek
  * Fixed waiting for keypress in autoboot
  * Added some debugging printf
  * Replaced printf by cprintf
@@ -43,13 +46,13 @@ const struct FileVectorData MapVectorData = {
     { LILO_ID, LILO_MAPVECTORID }, MAXVECTORSIZE
 };
 
-unsigned ExitAction = 0;
+unsigned int ExitAction = 0;
 
-unsigned Debug = 0;
-unsigned SerialPort = 0;
-unsigned AutoBoot = 0;
+int Debug = 0;
+unsigned int SerialPort = 0;
+unsigned int AutoBoot = 0;
 const char *Prompt = NULL;
-unsigned NoGUI = 0;
+unsigned int NoGUI = 0;
 const struct BootRecord *dflt_os = NULL;
 int CurrentFloppy = 0;
 
@@ -94,7 +97,7 @@ struct {
 /***************************** Prototypes *****************************/
 
 static void ReadMapData( void);
-static unsigned parse_serial_params( const char *param );
+static unsigned int parse_serial_params( const char *param );
 static void patch_cookies( void );
 static void set_cookie( const char *name, u_long value );
 static void cache_ctrl( int on_flag );
@@ -441,7 +444,7 @@ static void ReadMapData(void)
 {
 	struct TagTmpMnt *tmnt;
 	struct tmpmnt *mnt;
-	unsigned i;
+	unsigned int i;
 	
 	/* parse tags */
     ParseTags();
@@ -474,7 +477,7 @@ static void ReadMapData(void)
  */
 int exec_tos_program( const char *prog )
 {
-	unsigned cmdlen, arglen;
+	unsigned int cmdlen, arglen;
 	const char *p;
 	char *cmd, *args;
 	long err;
@@ -532,9 +535,9 @@ const char *tos_perror( long err )
  * Translate a serial parameter string (e.g. "8N1") to an ucr value for
  * Rsconf()
  */
-static unsigned parse_serial_params( const char *param )
+static unsigned int parse_serial_params( const char *param )
 {
-	unsigned bits = 0, parity = 0, stopbits = 1;
+	unsigned int bits = 0, parity = 0, stopbits = 1;
 
 	if (*param >= '5' && *param <= '8')
 		bits = 3 - (*param - '5');
@@ -765,7 +768,8 @@ void Alert( enum AlertCodes code )
  */
 
 /* Callback for file_mod.c: Read some sectors */
-long ReadSectors( char *buf, unsigned _device, unsigned sector, unsigned cnt )
+long ReadSectors( char *buf, unsigned int _device, unsigned int sector,
+				  unsigned int cnt )
 {
 	int device = _device;
 	
@@ -781,7 +785,8 @@ long ReadSectors( char *buf, unsigned _device, unsigned sector, unsigned cnt )
 		return( DMAread( sector, cnt, buf, device ) );
 }
 
-long WriteSectors( char *buf, int device, unsigned sector, unsigned cnt )
+long WriteSectors( char *buf, int device, unsigned int sector,
+				   unsigned int cnt )
 {
 	if (Debug)
 		cprintf( "WriteSectors( dev=%d, sector=%u, cnt=%u, buf=%08lx )\n",

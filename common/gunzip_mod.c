@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: gunzip_mod.c,v 1.3 1997-07-18 11:07:08 rnhodek Exp $
+ * $Id: gunzip_mod.c,v 1.4 1997-09-19 09:06:38 geert Exp $
  * 
  * $Log: gunzip_mod.c,v $
- * Revision 1.3  1997-07-18 11:07:08  rnhodek
+ * Revision 1.4  1997-09-19 09:06:38  geert
+ * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+ *
+ * Revision 1.3  1997/07/18 11:07:08  rnhodek
  * Added sfilesize() call & Co. to streams
  *
  * Revision 1.2  1997/07/16 15:06:23  rnhodek
@@ -95,9 +98,9 @@ static uch *inbuf;
 static uch *window;
 static uch *previous_window;
 
-static unsigned insize = 0;  /* valid bytes in inbuf */
-static unsigned inptr = 0;   /* index of next byte to be processed in inbuf */
-static unsigned outcnt = 0;  /* bytes in output buffer */
+static unsigned int insize = 0;  /* valid bytes in inbuf */
+static unsigned int inptr = 0;   /* index of next byte to be processed in inbuf */
+static unsigned int outcnt = 0;  /* bytes in output buffer */
 static int exit_code = 0;
 static long bytes_out = 0;
 
@@ -294,7 +297,7 @@ static int fill_inbuf( void )
 static void flush_window( void )
 {
     ulg c = crc;         /* temporary variable */
-    unsigned n;
+    unsigned int n;
     uch *in, ch;
     
     in = window;

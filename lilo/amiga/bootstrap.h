@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: bootstrap.h,v 1.3 1997-08-12 15:18:25 rnhodek Exp $
+ * $Id: bootstrap.h,v 1.4 1997-09-19 09:06:51 geert Exp $
  * 
  * $Log: bootstrap.h,v $
- * Revision 1.3  1997-08-12 15:18:25  rnhodek
+ * Revision 1.4  1997-09-19 09:06:51  geert
+ * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+ *
+ * Revision 1.3  1997/08/12 15:18:25  rnhodek
  * Moved AmigaOS inline funcs to extr header inline-funcs.h; the functions
  * can't be compiled under Linux
  *
@@ -47,6 +50,12 @@
 	})
 
 #endif  /* _bootstrap_h */
+
+extern void Puts(const char *str);
+extern void Printf(const char *fmt, ...) __attribute__
+    ((format (printf, 1, 2)));
+extern int GetChar(void);
+extern void PutChar(int c);
 
 /* Local Variables: */
 /* tab-width: 4     */

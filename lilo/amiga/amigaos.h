@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: amigaos.h,v 1.1 1997-08-12 15:26:59 rnhodek Exp $
+ * $Id: amigaos.h,v 1.2 1997-09-19 09:06:50 geert Exp $
  * 
  * $Log: amigaos.h,v $
- * Revision 1.1  1997-08-12 15:26:59  rnhodek
+ * Revision 1.2  1997-09-19 09:06:50  geert
+ * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+ *
+ * Revision 1.1  1997/08/12 15:26:59  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -22,32 +25,66 @@
 
 
     /*
-     *  linuxboot.h contains some more AmigaOS definitsion
+     *  linuxboot.h contains some more AmigaOS definitions
      */
 
+#ifndef __ASSEMBLY__
 #include "linuxboot.h"
 #include "inline-funcs.h"
+#endif /* !__ASSEMBLY__ */
 
 
     /*
      *	Exec Library Definitions
      */
 
-#define AT_DeadEnd	(0x80000000)
-#define AG_NoMemory	(0x00010000)
-#define AG_NoSignal	(0x00070000)
-#define AG_OpenLib	(0x00030000)
-#define AG_OpenDev	(0x00040000)
-#define AG_OpenRes	(0x00050000)
-#define AO_GraphicsLib	(0x00008002)
-#define AO_Intuition	(0x00008004)
-#define AO_ExpansionLib	(0x0000800A)
-#define AO_ConsoleDev	(0x00008011)
-#define AO_KeyboardDev	(0x00008013)
-#define AO_TimerDev	(0x00008015)
-#define AO_Unknown	(0x00008035)
-#define AN_OpenScreen	(0x84010007)
-#define AN_OpenWindow	(0x8401000B)
+#define AT_DeadEnd		0x80000000
+#define AG_NoMemory		0x00010000
+#define AG_OpenLib		0x00030000
+#define AG_OpenDev		0x00040000
+#define AG_OpenRes		0x00050000
+#define AG_IOError		0x00060000
+#define AG_NoSignal		0x00070000
+#define AG_BadParm		0x00080000
+#define AO_GraphicsLib		0x00008002
+#define AO_Intuition		0x00008004
+#define AO_ExpansionLib		0x0000800A
+#define AO_ConsoleDev		0x00008011
+#define AO_KeyboardDev		0x00008013
+#define AO_TimerDev		0x00008015
+#define AO_Unknown		0x00008035
+#define AN_OpenScreen		0x84010007
+#define AN_OpenWindow		0x8401000B
+
+#define CMD_READ		2
+#define CMD_WRITE		3
+#define TD_MOTOR		9
+#define KBD_READMATRIX		10
+
+#define IOF_QUICK		1
+
+#define UNIT_VBLANK		1
+#define TR_ADDREQUEST		9
+
+#define MEMF_PUBLIC		1
+#define MEMF_CLEAR		0x10000
+
+#define CONU_SNIPMAP		3
+#define CONFLAG_DEFAULT		0
+
+#define IEQUALIFIER_LSHIFT	0x0001
+#define IEQUALIFIER_RSHIFT	0x0002
+#define IEQUALIFIER_CAPSLOCK	0x0004
+#define IEQUALIFIER_CONTROL	0x0008
+#define IEQUALIFIER_LALT	0x0010
+#define IEQUALIFIER_RALT	0x0020
+#define IEQUALIFIER_LCOMMAND	0x0040
+#define IEQUALIFIER_RCOMMAND	0x0080
+#define IEQUALIFIER_MIDBUTTON	0x1000
+#define IEQUALIFIER_RBUTTON	0x2000
+#define IEQUALIFIER_LEFTBUTTON	0x4000
+
+#ifndef __ASSEMBLY__
 
 struct MsgPort {
     u_char fill1[15];
@@ -65,13 +102,8 @@ struct IOStdReq {
     u_long io_Actual;
     u_long io_Length;
     void *io_Data;
-    u_char fill4[4];
+    u_long io_Offset;
 };
-
-#define CMD_READ	(2)
-#define CMD_WRITE	(3)
-#define KBD_READMATRIX	(10)
-#define IOF_QUICK	(1<<0)
 
 struct timerequest {
     u_char fill1[28];
@@ -82,33 +114,52 @@ struct timerequest {
     u_long tv_micro;
 };
 
-#define UNIT_VBLANK	(1)
-#define TR_ADDREQUEST	(9)
-
-
-#define CONU_SNIPMAP	(3)
-#define CONFLAG_DEFAULT	(0)
-
-#define IEQUALIFIER_LSHIFT	(0x0001)
-#define IEQUALIFIER_RSHIFT	(0x0002)
-#define IEQUALIFIER_CAPSLOCK	(0x0004)
-#define IEQUALIFIER_CONTROL	(0x0008)
-#define IEQUALIFIER_LALT	(0x0010)
-#define IEQUALIFIER_RALT	(0x0020)
-#define IEQUALIFIER_LCOMMAND	(0x0040)
-#define IEQUALIFIER_RCOMMAND	(0x0080)
-#define IEQUALIFIER_MIDBUTTON	(0x1000)
-#define IEQUALIFIER_RBUTTON	(0x2000)
-#define IEQUALIFIER_LEFTBUTTON	(0x4000)
-
 struct IORequest;
 struct Library;
+
+#else /* __ASSEMBLY__ */
+
+#define IO_COMMAND		28
+#define IO_FLAGS		30
+#define IO_LENGTH		36
+#define IO_DATA			40
+#define IO_OFFSET		44
+
+#define IOEXTTD_SIZE		56
+
+#define LIB_VERSION		20
+
+#define RT_INIT			22
+
+#define eb_Flags		34
+#define EBB_SILENTSTART		6
+
+#endif /* __ASSEMBLY__ */
+
+
+    /*
+     *	DOS Library Definitions
+     */
+
+#define HUNK_CODE		1001
+#define HUNK_DATA		1002
+#define HUNK_BSS		1003
+#define HUNK_RELOC32		1004
+#define HUNK_END		1010
+#define HUNK_HEADER		1011
 
 
     /*
      *	Intuition Library Definitions
      */
 
+#define CUSTOMSCREEN		0x000f
+#define HIRES			0x8000
+
+#define WFLG_SIMPLE_REFRESH	0x00000040
+#define WFLG_ACTIVATE		0x00001000
+
+#ifndef __ASSEMBLY__
 struct NewScreen {
     short LeftEdge;
     short TopEdge;
@@ -124,9 +175,6 @@ struct NewScreen {
     struct Gadget *Gadgets;
     struct BitMap *CustomBitMap;
 };
-
-#define CUSTOMSCREEN	(0x000f)
-#define HIRES		(0x8000)
 
 struct NewWindow {
     short LeftEdge;
@@ -149,37 +197,51 @@ struct NewWindow {
     u_short Type;
 };
 
-#define WFLG_SIMPLE_REFRESH	(0x00000040)
-#define WFLG_ACTIVATE		(0x00001000)
-
 struct Window;
+#endif /* !__ASSEMBLY__ */
 
 
     /*
      *	Amiga Shared Library/Device Functions
      */
 
-extern const struct ExecBase *SysBase;
+#define LVOAbortIO		-0x1e0
+#define LVOAlert		-0x6c
+#define LVOAllocVec		-0x2ac
+#define LVOCacheClearU		-0x27c
+#define LVOCheckIO		-0x1d4
+#define LVOCloseDevice		-0x1c2
+#define LVOCloseLibrary		-0x19e
+#define LVOCreateIORequest	-0x28e
+#define LVOCreateMsgPort	-0x29a
+#define LVODebug		-0x72
+#define LVODeleteIORequest	-0x294
+#define LVODeleteMsgPort	-0x2a0
+#define LVODoIO			-0x1c8
+#define LVOFindResident		-0x60
+#define LVOFreeVec		-0x2b2
+#define LVOOpenDevice		-0x1bc
+#define LVOOpenLibrary		-0x228
+#define LVORawDoFmt		-0x20a
+#define LVORawMayGetChar	-0x1fe
+#define LVORawPutChar		-0x204
+#define LVOSendIO		-0x1ce
+#define LVOSetFunction		-0x1a4
+#define LVOSuperVisor		-0x1e
+#define LVOWaitIO		-0x1da
 
-#define LVOAbortIO		(-0x1e0)
-#define LVOAlert		(-0x6c)
-#define LVOCheckIO		(-0x1d4)
-#define LVOCloseDevice		(-0x1c2)
-#define LVOCloseLibrary		(-0x19e)
-#define LVOCreateIORequest	(-0x28e)
-#define LVOCreateMsgPort	(-0x29a)
-#define LVODebug		(-0x72)
-#define LVODeleteIORequest	(-0x294)
-#define LVODeleteMsgPort	(-0x2a0)
-#define LVODoIO			(-0x1c8)
-#define LVOOpenDevice		(-0x1bc)
-#define LVOOpenLibrary		(-0x228)
-#define LVORawDoFmt		(-0x20a)
-#define LVORawMayGetChar	(-0x1fe)
-#define LVORawPutChar		(-0x204)
-#define LVOSendIO		(-0x1ce)
-#define LVOSetFunction		(-0x1a4)
-#define LVOWaitIO		(-0x1da)
+#define LVOPeekQualifier	-0x2a
+
+#define LVODisBlitter		-0x1ce
+#define LVOOwnBlitter		-0x1c8
+
+#define LVOCloseScreen		-0x42
+#define LVOCloseWindow		-0x48
+#define LVOOpenScreen		-0xc6
+#define LVOOpenWindow		-0xcc
+
+#ifndef __ASSEMBLY__
+extern const struct ExecBase *SysBase;
 
 static __inline char AbortIO(struct IORequest *ioRequest)
 {
@@ -416,8 +478,6 @@ static __inline char WaitIO(struct IORequest *ioRequest)
 
 extern const struct InputBase *InputBase;
 
-#define LVOPeekQualifier	(-0x2a)
-
 static __inline u_short PeekQualifier(void)
 {
     register u_short _res __asm("d0");
@@ -431,12 +491,30 @@ static __inline u_short PeekQualifier(void)
 }
 
 
-extern const struct IntuitionBase *IntuitionBase;
+extern const struct GfxBase *GfxBase;
 
-#define LVOCloseScreen		(-0x42)
-#define LVOCloseWindow		(-0x48)
-#define LVOOpenScreen		(-0xc6)
-#define LVOOpenWindow		(-0xcc)
+static __inline void DisOwnBlitter(void)
+{
+    register const struct GfxBase *a6 __asm("a6") = GfxBase;
+
+    __asm __volatile ("jsr a6@(-0x1ce);"
+		      : /* no output */
+		      : "r" (a6)
+		      : "a0", "a1", "d0", "d1", "memory");
+}
+
+static __inline void OwnBlitter(void)
+{
+    register const struct GfxBase *a6 __asm("a6") = GfxBase;
+
+    __asm __volatile ("jsr a6@(-0x1c8);"
+		      : /* no output */
+		      : "r" (a6)
+		      : "a0", "a1", "d0", "d1", "memory");
+}
+
+
+extern const struct IntuitionBase *IntuitionBase;
 
 static __inline u_short CloseScreen(struct Screen *screen)
 {
@@ -487,5 +565,6 @@ static __inline struct Window *OpenWindow(struct NewWindow *newWindow)
 		      : "a0", "a1", "d0", "d1", "memory");
     return(_res);
 }
+#endif /* !__ASSEMBLY__ */
 
 #endif  /* _amigaos_h */

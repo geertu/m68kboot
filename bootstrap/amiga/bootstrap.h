@@ -17,10 +17,13 @@
 ** License.  See the file COPYING in the main directory of this archive
 ** for more details.
 **
-** $Id: bootstrap.h,v 1.6 1997-08-12 15:26:54 rnhodek Exp $
+** $Id: bootstrap.h,v 1.7 1997-09-19 09:06:23 geert Exp $
 ** 
 ** $Log: bootstrap.h,v $
-** Revision 1.6  1997-08-12 15:26:54  rnhodek
+** Revision 1.7  1997-09-19 09:06:23  geert
+** Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+**
+** Revision 1.6  1997/08/12 15:26:54  rnhodek
 ** Import of Amiga and newly written Atari lilo sources, with many mods
 ** to separate out common parts.
 **
@@ -183,12 +186,12 @@ static __inline void DeleteMsgPort(struct MsgPort *port)
 
 #include <stdio.h>
 
-#define Puts(str)			(fputs((str),stderr), fflush(stderr))
-#define	GetChar				getchar
-#define	PutChar(c)			fputc((c),stderr)
+#define Puts(str)		(fputs((str),stderr), fflush(stderr))
+#define	GetChar			getchar
+#define	PutChar(c)		fputc((c),stderr)
 #define	Printf(fmt,rest...)	(fprintf(stderr,fmt,##rest), fflush(stderr))
-#define Alloc(size)			AllocVec((size),MEMF_FAST|MEMF_PUBLIC)
-#define Free(p)				FreeVec(p)
+#define Alloc(size)		AllocVec((size),MEMF_FAST|MEMF_PUBLIC)
+#define Free(p)			FreeVec(p)
 #define	ReAlloc(ptr,oldsize,newsize)				\
 	({												\
 		void *__ptr = (ptr);						\

@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: loader.c,v 1.1 1997-08-12 15:27:04 rnhodek Exp $
+ * $Id: loader.c,v 1.2 1997-09-19 09:06:54 geert Exp $
  * 
  * $Log: loader.c,v $
- * Revision 1.1  1997-08-12 15:27:04  rnhodek
+ * Revision 1.2  1997-09-19 09:06:54  geert
+ * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
+ *
+ * Revision 1.1  1997/08/12 15:27:04  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -27,18 +30,18 @@
 #include <asm/amigahw.h>
 
 #include "amigaos.h"
-#include "bootlib.h"
 #include "config.h"
 #include "lilo.h"
 #include "console.h"
 #include "loader.h"
 #include "parsetags.h"
+#include "lilo_util.h"
 
 
     /*
      *  Program Entry
      *
-     *  Pass the Pointer to the LiloTable (in d0) to Main
+     *  Pass the Pointer to the IOStdReq for the Boot Device (in d0) to Main
      */
 
 asm(".text
@@ -54,6 +57,8 @@ SYMBOL_NAME_STR(_start) ":
 
 const char LiloVersion[] = VERSION;
 
+int Debug = 0;
+
 
     /*
      *	Console Echo Modes
@@ -68,7 +73,7 @@ const char LiloVersion[] = VERSION;
      *	Boot Library Functions
      */
 
-static const struct LiloTable *LiloTable;
+static struct IOStdReq *BootRequest;
 
 
     /*
@@ -158,7 +163,7 @@ struct BootData BootData;
      *	Function Prototypes
      */
 
-u_long Main(const struct LiloTable *lilotable);
+u_long Main(struct IOStdReq *bootrequest);
 static void ReadMapData(void);
 static void SplitNameArgs(const char *option, const char **name,
 			  const char **args);
@@ -169,7 +174,6 @@ static struct Console *FindConsole(const struct ConsoleDesc *consoles,
 static int Interactive(void);
 static void OpenConsole(void);
 static void CloseConsole();
-static long GetChar(void);
 static long ReadLine(u_long mode);
 static void Sleep(u_long micros);
 static int IsAvailable(const struct BootRecord *record);
@@ -177,11 +181,6 @@ static void GetBootOS(void);
 static u_long BootLinux(const struct BootOptions *global,
 			const struct BootData *boot);
 static u_long BootNetBSD(struct BootData *boot);
-static int Open(const char *path);
-static int Seek(int fd, int offset);
-static int Read(int fd, char *buf, int count);
-static void Close(int fd);
-static int FileSize(const char *path);
 
 
     /*
@@ -192,13 +191,13 @@ static int FileSize(const char *path);
      *	In all other cases it won't return :-)
      */
 
-u_long Main(const struct LiloTable *lilotable)
+u_long Main(struct IOStdReq *bootrequest)
 {
     u_long res = 0;
     u_short interactive = 0;
 
-    /* Boot Library */
-    LiloTable = lilotable;
+    /* IOStdReq for the Boot Device */
+    BootRequest = bootrequest;
 
     /* Open Libraries */
     SysBase = *(struct ExecBase **)4;
@@ -450,7 +449,7 @@ void Puts(const char *str)
      *	Put a Character to the Console
      */
 
-void PutChar(char c)
+void PutChar(int c)
 {
     if (VideoConsole)
 	VideoConsole->PutChar(c);
@@ -463,9 +462,9 @@ void PutChar(char c)
      *	Get a Character from the Console
      */
 
-static long GetChar(void)
+int GetChar(void)
 {
-    long res = -1;
+    int res = -1;
 
     if (VideoConsole || SerialConsole) {
 	if (VideoConsole)
@@ -922,17 +921,6 @@ static u_long BootLinux(const struct BootOptions *global,
     args.keep_video = 0;
     args.reset_boards = 0;
     args.baud = BootOptions->Baud ? *BootOptions->Baud : 0;
-#if 0 /* not in the structure... */
-    args.puts = Puts;
-    args.getchar = GetChar;
-    args.putchar = PutChar;
-    args.printf = Printf;
-#endif
-    args.open = Open;
-    args.seek = Seek;
-    args.read = Read;
-    args.close = Close;
-    args.filesize = FileSize;
     args.sleep = Sleep;
 
     /* Do The Right Stuff */
@@ -952,24 +940,27 @@ static u_long BootNetBSD(struct BootData *boot)
 
 
     /*
-     *	Functions needed by LinuxBoot
-     *
-     *	These functions are not complete implementations. They do only what's
-     *	really necessary.
+     *	Read one or more Sectors from the Boot Device
      */
 
-long ReadSectors( char *buf, unsigned device, unsigned sector, unsigned cnt )
+long ReadSectors( char *buf, unsigned int device, unsigned int sector,
+		  unsigned int cnt )
 {
-    /* XXX -- need to fill in */
-}
+    long err;
 
-static int FileSize(const char *path)
-{
-    const struct vecent *vector;
+    BootRequest->io_Command = CMD_READ;
+    BootRequest->io_Flags = IOF_QUICK;
+    BootRequest->io_Length = cnt*HARD_SECTOR_SIZE;
+    BootRequest->io_Data = buf;
+    BootRequest->io_Offset = sector*HARD_SECTOR_SIZE;
+    err = DoIO((struct IORequest *)BootRequest);
 
-    if (!(vector = FindVector(path)))
-	return(-1);
-    return(vector[0].start);
+    BootRequest->io_Command = TD_MOTOR;
+    BootRequest->io_Flags = IOF_QUICK;
+    BootRequest->io_Length = 0;
+    DoIO((struct IORequest *)BootRequest);
+
+    return err;
 }
 
 
@@ -1052,3 +1043,10 @@ ___mulsi3:	moveml	sp@(4:w),d0/d1
 		movel	sp@+,d3
 		rts
 ");
+
+
+void exit(int res)
+{
+    Alert(AN_LILO);	/* Any better idea? */
+    while (1);
+}
