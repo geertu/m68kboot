@@ -7,10 +7,15 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.10 1998-02-19 22:00:31 rnhodek Exp $
+# $Id: Makefile,v 1.11 1998-02-23 10:12:48 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.10  1998-02-19 22:00:31  rnhodek
+# Revision 1.11  1998-02-23 10:12:48  rnhodek
+# Add ($MACH) to do_install invocation, can be set from command line if
+# no /proc/hardware available.
+# Fix TAGS target.
+#
+# Revision 1.10  1998/02/19 22:00:31  rnhodek
 # Fix/rewrite check-modified and check-needed
 #
 # Revision 1.9  1998/02/19 21:52:13  rnhodek
@@ -133,7 +138,7 @@ dep:
 	fi
 
 install:
-	./do_install $(PREFIX)
+	./do_install $(PREFIX) $(MACH)
 
 binary:
 	doit=""; [ root = "`whoami`" ] || doit=sudo; $$doit ./make_binary
@@ -172,7 +177,8 @@ bootstrap/%.i bootstrap/%.s:
 lilo/%.i lilo/%.s:
 	$(MAKE) -C lilo MACH=$(dir $(subst lilo/,,$@)) $(subst lilo/,,$@)
 
-TAGS: etags `find . -name '*.[ch]'`
+TAGS:
+	etags `find . -name '*.[ch]'`
 
 tar: distclean
 	cd ..; \
