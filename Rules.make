@@ -1,10 +1,13 @@
 #
 # common definitions and rules for Makefiles
 #
-# $Id: Rules.make,v 1.5 1997-07-16 13:39:36 rnhodek Exp $
+# $Id: Rules.make,v 1.6 1997-07-30 21:40:52 rnhodek Exp $
 #
 # $Log: Rules.make,v $
-# Revision 1.5  1997-07-16 13:39:36  rnhodek
+# Revision 1.6  1997-07-30 21:40:52  rnhodek
+# Added rules for assembler and Linux sources
+#
+# Revision 1.5  1997/07/16 13:39:36  rnhodek
 # KERNEL_HEADERS var to find kernel headers
 #
 # Revision 1.4  1997/07/16 13:29:10  rnhodek
@@ -37,15 +40,24 @@ AMIGA_COMPILE = $(AMIGA_HOSTCC) $(AMIGA_HOSTINC) $(AMIGA_HOSTFLAGS) \
                 $(BOOTOPTS) $(INC) $(SUBDEF)
 ATARI_COMPILE = $(ATARI_HOSTCC) $(ATARI_HOSTINC) $(ATARI_HOSTFLAGS) \
                 $(BOOTOPTS) $(INC) $(SUBDEF)
+LINUX_COMPILE = $(CC) $(CFLAGS) $(BOOTOPTS) $(INC) $(SUBDEF)
 
 UPCASE_MACH = $(shell echo $(MACH) | tr [a-z] [A-Z])
 
+# native OS .c or .S -> .o
 amiga/%.o: %.c
 	$(AMIGA_COMPILE) -c $< -o $@
 
 atari/%.o: %.c
 	$(ATARI_COMPILE) -c $< -o $@
 
+amiga/%.o: %.S
+	$(AMIGA_COMPILE) -D__ASSEMBLY__ -c $< -o $@
+
+atari/%.o: %.S
+	$(ATARI_COMPILE) -D__ASSEMBLY__ -c $< -o $@
+
+# native OS .c -> .i or .s
 amiga/%.i: %.c
 	$(AMIGA_COMPILE) -E -dD $< -o $@
 
@@ -58,9 +70,23 @@ amiga/%.s: %.c
 atari/%.s: %.c
 	$(ATARI_COMPILE) -S $< -o $@
 
+# Linux .c -> .o
+amiga/%.o atari/%.o: %.l.c
+	$(LINUX_COMPILE) -c $< -o $@
+
+amiga/%.o atari/%.o: %.l.S
+	$(LINUX_COMPILE) -D__ASSEMBLY__ -c $< -o $@
+
+# special targets for building dependencies
 depend-amiga/%.o: %.c
 	$(AMIGA_COMPILE) -MM $< >>amiga/.depend
 
+depend-amiga/%.o: %.l.c
+	$(LINUX_COMPILE) -MM $< >>amiga/.depend
+
 depend-atari/%.o: %.c
 	$(ATARI_COMPILE) -MM $< >>atari/.depend
+
+depend-atari/%.o: %.l.c
+	$(LINUX_COMPILE) -MM $< >>atari/.depend
 
