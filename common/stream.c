@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  *
- * $Id: stream.c,v 1.2 1997-07-16 15:06:24 rnhodek Exp $
+ * $Id: stream.c,v 1.3 1997-07-17 14:21:57 geert Exp $
  * 
  * $Log: stream.c,v $
- * Revision 1.2  1997-07-16 15:06:24  rnhodek
+ * Revision 1.3  1997-07-17 14:21:57  geert
+ * Fix typos in comments
+ *
+ * Revision 1.2  1997/07/16 15:06:24  rnhodek
  * Replaced all call to libc functions puts, printf, malloc, ... in common code
  * by the capitalized generic function/macros. New generic function ReAlloc, need
  * by load_ramdisk.
@@ -74,7 +77,7 @@
  *     Return value is 0 for OK, 1 for "remove me from the stream please, I
  *     can't do anything", and < 0 for some error. 1 for transforming modules
  *     means that the transformation isn't to be applied (e.g. the file isn't
- *     compressed). If goinf to return 1, the open method must call sopen()
+ *     compressed). If going to return 1, the open method must call sopen()
  *     for the modules downstreams itself, and return 0 or -1 according to
  *     success of this. This allows modules to open the downstream channel,
  *     check it, and if the data seen are not applicable just return. If the
@@ -87,7 +90,7 @@
  *
  *   skip(cnt): Skip CNT bytes of the stream. This method is optional and may
  *     be NULL if the module can't implement it reasonably. (E.g., on
- *     decompressing it's impossible to skip, the data in between have to
+ *     decompressing it's impossible to skip, the data in between have to be
  *     decompressed anyway.) The new position in the stream is returned
  *     (this may be less than requested). A return value < 0 stands for error.
  *
@@ -134,7 +137,7 @@ void stream_init( void )
 
 /* push a module onto the stream
  * 
- * The new module is inserted after the head module, i.e. ontop of the other
+ * The new module is inserted after the head module, i.e. on top of the other
  * modules registered before.
  */
 void stream_push( MODULE *mod )
