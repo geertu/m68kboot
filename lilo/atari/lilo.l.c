@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: lilo.l.c,v 1.6 1998-02-23 10:24:48 rnhodek Exp $
+ * $Id: lilo.l.c,v 1.7 1998-03-03 11:32:33 rnhodek Exp $
  * 
  * $Log: lilo.l.c,v $
- * Revision 1.6  1998-02-23 10:24:48  rnhodek
+ * Revision 1.7  1998-03-03 11:32:33  rnhodek
+ * Fixed a bad bug: BootStartSector should always be zero, except for XGM!
+ *
+ * Revision 1.6  1998/02/23 10:24:48  rnhodek
  * Include bootparam.h for N_MAPENTRIES
  * New function WriteLoaderMap() that patches the map vector of
  * loader.patched into the second (map) sector.
@@ -659,8 +662,10 @@ int main( int argc, char *argv[] )
 		strcpy( pdevice, Device );
 		strcat( pdevice, "x" );
 	}
-	else
+	else {
 		pdevice = (char *)Device;
+		BootStartSector = 0;
+	}
 		
     BackupFile = CreateBackupFileName();
 
