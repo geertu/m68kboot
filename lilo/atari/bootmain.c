@@ -7,10 +7,13 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: bootmain.c,v 1.3 1997-09-19 09:06:55 geert Exp $
+ * $Id: bootmain.c,v 1.4 1998-02-23 10:16:57 rnhodek Exp $
  * 
  * $Log: bootmain.c,v $
- * Revision 1.3  1997-09-19 09:06:55  geert
+ * Revision 1.4  1998-02-23 10:16:57  rnhodek
+ * Moved definition of CurrentFloppy to crt0.S
+ *
+ * Revision 1.3  1997/09/19 09:06:55  geert
  * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
  *
  * Revision 1.2  1997/08/23 20:47:50  rnhodek
@@ -54,7 +57,6 @@ unsigned int AutoBoot = 0;
 const char *Prompt = NULL;
 unsigned int NoGUI = 0;
 const struct BootRecord *dflt_os = NULL;
-int CurrentFloppy = 0;
 
 u_char *MapData = NULL;
 u_long MapSize = 0, MapOffset = 0;
