@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: lilo.l.c,v 1.8 1998-03-04 09:16:25 rnhodek Exp $
+ * $Id: lilo.l.c,v 1.9 1998-03-06 09:49:45 rnhodek Exp $
  * 
  * $Log: lilo.l.c,v $
- * Revision 1.8  1998-03-04 09:16:25  rnhodek
+ * Revision 1.9  1998-03-06 09:49:45  rnhodek
+ * In CreateBootBlock(), initialize new field 'modif_mask' from SkipOnKeys.
+ *
+ * Revision 1.8  1998/03/04 09:16:25  rnhodek
  * CreateMapFile: Die if there are no boot records at all; check if
  * kernel file exists only if OSType is BOS_LINUX, and if it isn't a
  * BOOTP image.
@@ -441,6 +444,7 @@ static void CreateBootBlock( void )
 	BootBlock.jump        = template.jump;
 	BootBlock.boot_device = LoaderVector[0].length;
 	BootBlock.map_sector  = map_sector;
+	BootBlock.modif_mask  = Config.SkipOnKeys ? *Config.SkipOnKeys : 0x08;
 	memcpy( BootBlock.data, template.data, sizeof(template.data) );
 	memcpy( &BootBlock.LiloID, "LILO", 4 );
 
