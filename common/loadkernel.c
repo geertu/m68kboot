@@ -11,11 +11,14 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: loadkernel.c,v 1.1 1997-07-15 09:45:37 rnhodek Exp $
+ * $Id: loadkernel.c,v 1.2 1997-07-16 14:03:35 rnhodek Exp $
  * 
  * $Log: loadkernel.c,v $
- * Revision 1.1  1997-07-15 09:45:37  rnhodek
- * Initial revision
+ * Revision 1.2  1997-07-16 14:03:35  rnhodek
+ * On errors, clean up and return 0 instead of exit
+ *
+ * Revision 1.1.1.1  1997/07/15 09:45:37  rnhodek
+ * Import sources into CVS
  *
  * 
  */
@@ -51,14 +54,16 @@ extern MODULE bootp_mod;
 #define ERROR(fmt,rest...)			\
     do {					\
 	fprintf( stderr, fmt, ##rest );		\
-	boot_exit( EXIT_FAILURE );		\
+	cleanup();				\
+	return( 0 );				\
     } while(0)
 
 #define SERROR(fmt,rest...)			\
     do {					\
 	fprintf( stderr, fmt, ##rest );		\
 	sclose();				\
-	boot_exit( EXIT_FAILURE );		\
+	cleanup();				\
+	return( 0 );				\
     } while(0)
 
 
@@ -68,12 +73,23 @@ static Elf32_Phdr *kernel_phdrs = NULL;
 
 #ifdef AOUT_KERNEL
 /* header data of kernel executable (a.out) */
-struct exec kexec;
-int elf_kernel;
+static struct exec kexec;
+static int elf_kernel;
 static u_long text_offset = 0;
 #else
 #define elf_kernel 1
 #endif
+
+#define RD_CHUNK_SIZE	(128*1024)
+static char **rdptr = NULL;
+static int n_rdptrs = 0;
+
+
+/***************************** Prototypes *****************************/
+
+static void cleanup( void );
+
+/************************* End of Prototypes **************************/
 
 
 
@@ -171,7 +187,7 @@ unsigned long open_kernel( const char *kernel_name )
     return( kernel_size );
 }
 
-void load_kernel( void *memptr )
+int load_kernel( void *memptr )
 {
     int i;
     
@@ -198,6 +214,7 @@ void load_kernel( void *memptr )
     }
 #endif
     sclose();
+    return( 1 );
 }
 
 void kernel_debug_infos( unsigned long base )
@@ -224,12 +241,9 @@ void kernel_debug_infos( unsigned long base )
 }
 
 
-#define RD_CHUNK_SIZE	(128*1024)
-static char **rdptr = NULL;
-
 unsigned long load_ramdisk( const char *ramdisk_name )
 {
-    int n, n_rdptrs = 0;
+    int n;
     unsigned long rd_size = 0;
 
     /*
@@ -260,19 +274,18 @@ unsigned long load_ramdisk( const char *ramdisk_name )
 	ERROR( "Unable to open ramdisk file %s\n", ramdisk_name );
 	
     do {
-	rdptr = realloc( rdptr, (n_rdptrs+1)*sizeof(char *) );
-	if (!rdptr || !(rdptr[n_rdptrs] = malloc( RD_CHUNK_SIZE )))
+	rdptr = realloc( rdptr, (++n_rdptrs)*sizeof(char *) );
+	if (!rdptr || !(rdptr[n_rdptrs-1] = malloc( RD_CHUNK_SIZE )))
 	    SERROR( "Out of memory for ramdisk image\n" );
 	
-	n = sread( rdptr[n_rdptrs], RD_CHUNK_SIZE );
+	n = sread( rdptr[n_rdptrs-1], RD_CHUNK_SIZE );
 	if (n < 0)
 	    SERROR( "Error while reading ramdisk image\n" );
 	if (n == 0) {
-	    free( rdptr[n_rdptrs]);
+	    free( rdptr[n_rdptrs-1]);
 	    break;
 	}
 	rd_size += n;
-	n_rdptrs++;
     } while( n == RD_CHUNK_SIZE );
     sclose();
 
@@ -302,6 +315,24 @@ void move_ramdisk( void *dst, unsigned long rd_size )
 	free( *srcp );
     }
     free( rdptr );
+    rdptr = NULL;
+}
+
+
+static void cleanup( void )
+{
+    int i;
+    
+    if (kernel_phdrs) {
+	free( kernel_phdrs );
+	kernel_phdrs = NULL;
+    }
+
+    if (rdptr) {
+	for( i = 0; i < n_rdptrs; ++i )
+	    free( rdptr[i] );
+	free( rdptr );
+    }
 }
 
 /* Local Variables: */
