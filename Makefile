@@ -7,10 +7,13 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.16 1998-03-16 10:49:34 rnhodek Exp $
+# $Id: Makefile,v 1.17 1998-03-16 11:06:35 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.16  1998-03-16 10:49:34  rnhodek
+# Revision 1.17  1998-03-16 11:06:35  rnhodek
+# *** empty log message ***
+#
+# Revision 1.16  1998/03/16 10:49:34  rnhodek
 # 1.15 has been done by Andreas Schwab, I just commited the version
 # under the wrong login...
 #
@@ -215,13 +218,4 @@ tar: distclean
 
 diff: distclean
 	@if [ "x$(OLDVER)" = "x" ]; then \
-		echo "Usage: make diff OLDVER=<last-release-tag>"; \
-		exit 1; \
-	fi; \
-	name="$(notdir $(shell pwd))"; \
-	namev="$$name-$(shell perl -ne 'print "$$1\n" if /VERSION.*"(\S+)"/;' version.h)"; \
-	cvs diff -u -rRELEASE-$(OLDVER) >../$$namev.diff; \
-	gzip -9f ../$$namev.diff
-
-
-
+		echo "Usage: make diff OLDVER=<last-release-tag>
