@@ -13,10 +13,14 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo_util.l.c,v 1.10 1998-04-09 08:06:51 rnhodek Exp $
+ * $Id: lilo_util.l.c,v 1.11 1999-01-18 10:01:40 schwab Exp $
  * 
  * $Log: lilo_util.l.c,v $
- * Revision 1.10  1998-04-09 08:06:51  rnhodek
+ * Revision 1.11  1999-01-18 10:01:40  schwab
+ * (PatchLoader): Include name of file in error
+ * message when dying due to unsupported sector number.
+ *
+ * Revision 1.10  1998/04/09 08:06:51  rnhodek
  * Enclose ELF analyzing stuff in PatchLoader in a #ifdef ELF_LOADER; if
  * no ELF loader, PatchedLoader{Data,Size} are the same as
  * Loader{Data,Size}.
@@ -504,8 +508,8 @@ const struct vecent *CreateVector( const char *name, int *numblocks )
 		    vector[i].length >= MaxHoleSectors) {
 		    ++i;
 		    if (HoleSector > MaxVectorSectorNumber)
-			Die("Sector number %lu is outside the supported "
-			    "range\n", HoleSector);
+			Die("%s: sector number %lu is outside the supported "
+			    "range\n", name, HoleSector);
 		    vector[i].start  = HoleSector;
 		    vector[i].length = 0;
 		}
@@ -528,8 +532,8 @@ const struct vecent *CreateVector( const char *name, int *numblocks )
 	    else {
 		++i;
 		if (thisstart > MaxVectorSectorNumber)
-		    Die("Sector number %lu is outside the supported range\n",
-			HoleSector);
+		    Die("%s: sector number %lu is outside the supported"
+			" range\n", name, HoleSector);
 		vector[i].start  = thisstart;
 		vector[i].length = sectors_per_block;
 	    }
