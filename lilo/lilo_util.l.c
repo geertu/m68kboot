@@ -13,10 +13,15 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo_util.l.c,v 1.9 1998-04-06 01:40:55 dorchain Exp $
+ * $Id: lilo_util.l.c,v 1.10 1998-04-09 08:06:51 rnhodek Exp $
  * 
  * $Log: lilo_util.l.c,v $
- * Revision 1.9  1998-04-06 01:40:55  dorchain
+ * Revision 1.10  1998-04-09 08:06:51  rnhodek
+ * Enclose ELF analyzing stuff in PatchLoader in a #ifdef ELF_LOADER; if
+ * no ELF loader, PatchedLoader{Data,Size} are the same as
+ * Loader{Data,Size}.
+ *
+ * Revision 1.9  1998/04/06 01:40:55  dorchain
  * make loader linux-elf.
  * made amiga bootblock working again
  * compiled, but not tested bootstrap
@@ -106,9 +111,14 @@ u_long MaxHoleSectors;
 const struct vecent *MapVector;
 int MapNumBlocks;
 char *LoaderData;
-char *PatchedLoaderData;
 int LoaderSize;
+#ifdef ELF_LOADER
+char *PatchedLoaderData;
 int PatchedLoaderSize;
+#else
+#define PatchedLoaderData LoaderData
+#define PatchedLoaderSize LoaderSize
+#endif
 const struct vecent *LoaderVector;
 int LoaderNumBlocks;
 u_long MaxVectorSectorNumber = ULONG_MAX;
@@ -652,6 +662,7 @@ void PatchLoader(void)
     };
     u_long *data = NULL;
     u_long maxsize;
+#ifdef ELF_LOADER
     Elf32_Ehdr *exec;
     Elf32_Phdr *prog;
     u_long minaddr, maxaddr;
@@ -680,6 +691,7 @@ void PatchLoader(void)
         memcpy(&PatchedLoaderData[prog[i].p_vaddr - minaddr],
                &LoaderData[prog[i].p_offset], prog[i].p_filesz);
     }
+#endif
 
     for (i = 0; i < PatchedLoaderSize-sizeof(pattern)+1; i++)
 	if (!memcmp(&PatchedLoaderData[i], pattern, sizeof(pattern))) {
