@@ -7,10 +7,16 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: crt0.S,v 1.6 1998-02-27 10:20:33 rnhodek Exp $
+ * $Id: crt0.S,v 1.7 1998-03-02 13:08:29 rnhodek Exp $
  * 
  * $Log: crt0.S,v $
- * Revision 1.6  1998-02-27 10:20:33  rnhodek
+ * Revision 1.7  1998-03-02 13:08:29  rnhodek
+ * Print current basepage on exceptions, not basepage of loader.
+ * Fix indexing of 'framesize' array (d1 is .w, not .l)
+ * Also print USP on exceptions.
+ * Add some '040 and '060 frame sizes to table.
+ *
+ * Revision 1.6  1998/02/27 10:20:33  rnhodek
  * Save system stack contents (before call of root sector) and restore
  * them before returning to ROM, because GEMDOS uses the same memory as
  * default supervisor stack for new programs.
@@ -510,7 +516,9 @@ exc_general:
 exc_common:
 	movl	#str_bp,a0
 	jbsr	puts
-	movl	__base,d0
+	movl	_sysbase,a0
+	movl	a0@(40),a0
+	movl	a0@,d0
 	jbsr	putnum
 	movl	#str_pstart,a0
 	jbsr	puts
@@ -531,8 +539,12 @@ exc_common:
 	lsrw	#2,d1
 	movl	sp,d0
 	movl	#framesize,a0
-	addl	a0@(d1:l),d0
+	addl	a0@(d1:w),d0
 	movl	d0,a6
+	jbsr	putnum
+	movl	#str_usp,a0
+	jbsr	puts
+	movec	usp,d0
 	jbsr	putnum
 	movl	#str_sr,a0
 	jbsr	puts
@@ -619,13 +631,15 @@ str_fa:
 str_ssw:
 	.asciz	" SSW="
 str_bp:
-	.asciz	"BASEPAGE="
+	.asciz	"BP="
 str_pstart:
-	.asciz	" __start="
+	.asciz	" _start="
 str_relpc:
 	.asciz	" relPC="
 str_sp:
 	.asciz	" SP="
+str_usp:
+	.asciz	" USP="
 str_sr:
 	.asciz	" SR="
 str_colon:
@@ -639,8 +653,9 @@ str_code:
 str_stack:
 	.asciz	"\r\nStack:\r\n"
 	
-framesize:	
-	.long	8,8,12,8,8,8,8,8
+framesize:
+	/* undefined frames use size 8 */
+	.long	8,8,12,12,16,8,8,60
 	.long	8,20,32,96,8,8,8,8,8
 
 exc_names:
