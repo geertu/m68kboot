@@ -7,10 +7,13 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.2 1997-07-16 09:29:08 rnhodek Exp $
+# $Id: Makefile,v 1.3 1997-07-16 10:32:48 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.2  1997-07-16 09:29:08  rnhodek
+# Revision 1.3  1997-07-16 10:32:48  rnhodek
+# Implemented dep target; more minor Makefile changes
+#
+# Revision 1.2  1997/07/16 09:29:08  rnhodek
 # Reorganized Makefiles so that all objects are built in
 # {bootstrap,lilo}/{amiga,atari}, not in common anymore. Define IN_BOOTSTRAP or
 # IN_LILO so that common sources can distinguish between the environments.
@@ -84,12 +87,18 @@ distclean:
 	$(MAKE) -C lilo distclean
 
 dep:
-	$(MAKE) -C bootstrap dep
-	$(MAKE) -C lilo dep
+	if $(AMIGA_HOSTCC) -v >/dev/null 2>&1; then \
+		$(MAKE) -C bootstrap dep MACH=amiga; \
+		$(MAKE) -C lilo dep MACH=amiga; \
+	fi
+	if $(ATARI_HOSTCC) -v >/dev/null 2>&1; then \
+		$(MAKE) -C bootstrap dep MACH=atari; \
+		$(MAKE) -C lilo dep MACH=atari; \
+	fi
 
 TAGS: etags `find . -name '*.[ch]'`
 
-tar: clean
+tar: distclean
 	cd ..; \
 	name="$(notdir $(shell pwd))"; \
 	namev="$$name-$(shell perl -ne 'print "$$1\n" if /VERSION.*"(\S+)"/;' version.h)"; \
@@ -108,8 +117,5 @@ diff: distclean
 	cvs diff -u -rRELEASE-$(OLDVER) >../$$namev.diff; \
 	gzip -9f ../$$namev.diff
 
-ifeq ($(wildcard .depend),.depend)
-include .depend
-endif
 
 

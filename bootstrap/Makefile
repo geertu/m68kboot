@@ -7,10 +7,13 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.2 1997-07-16 09:29:25 rnhodek Exp $
+# $Id: Makefile,v 1.3 1997-07-16 10:32:54 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.2  1997-07-16 09:29:25  rnhodek
+# Revision 1.3  1997-07-16 10:32:54  rnhodek
+# Implemented dep target; more minor Makefile changes
+#
+# Revision 1.2  1997/07/16 09:29:25  rnhodek
 # Reorganized Makefiles so that all objects are built in
 # {bootstrap,lilo}/{amiga,atari}, not in common anymore. Define IN_BOOTSTRAP or
 # IN_LILO so that common sources can distinguish between the environments.
@@ -20,8 +23,6 @@
 # Import sources into CVS
 #
 #
-
-.PHONY: all amiga atari clean distclean dep
 
 include $(TOPDIR)/Rules.make
 include $(TOPDIR)/common/Makefile
@@ -47,11 +48,18 @@ atari/ataboot.ttp: $(ATARI_OBJS)
 	$(ATARI_COMPILE) -o $@ $^
 
 clean:
-	rm -f $(AMIGA_OBJS) $(ATARI_OBJS) {.,amiga/atari}/#*# {.,amiga/atari}/core
+	rm -f $(AMIGA_OBJS) $(ATARI_OBJS) {.,amiga,atari}/#*# {.,amiga,atari}/core
 
 distclean: clean
-	rm -f amiga/amiboot atari/ataboot.ttp {.,amiga/atari}/.depend
+	rm -f {amiga,atari}/.depend
+	rm -f amiga/amiboot atari/ataboot.ttp
 
-dep:
+dep: clean-depend $(addprefix depend-,$($(UPCASE_MACH)_OBJS))
+
+clean-depend: force
+	rm -f $(MACH)/.depend
 
 
+ifeq ($(wildcard $(MACH)/.depend),$(MACH)/.depend)
+include $(MACH)/.depend
+endif
