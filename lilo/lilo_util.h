@@ -6,10 +6,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo_util.h,v 1.5 1998-04-06 01:40:55 dorchain Exp $
+ * $Id: lilo_util.h,v 1.6 1998-07-15 08:28:08 schwab Exp $
  * 
  * $Log: lilo_util.h,v $
- * Revision 1.5  1998-04-06 01:40:55  dorchain
+ * Revision 1.6  1998-07-15 08:28:08  schwab
+ * Undef BLOCK_SIZE, already defined by recent <linux/fs.h>.
+ *
+ * Revision 1.5  1998/04/06 01:40:55  dorchain
  * make loader linux-elf.
  * made amiga bootblock working again
  * compiled, but not tested bootstrap
@@ -113,6 +116,7 @@ void WriteLoader( void);
 #define HARD_SECTOR_SIZE	512
 #define HARD_SECTOR_SIZE_SHIFT	9
 
+#undef BLOCK_SIZE
 #define BLOCK_SIZE		1024
 #define BLOCK_SIZE_SHIFT	10
 
