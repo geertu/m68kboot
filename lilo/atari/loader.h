@@ -7,10 +7,15 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: loader.h,v 1.3 1998-02-26 10:19:57 rnhodek Exp $
+ * $Id: loader.h,v 1.4 1998-02-27 10:21:30 rnhodek Exp $
  * 
  * $Log: loader.h,v $
- * Revision 1.3  1998-02-26 10:19:57  rnhodek
+ * Revision 1.4  1998-02-27 10:21:30  rnhodek
+ * New debug switch STRACE_TOS.
+ * Define bios_printf() to be empty if DEBUG_RW_SECTORS isn't defined, so
+ * we can save the nasty #ifdef's around calls to bios_printf().
+ *
+ * Revision 1.3  1998/02/26 10:19:57  rnhodek
  * New option 'workdir' to exec_tos_program(), to implement new config
  * var 'WorkDir'.
  * New function bios_printf() for debugging {Read,Write}Sectors and the
@@ -32,6 +37,7 @@
 #include "loader_common.h"
 
 #undef DEBUG_RW_SECTORS
+#undef STRACE_TOS
 
 extern unsigned int SerialPort;
 extern unsigned int AutoBoot;
@@ -56,6 +62,8 @@ long WriteSectors( char *buf, int device, unsigned int sector, unsigned int cnt 
 #ifdef DEBUG_RW_SECTORS
 void bios_printf( const char *format, ... )
 	__attribute__((format(printf,1,2)));
+#else
+#define bios_printf(f,args...)
 #endif
 
 /************************* End of Prototypes **************************/
