@@ -7,10 +7,13 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: loader.h,v 1.6 1998-03-04 09:17:17 rnhodek Exp $
+ * $Id: loader.h,v 1.7 1998-03-05 10:25:49 rnhodek Exp $
  * 
  * $Log: loader.h,v $
- * Revision 1.6  1998-03-04 09:17:17  rnhodek
+ * Revision 1.7  1998-03-05 10:25:49  rnhodek
+ * New function ListRecords().
+ *
+ * Revision 1.6  1998/03/04 09:17:17  rnhodek
  * New option 'use_cache' to exec_tos_program().
  *
  * Revision 1.5  1998/03/02 13:09:41  rnhodek
@@ -64,6 +67,7 @@ int is_available( const struct BootRecord *rec );
 void boot_tos( const struct BootRecord *rec );
 void boot_linux( const struct BootRecord *rec, const char *cmdline );
 void boot_bootsector( const struct BootRecord *rec );
+void ListRecords( void );
 int exec_tos_program( const char *prog, const char *workdir, int use_cache );
 const char *tos_perror( long err );
 void MachInitDebug( void );
