@@ -11,10 +11,19 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.c,v 1.14 2004-08-15 11:52:25 geert Exp $
+ * $Id: linuxboot.c,v 1.15 2004-08-15 12:08:13 geert Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.14  2004-08-15 11:52:25  geert
+ * Revision 1.15  2004-08-15 12:08:13  geert
+ * Allow CT2 and AB40 users to finally load kernel and ramdisk into FastRAM.
+ * Previously the bootstrap didn't allow it because it knew the FastRAM was MMU
+ * translated. Now it detects the correct offset between virtual and physical
+ * addresses and so it works OK (with the exception of the 040 ptestr code that
+ * doesn't work correctly until Linux was started at least once - mystery -
+ * probably missing a MMU initialization but don't know what exactly).
+ * (from Petr Stehlik)
+ *
+ * Revision 1.14  2004/08/15 11:52:25  geert
  * The bootstrap 3.2/3.3 never printed out how much memory was missing.  This
  * patch corrects it so that users know exactly how much memory they'll need.
  * Sometime the low memory can be fixed simply by removing some programs from
@@ -155,6 +164,28 @@ static int get_ab040_bank_sizes( int maxres, u_long *result );
     } while(0)
 
 
+#define MMU_R_040	0x0001
+#define TOS_PAGE_MASK	(~(8192-1))
+/* return offset between physical and virtual address */
+long phys_offset(u_long vaddr) {
+    if (bi.mch_type == ATARI_MACH_AB40 && ((unsigned long)vaddr & 0xff000000)) {
+	/* Convert virtual (user) address VADDR to physical address PADDR */
+	unsigned long _mmusr, _paddr;
+  	vaddr &= TOS_PAGE_MASK;
+  __asm__ __volatile__ (".chip 68040\n\t"				\
+			"ptestr (%1)\n\t"				\
+			"movec %%mmusr,%0\n\t"				\
+			".chip 68k"					\
+			: "=r" (_mmusr)					\
+			: "a" (vaddr));
+  	_paddr = (_mmusr & MMU_R_040) ? (_mmusr & TOS_PAGE_MASK) : 0;
+	return _paddr - vaddr;
+    }
+    if (getcookie("_CT2", NULL) != -1 && ((unsigned long)vaddr & 0xff000000))
+	return CT2_FAST_START - TT_RAM_BASE;
+    return 0;
+}
+
 void linux_boot( void )
 {
     char *kname;
@@ -164,6 +195,7 @@ void linux_boot( void )
     u_long kernel_size;		/* size of kernel image */
     char *memptr;		/* addr and size of load region */
     u_long memreq;
+    long memptr_mmu_offset;	/* physical memptr addr offset */
     u_long rd_size;		/* size of ramdisk and array of pointers to
 				 * its data */
 
@@ -262,14 +294,6 @@ void linux_boot( void )
     if (!(memptr = malloc( memreq )))
 	ERROR( "Unable to allocate %ld kB of memory for kernel%s\n",
 		memreq / 1024, (rd_size > 0) ? " and ramdisk" : "" );
-    /* Second part of the AB40 no-FastRAM test */
-    if (bi.mch_type == ATARI_MACH_AB40 && ((unsigned long)memptr & 0xff000000))
-	ERROR( "Error: Bootstrap may not allocate memory from FastRAM "
-	       "on Afterburner040\n" );
-    if (getcookie("_CT2", NULL) != -1 &&
-	((unsigned long)memptr & 0xff000000))
-	ERROR( "Error: Bootstrap may not allocate memory from TT-RAM "
-		"on Centurbo2\n" );
 
     /* clearing the kernel's memory perhaps avoids "uninitialized bss"
      * types of bugs... */
@@ -305,6 +329,9 @@ void linux_boot( void )
     /* copy the boot_info struct to the end of the kernel image */
     memcpy( memptr + kernel_size, bi_ptr, bi_size );
 
+    /* find out the physical address if the memory is MMU mapped */
+    memptr_mmu_offset = phys_offset((u_long)memptr);
+
     /* for those who want to debug */
     if (debugflag) {
 	if (rd_size) {
@@ -316,6 +343,9 @@ void linux_boot( void )
 	kernel_debug_infos( start_mem );
 	printf ("boot_info is at %#lx\n",
 		start_mem + kernel_size);
+
+	if (memptr_mmu_offset)
+	    printf ("kernel+ramdisk src offset = %#lx\n", memptr_mmu_offset);
 
 	printf ("\nType a key to continue the Linux boot...");
 	fflush (stdout);
@@ -334,6 +364,9 @@ void linux_boot( void )
 
     /* ..and any MMU translation */
     disable_mmu();
+
+    /* correct pointer to physical memory after MMU translation was disabled */
+    memptr += memptr_mmu_offset;
 
     /* ++guenther: allow reset if launched with MiNT */
     *(long*)0x426 = 0;
