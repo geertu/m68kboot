@@ -7,10 +7,16 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.5 1997-07-16 13:39:36 rnhodek Exp $
+# $Id: Makefile,v 1.6 1997-07-17 14:16:58 geert Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.5  1997-07-16 13:39:36  rnhodek
+# Revision 1.6  1997-07-17 14:16:58  geert
+# Use >& instead of >... 2>&1
+#
+# Revision 1.6  1997/07/17 14:09:34  rnhodek
+# Use >& instead of >... 2>&1
+#
+# Revision 1.5  1997/07/16 13:39:36  rnhodek
 # KERNEL_HEADERS var to find kernel headers
 #
 # Revision 1.4  1997/07/16 13:29:09  rnhodek
@@ -100,11 +106,11 @@ distclean:
 	$(MAKE) -C lilo distclean
 
 dep:
-	if $(AMIGA_HOSTCC) -v >/dev/null 2>&1; then \
+	if $(AMIGA_HOSTCC) -v >&/dev/null; then \
 		$(MAKE) -C bootstrap dep MACH=amiga; \
 		$(MAKE) -C lilo dep MACH=amiga; \
 	fi
-	if $(ATARI_HOSTCC) -v >/dev/null 2>&1; then \
+	if $(ATARI_HOSTCC) -v >&/dev/null; then \
 		$(MAKE) -C bootstrap dep MACH=atari; \
 		$(MAKE) -C lilo dep MACH=atari; \
 	fi
