@@ -11,10 +11,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: loadkernel.c,v 1.3 1997-07-16 15:06:23 rnhodek Exp $
+ * $Id: loadkernel.c,v 1.4 1997-07-16 17:31:16 rnhodek Exp $
  * 
  * $Log: loadkernel.c,v $
- * Revision 1.3  1997-07-16 15:06:23  rnhodek
+ * Revision 1.4  1997-07-16 17:31:16  rnhodek
+ * Replaced SERROR with ERROR, sclose() now done in cleanup()
+ *
+ * Revision 1.3  1997/07/16 15:06:23  rnhodek
  * Replaced all call to libc functions puts, printf, malloc, ... in common code
  * by the capitalized generic function/macros. New generic function ReAlloc, need
  * by load_ramdisk.
@@ -64,15 +67,9 @@ extern MODULE bootp_mod;
 	return( 0 );				\
     } while(0)
 
-#define SERROR(fmt,rest...)			\
-    do {					\
-	Printf( fmt, ##rest );			\
-	sclose();				\
-	cleanup();				\
-	return( 0 );				\
-    } while(0)
 
-
+static int stream_open = 0;
+    
 /* header data of kernel executable (ELF) */
 static Elf32_Ehdr kexec_elf;
 static Elf32_Phdr *kernel_phdrs = NULL;
@@ -113,9 +110,10 @@ unsigned long open_kernel( const char *kernel_name )
     
     if (sopen( kernel_name ) < 0)
 	ERROR( "Unable to get kernel image %s\n", kernel_name );
+    stream_open = 1;
 
     if (sread( &kexec_elf, sizeof(kexec_elf) ) != sizeof(kexec_elf))
-	SERROR( "Cannot read ELF header of kernel image\n" );
+	ERROR( "Cannot read ELF header of kernel image\n" );
 
     if (memcmp( &kexec_elf.e_ident[EI_MAG0], ELFMAG, SELFMAG ) == 0) {
 #ifdef AOUT_KERNEL
@@ -123,23 +121,23 @@ unsigned long open_kernel( const char *kernel_name )
 #endif
 	if (kexec_elf.e_type != ET_EXEC || kexec_elf.e_machine != EM_68K ||
 	    kexec_elf.e_version != EV_CURRENT)
-	    SERROR( "Invalid ELF header contents in kernel\n" );
+	    ERROR( "Invalid ELF header contents in kernel\n" );
 
 	/* Load the program headers */
 	kernel_phdrs = (Elf32_Phdr *)Alloc( kexec_elf.e_phnum *
 					    sizeof (Elf32_Phdr) );
 	if (!kernel_phdrs)
-	    SERROR( "Unable to allocate memory for program headers\n" );
+	    ERROR( "Unable to allocate memory for program headers\n" );
 	sseek( kexec_elf.e_phoff, SEEK_SET );
 	if (sread( kernel_phdrs, kexec_elf.e_phnum * sizeof (*kernel_phdrs) )
 	    != kexec_elf.e_phnum * sizeof (*kernel_phdrs))
-	    SERROR( "Unable to read program headers from %s\n", kernel_name );
+	    ERROR( "Unable to read program headers from %s\n", kernel_name );
     }
     else {
 #ifdef AOUT_KERNEL
 	/* try to interprete as a.out kernel */
 	if (sread( &kexec, sizeof(kexec) ) != sizeof(kexec))
-	    SERROR( "Unable to read exec header from %s\n", kernel_name );
+	    ERROR( "Unable to read exec header from %s\n", kernel_name );
 	switch (N_MAGIC(kexec)) {
 	  case ZMAGIC:
 	    text_offset = N_TXTOFF(kexec);
@@ -150,12 +148,12 @@ unsigned long open_kernel( const char *kernel_name )
 	    kexec.a_text -= sizeof(kexec);
 	    break;
 	  default:
-	    SERROR( "Wrong magic number %lo in kernel header\n",
+	    ERROR( "Wrong magic number %lo in kernel header\n",
 		    N_MAGIC(kexec) );
 	}
 	elf_kernel = 0;
 #else
-	SERROR( "Kernel image is no ELF executable\n" );
+	ERROR( "Kernel image is no ELF executable\n" );
 #endif
     }
 
@@ -201,25 +199,26 @@ int load_kernel( void *memptr )
     if (elf_kernel) {
 	for (i = 0; i < kexec_elf.e_phnum; i++) {
 	    if (sseek( kernel_phdrs[i].p_offset, SEEK_SET) == -1)
-		SERROR( "Failed to seek to segment %d\n", i );
+		ERROR( "Failed to seek to segment %d\n", i );
 	    if (sread( memptr + kernel_phdrs[i].p_vaddr - PAGE_SIZE,
 		       kernel_phdrs[i].p_filesz )
 		!= kernel_phdrs[i].p_filesz)
-		SERROR( "Failed to read segment %d\n", i );
+		ERROR( "Failed to read segment %d\n", i );
 	}
     }
 #ifdef AOUT_KERNEL
     else {
 	if (sseek( text_offset, SEEK_SET) == -1)
-	    SERROR( "Failed to seek to text segment\n" );
+	    ERROR( "Failed to seek to text segment\n" );
 	if (sread( memptr, kexec.a_text) != kexec.a_text)
-	    SERROR( "Failed to read text segment\n" );
+	    ERROR( "Failed to read text segment\n" );
 	/* data follows immediately after text */
 	if (sread( memptr + kexec.a_text, kexec.a_data) != kexec.a_data)
-	    SERROR( "Failed to read data segment\n" );
+	    ERROR( "Failed to read data segment\n" );
     }
 #endif
     sclose();
+    stream_open = 0;
     return( 1 );
 }
 
@@ -278,17 +277,18 @@ unsigned long load_ramdisk( const char *ramdisk_name )
     
     if (sopen( ramdisk_name ) < 0)
 	ERROR( "Unable to open ramdisk file %s\n", ramdisk_name );
+    stream_open = 1;
 	
     do {
 	rdptr = ReAlloc( rdptr, n_rdptrs*sizeof(char *),
 			        (n_rdptrs+1)*sizeof(char *) );
 	if (!rdptr || !(rdptr[n_rdptrs] = Alloc( RD_CHUNK_SIZE )))
-	    SERROR( "Out of memory for ramdisk image\n" );
+	    ERROR( "Out of memory for ramdisk image\n" );
 	++n_rdptrs;
 	
 	n = sread( rdptr[n_rdptrs-1], RD_CHUNK_SIZE );
 	if (n < 0)
-	    SERROR( "Error while reading ramdisk image\n" );
+	    ERROR( "Error while reading ramdisk image\n" );
 	if (n == 0) {
 	    Free( rdptr[n_rdptrs-1]);
 	    break;
@@ -296,6 +296,7 @@ unsigned long load_ramdisk( const char *ramdisk_name )
 	rd_size += n;
     } while( n == RD_CHUNK_SIZE );
     sclose();
+    stream_open = 0;
 
     return( rd_size );
 }
@@ -330,6 +331,9 @@ void move_ramdisk( void *dst, unsigned long rd_size )
 static void cleanup( void )
 {
     int i;
+
+    if (stream_open)
+	sclose();
     
     if (kernel_phdrs) {
 	Free( kernel_phdrs );
