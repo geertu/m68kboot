@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: conf.y,v 1.1 1997-08-12 15:26:56 rnhodek Exp $
+ * $Id: conf.y,v 1.2 1998-03-10 10:22:13 rnhodek Exp $
  * 
  * $Log: conf.y,v $
- * Revision 1.1  1997-08-12 15:26:56  rnhodek
+ * Revision 1.2  1998-03-10 10:22:13  rnhodek
+ * New option "message".
+ *
+ * Revision 1.1  1997/08/12 15:26:56  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -100,6 +103,7 @@ hdropts	  : /* empty */
 	  | hdropts mrpasswd
 	  | hdropts debug
 	  | hdropts prompt
+	  | hdropts message
 	  MACH_HDROPTS
 	  ;
 
@@ -164,6 +168,25 @@ prompt	  : "prompt" STRING
 		if (Config.Options.Prompt)
 		    Redefinition((char *)$1);
 		Config.Options.Prompt = (const char *)$2;
+	    }
+	  ;
+
+message	  : "message" STRING
+	    {
+		char *message = (char *)$2;
+
+		if (Config.Options.Message)
+		    Redefinition((char *)$1);
+		/* interpret as file name if starts with a '/' */
+		if (message[0] == '/') {
+		    const char *name = CreateFileName( message );
+		    ReadFile( name, (void **)&message );
+		}
+		else {
+		    message = strdup( message );
+		    FixSpecialChars( message );
+		}
+		Config.Options.Message = message;
 	    }
 	  ;
 
