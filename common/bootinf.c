@@ -10,10 +10,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: bootinf.c,v 1.4 1997-07-16 14:22:11 rnhodek Exp $
+ * $Id: bootinf.c,v 1.5 1997-07-17 14:22:24 geert Exp $
  * 
  * $Log: bootinf.c,v $
- * Revision 1.4  1997-07-16 14:22:11  rnhodek
+ * Revision 1.5  1997-07-17 14:22:24  geert
+ * No need to include <asm/bootinfo.h>
+ *
+ * Revision 1.4  1997/07/16 14:22:11  rnhodek
  * Corrected version to 2.1.13
  *
  * Revision 1.3  1997/07/16 14:00:32  rnhodek
@@ -41,7 +44,6 @@
 #endif
 
 #define _LINUX_TYPES_H		/* Hack to prevent including <linux/types.h> */
-#include <asm/bootinfo.h>
 #include <asm/setup.h>
 
 #include "bootstrap.h"
