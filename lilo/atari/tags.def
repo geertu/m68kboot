@@ -1,8 +1,12 @@
 #
-# $Id: tags.def,v 1.2 1998-02-26 10:28:04 rnhodek Exp $
+# $Id: tags.def,v 1.3 1998-03-04 09:19:14 rnhodek Exp $
 #
 # $Log: tags.def,v $
-# Revision 1.2  1998-02-26 10:28:04  rnhodek
+# Revision 1.3  1998-03-04 09:19:14  rnhodek
+# New config var array ProgCache[] as option to 'exec'.
+# WorkDir and ProgCache also for record-specific exec's.
+#
+# Revision 1.2  1998/02/26 10:28:04  rnhodek
 # New config vars WorkDir, Environ, and BootDrv (global)
 #
 # Revision 1.1  1997/08/12 15:27:13  rnhodek
@@ -17,6 +21,7 @@
 BO G_TMPMNT	int	MAX_TMPMNT	TmpMnt		tmp. GEMDOS drive mount
 BO G_EXECPROG	str	MAX_EXECPROG	ExecProg	programs to execute
 BO G_WORKDIR	str	MAX_EXECPROG	WorkDir		working dir for prgs
+BO G_CACHE	int	MAX_EXECPROG	ProgCache	caches on for prg?
 BO SERIAL	int	-		Serial		Serial port to use
 BO SERIALPARAM	str	-		SerialParam	Parameters of serial prt
 BO SERIALBAUD	int	-		SerialBaud	Baud rate for serial port
@@ -38,6 +43,8 @@ BO ENVIRON	str	MAX_ENVIRON	Environ		enivronment vars
 BR OS_TYPE	int	-		OSType		Operating System Type
 BR TMPMNT	int	MAX_TMPMNT	TmpMnt		tmp. GEMDOS drive mount
 BR EXECPROG	str	MAX_EXECPROG	ExecProg	GEMDOS program to execute
+BR WORKDIR	str	MAX_EXECPROG	WorkDir		working dir for prgs
+BR CACHE	int	MAX_EXECPROG	ProgCache	caches on for prg?
 BR IGNORE_TT_RAM int	-		IgnoreTTRam	Ignore TT-RAM
 BR LOAD_TO_ST_RAM int	-		LoadToSTRam	Load kernel to ST-RAM
 BR FORCE_ST_RAM	int	-		ForceSTRam	Force ST-RAM size

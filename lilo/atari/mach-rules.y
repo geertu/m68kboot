@@ -7,10 +7,14 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: mach-rules.y,v 1.4 1998-02-26 10:20:34 rnhodek Exp $
+ * $Id: mach-rules.y,v 1.5 1998-03-04 09:18:03 rnhodek Exp $
  * 
  * $Log: mach-rules.y,v $
- * Revision 1.4  1998-02-26 10:20:34  rnhodek
+ * Revision 1.5  1998-03-04 09:18:03  rnhodek
+ * New config var array ProgCache[] as option to 'exec'.
+ * WorkDir and ProgCache also for record-specific exec's.
+ *
+ * Revision 1.4  1998/02/26 10:20:34  rnhodek
  * New config vars WorkDir, Environ, and BootDrv (global)
  * Remove some const warnings.
  *
@@ -160,7 +164,7 @@ opt_rw: "ro"		{ $$ = 0; }
 	  | "rw"		{ $$ = 1; }
 	  | /* empty */ { $$ = 0; } ;
 
-g_execprog: "exec" STRING opt_workdir
+g_execprog: "exec" STRING opt_workdir opt_cache
 	{
 		int i;
 		
@@ -169,12 +173,16 @@ g_execprog: "exec" STRING opt_workdir
 				break;
 		if (i == arraysize(Config.Options.ExecProg))
 		    conferror("Too many programs to execute");
-		Config.Options.ExecProg[i] = (const char *)$2;
-		Config.Options.WorkDir[i] = (const char *)$3;
+		Config.Options.ExecProg[i]  = (const char *)$2;
+		Config.Options.WorkDir[i]   = (const char *)$3;
+		Config.Options.ProgCache[i] = CopyLong($4);
 	};
 
 opt_workdir: "chdir" STRING	{ $$ = $2; }
-	| /* empty */			{ $$ = 0; } ;
+		   | /* empty */	{ $$ = 0; } ;
+
+opt_cache: "no-cache"		{ $$ = 0; }
+		 | /* empty */		{ $$ = 1; };
 
 g_bootdrv: "boot-drive" TOSDRIVESPEC
 	{
@@ -282,7 +290,7 @@ tmpmnt: "mount" STRING "on" TOSDRIVESPEC opt_rw
 		BootRecord.TmpMnt[i] = CopyLong(j);
 	};
 
-execprog: "exec" STRING
+execprog: "exec" STRING opt_workdir opt_cache
 	{
 		int i;
 		
@@ -292,6 +300,8 @@ execprog: "exec" STRING
 		if (i == arraysize(BootRecord.ExecProg))
 		    conferror("Too many programs to execute");
 		BootRecord.ExecProg[i] = (const char *)$2;
+		BootRecord.WorkDir[i]   = (const char *)$3;
+		BootRecord.ProgCache[i] = CopyLong($4);
 	};
 
 
