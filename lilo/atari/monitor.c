@@ -7,10 +7,14 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: monitor.c,v 1.10 1998-03-05 12:47:09 rnhodek Exp $
+ * $Id: monitor.c,v 1.11 1998-03-10 10:31:12 rnhodek Exp $
  * 
  * $Log: monitor.c,v $
- * Revision 1.10  1998-03-05 12:47:09  rnhodek
+ * Revision 1.11  1998-03-10 10:31:12  rnhodek
+ * show_record_info(): also print password protection status.
+ * do_boot(): Add missing * before CurrRec->OSType.
+ *
+ * Revision 1.10  1998/03/05 12:47:09  rnhodek
  * Fix harmless typo ("rw" instead of "ro").
  *
  * Revision 1.9  1998/03/05 12:34:45  rnhodek
@@ -353,6 +357,10 @@ static void show_record_info( int argc, const char *argv[] )
 				 rec->Ramdisk ? rec->Ramdisk : "(none)" );
 		cprintf( "Arguments            : %s\n",
 				 rec->Args ? rec->Args : "(none)" );
+		cprintf( "Password protected   : %s\n",
+				 rec->Password ?
+				 (rec->Restricted ? "manual command line" : "always") :
+				 "no" );
 		cprintf( "Ignore TT-RAM        : %s\n",
 				 (rec->IgnoreTTRam ? *rec->IgnoreTTRam : ignore_ttram) ?
 				 "yes" : "no" );
@@ -753,7 +761,7 @@ static void do_boot( int argc, const char *argv[] )
 			boot_bootsector( CurrRec );
 			break;
 		  default:
-			cprintf( "Undefined OS type %lu\n", CurrRec->OSType );
+			cprintf( "Undefined OS type %lu\n", *CurrRec->OSType );
 		}
 		return;
 	}
