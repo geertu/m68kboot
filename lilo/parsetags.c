@@ -6,10 +6,16 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: parsetags.c,v 1.1 1997-08-12 15:26:58 rnhodek Exp $
+ * $Id: parsetags.c,v 1.2 1998-02-26 10:08:52 rnhodek Exp $
  * 
  * $Log: parsetags.c,v $
- * Revision 1.1  1997-08-12 15:26:58  rnhodek
+ * Revision 1.2  1998-02-26 10:08:52  rnhodek
+ * Implement new TAGTYPE_CARRAY; plain ARRAY didn't work correctly for
+ * string arrays.
+ * FindFileVector() shouldn't return NULL for files with "bootp:" prefix,
+ * otherwise they would look unavailable.
+ *
+ * Revision 1.1  1997/08/12 15:26:58  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -236,15 +242,25 @@ static const struct TagRecord *ParseTagSection(
 			(char *)tr->Data );
 	    break;
 	  case TAGTYPE_ARRAY:
+	  case TAGTYPE_CARRAY:
 	    for (i = 0; i < p->Extra; i++)
 		if (!BOENT(u_long *,p->Offset+i*sizeof(u_long*)))
 		    break;
 	    if (i < p->Extra) {
-		BOENT(u_long *,p->Offset+i*sizeof(u_long*))
-		    = (const u_long *)tr->Data;
-		if (Debug)
-		    Printf( "    %s[%d] -> %lu\n", GetTagName(tr->Tag),
-			    i, *(u_long *)tr->Data );
+		if (p->Type == TAGTYPE_ARRAY) {
+		    BOENT(u_long *,p->Offset+i*sizeof(u_long*))
+			= (const u_long *)tr->Data;
+		    if (Debug)
+			Printf( "    %s[%d] -> %lu\n", GetTagName(tr->Tag),
+				i, *(u_long *)tr->Data );
+		}
+		else {
+		    BOENT(char *,p->Offset+i*sizeof(char*))
+			= (const char *)tr->Data;
+		    if (Debug)
+			Printf( "    %s[%d] -> \"%s\"\n", GetTagName(tr->Tag),
+				i, (char *)tr->Data );
+		}
 	    }
 	    else
 		UnexpectedTag(tr);
@@ -299,6 +315,11 @@ const struct vecent *FindVector(const char *path)
 {
     const struct FileDef *file;
 
+#ifdef USE_BOOTP
+    if (strncmp( path, "bootp:", 6 ) == 0)
+	/* just something != NULL */
+	return( (const struct vecent *)1 );
+#endif
     for (file = Files; file; file = file->Next)
 	if (EqualStrings(path, file->Path))
 	    break;
