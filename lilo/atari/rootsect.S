@@ -7,10 +7,14 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: rootsect.S,v 1.3 1998-02-23 10:26:27 rnhodek Exp $
+ * $Id: rootsect.S,v 1.4 1998-03-06 09:51:32 rnhodek Exp $
  * 
  * $Log: rootsect.S,v $
- * Revision 1.3  1998-02-23 10:26:27  rnhodek
+ * Revision 1.4  1998-03-06 09:51:32  rnhodek
+ * Implement new option skip-on-keys: New field 'modif_mask' which
+ * contains a mask to and the Kbshift() return value with.
+ *
+ * Revision 1.3  1998/02/23 10:26:27  rnhodek
  * Load address, not contents, of lilo_string to %a3
  * Start of crt0.S is at offset 1536 (not 512) bytes of malloc-ed area,
  * since bootblock and map sector are loaded again.
@@ -67,6 +71,9 @@ boot_device:
 				 * stands for the current floppy device in
 				 * _bootdev. This is from where the ROM loaded
 				 * the floppy boot sector. */
+modif_mask:
+	.word	0		/* modifier mask on which to skip Lilo */
+	
 #ifdef SECONDARY_ROOTSEC_NEEDED
 next_sector:
 	.long	0		/* number of secondary root sector */
@@ -96,7 +103,7 @@ start:
 	movl	#(11<<16)+0xffff,%sp@-
 	trap	#13			/* Kbshift(-1) */
 	addql	#4,%sp
-	btst	#3,%d0			/* ALT pressed? */
+	andw	pc@(modif_mask),%d0
 	jbne	back_to_rom
 
 	lea	%pc@(lilo_string),%a3
