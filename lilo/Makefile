@@ -7,10 +7,13 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.7 1998-02-23 10:14:50 rnhodek Exp $
+# $Id: Makefile,v 1.8 1998-03-06 09:47:07 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.7  1998-02-23 10:14:50  rnhodek
+# Revision 1.8  1998-03-06 09:47:07  rnhodek
+# Add dumpmapfile to list of targets.
+#
+# Revision 1.7  1998/02/23 10:14:50  rnhodek
 # Add atari/bootos to atari target list.
 # rm atari/loader.map in make clean.
 #
@@ -65,12 +68,12 @@ M68K_AS = $(M68K_CC) -D__ASSEMBLY__
 
 all: $(MACH)
 
-amiga: amiga/loader amiga/lilo
+amiga: amiga/loader amiga/lilo amiga/dumpmapfile
 
 amiga/lilo: $(AMIGA_LINUX_OBJS)
 	$(CC) -o $@ $^
 
-atari: atari/loader atari/lilo atari/bootos
+atari: atari/loader atari/lilo atari/dumpmapfile atari/bootos
 
 atari/lilo: $(ATARI_LINUX_OBJS)
 	$(CC) -o $@ $^
