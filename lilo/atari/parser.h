@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: parser.h,v 1.1 1997-08-12 15:27:12 rnhodek Exp $
+ * $Id: parser.h,v 1.2 1998-02-26 10:27:50 rnhodek Exp $
  * 
  * $Log: parser.h,v $
- * Revision 1.1  1997-08-12 15:27:12  rnhodek
+ * Revision 1.2  1998-02-26 10:27:50  rnhodek
+ * New config vars WorkDir, Environ, and BootDrv (global)
+ *
+ * Revision 1.1  1997/08/12 15:27:12  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -30,8 +33,9 @@ struct Config {
 
 #define MACH_CONFIG_INIT													\
     NULL, NULL,																\
-    { NULL, NULL, NULL, NULL, NULL, NULL, { NULL, }, { NULL, },				\
-	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL },	\
+    { NULL, NULL, NULL, NULL, NULL, NULL, { NULL, }, { NULL, }, { NULL, },	\
+	  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,		\
+	  NULL, { NULL } },														\
     NULL, NULL
 
 

@@ -1,8 +1,11 @@
 #
-# $Id: tags.def,v 1.1 1997-08-12 15:27:13 rnhodek Exp $
+# $Id: tags.def,v 1.2 1998-02-26 10:28:04 rnhodek Exp $
 #
 # $Log: tags.def,v $
-# Revision 1.1  1997-08-12 15:27:13  rnhodek
+# Revision 1.2  1998-02-26 10:28:04  rnhodek
+# New config vars WorkDir, Environ, and BootDrv (global)
+#
+# Revision 1.1  1997/08/12 15:27:13  rnhodek
 # Import of Amiga and newly written Atari lilo sources, with many mods
 # to separate out common parts.
 #
@@ -12,7 +15,8 @@
 #
 #  tag name	type	size		field name	comment
 BO G_TMPMNT	int	MAX_TMPMNT	TmpMnt		tmp. GEMDOS drive mount
-BO G_EXECPROG str	MAX_EXECPROG	ExecProg	programs to execute
+BO G_EXECPROG	str	MAX_EXECPROG	ExecProg	programs to execute
+BO G_WORKDIR	str	MAX_EXECPROG	WorkDir		working dir for prgs
 BO SERIAL	int	-		Serial		Serial port to use
 BO SERIALPARAM	str	-		SerialParam	Parameters of serial prt
 BO SERIALBAUD	int	-		SerialBaud	Baud rate for serial port
@@ -24,6 +28,8 @@ BO CPU_COOKIE	int	-		CPU_cookie	Force value of _CPU cookie
 BO FPU_COOKIE	int	-		FPU_cookie	Force value of _FPU cookie
 BO DELAY	int	-		Delay		Seconds to wait for mod key
 BO NOGUI	int	-		NoGUI		No GUI menu, use console
+BO G_BOOT_DRIVE	int	-		BootDrv		boot drive for GEMDOS
+BO ENVIRON	str	MAX_ENVIRON	Environ		enivronment vars
 
 #
 # Definition of a Entity to Boot
