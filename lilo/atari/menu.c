@@ -7,10 +7,20 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: menu.c,v 1.6 1998-02-26 11:20:32 rnhodek Exp $
+ * $Id: menu.c,v 1.7 1998-03-02 13:12:24 rnhodek Exp $
  * 
  * $Log: menu.c,v $
- * Revision 1.6  1998-02-26 11:20:32  rnhodek
+ * Revision 1.7  1998-03-02 13:12:24  rnhodek
+ * #ifdef out many parts if NO_GUI is defined.
+ * Rename NoGUI to DontUseGUI.
+ * Remove unused line() function.
+ * Write mode for slanted text must be MD_TRANS (instead of MD_REPLACE),
+ * otherwise parts of the previous chars were overwritten; (new function
+ * writemode() for this).
+ * graf_deinit(): Don't modify alpha cursor position.
+ * goto_last_line(): New function for that, which can be called at any time.
+ *
+ * Revision 1.6  1998/02/26 11:20:32  rnhodek
  * If v_opnwk fails, don't exit but switch to NoGUI mode.
  * Replace some more printf's by cprintf.
  *
@@ -69,6 +79,7 @@ enum echomode {
 
 /* the command line entered by the user */
 static char cmdline[129];
+#ifndef NO_GUI
 /* for initializing the command line display */
 static char *underscores = "___________________________________________________________________________________________________________________________________";
 static char *stars = "***********************************************************************************************************************************";
@@ -84,6 +95,7 @@ static int hcmdo, vcmd, hcmdc, vtop, vhei, hborder, hwid, hoff;
 
 /* flag whether phys. VDI workstation is open */
 static int workstation_open = 0;
+#endif /* NO_GUI */
 
 /* set after first keypress or mouse move */
 static int timeout_canceled = 0;
@@ -127,6 +139,7 @@ static int timeout_canceled = 0;
 #define	IS_CTRL		((shift & 4) != 0)
 #define	IS_ALT		((shift & 8) != 0)
 
+#ifndef NO_GUI
 /* maximum width of a label */
 #define	LABELWIDTH	16
 #define	NLABELS		16
@@ -136,11 +149,12 @@ static char labels[NLABELS][LABELWIDTH+1];
 #define	BUTTONLINES		8		/* number of button lines */
 #define	BUTTONCOLS		2		/* number of bottom column */
 #define	OVERBUTTONLINES	2		/* empty border text lines above buttons */
-
+#endif /* NO_GUI */
 
 
 /***************************** Prototypes *****************************/
 
+#ifndef NO_GUI
 static int init_labels( const char *dflt_label );
 static int dokey( int key, int shift );
 static int domouse( int x, int y );
@@ -151,25 +165,26 @@ static int next_word( void );
 static int previous_word( void );
 static void delete( int dst, int src, int len );
 static void show_cmdline( int start, int end, int newc );
+#endif /* NO_GUI */
 static int serial_instat( void );
 static int serial_getc( void );
 static void serial_putc( char c );
 static void serial_puts( const char *p );
+#ifndef NO_GUI
 static void text( int x, int y, const char *str );
 static void texta( int x, int y, int halign, int valign, const char *str );
 static void texteffect( int effect );
 static void textrotate( int deg );
 static void textsize( int dbl );
 static void text_extent( const char *str, int *w, int *h );
+static void writemode( int mode );
 static void box( int x, int y, int w, int h, int linew );
 static void copyicon( int x, int y );
 static int getmouse( int *x, int *y );
-#if 0
-static void line( int x1, int y1, int x2, int y2 );
-#endif
 static void reverse( void );
 static void clear( int x, int y, int w, int h );
 int v_gtext( int h, int x, int y, char *s );
+#endif /* NO_GUI */
 
 /************************* End of Prototypes **************************/
 
@@ -177,18 +192,21 @@ int v_gtext( int h, int x, int y, char *s );
 
 char *boot_menu( const char *dflt_label )
 {
+#ifndef NO_GUI
 	int i, j, idx, x, y, w, h, lowwidth, labelwidth;
 	int vsep, hcmdw, lower_border, mid_lefthalf, uplef_space;
 	int dflt_index;
 	unsigned long timeout = 0;
+#endif /* NO_GUI */
 
-	if (NoGUI) {
+	if (DontUseGUI) {
 		read_line( 1, 1 );
 		if (!cmdline[strspn( cmdline, " " )])
 			strcpy( cmdline, dflt_label );
 		return( cmdline );
 	}
 	
+#ifndef NO_GUI
 	dflt_index = init_labels( dflt_label );
 	
 	lowwidth = (scr_w / charw) < 80;
@@ -212,9 +230,11 @@ char *boot_menu( const char *dflt_label )
 	texteffect( 5 );
 	text_extent( "Atari", &w, &h );
 	uplef_space = (lower_border - iconMFDB[icon].fd_h - h) / 3;
-	texta( mid_lefthalf, uplef_space, 2, 3, "Atari" );
+	writemode( MD_TRANS ); /* needed for slanted text */
+	texta( mid_lefthalf, uplef_space, 1, 3, "Atari" );
 	texteffect( 20 );
-	texta( mid_lefthalf, uplef_space, 2, 5, "LILO" );
+	texta( mid_lefthalf, uplef_space, 1, 5, "LILO" );
+	writemode( MD_REPLACE );
 	textrotate( 0 );
 	textsize( 0 );
 	texteffect( 0 );
@@ -293,6 +313,7 @@ char *boot_menu( const char *dflt_label )
 
 	v_hide_c( grh );
 	return( cmdline );
+#endif /* NO_GUI */
 }
 
 /*
@@ -300,14 +321,17 @@ char *boot_menu( const char *dflt_label )
  */
 void menu_error( const char *str )
 {
+#ifndef NO_GUI
 	int x, y;
 	unsigned long to;
+#endif /* NO_GUI */
 
-	if (NoGUI) {
+	if (DontUseGUI) {
 		cprintf( "%s\n", str );
 		return;
 	}
 	
+#ifndef NO_GUI
 	y = vcmd+lineht;
 	y += (scr_h - y) / 2;
 	x = (scr_w - strlen(str)*charw)/2;
@@ -318,6 +342,7 @@ void menu_error( const char *str )
 	for( to = _hz_200 + 200; _hz_200 < to; )
 		;
 	clear( x, y, strlen(str)*charw, lineht );
+#endif /* NO_GUI */
 }
 
 /*
@@ -327,11 +352,12 @@ char *get_password( void )
 {
 	EchoMode = ECHO_STARS;
 	
-	if (NoGUI) {
+	if (DontUseGUI) {
 		cprintf( "Password: " );
 		read_line( 1, 0 );
 	}
 	else {
+#ifndef NO_GUI
 		text( hcmdo, vcmd-lineht, "Password:    " );
 		init_editor();
 		while( 1 ) {
@@ -343,11 +369,14 @@ char *get_password( void )
 					break;
 			}
 		}
+#endif /* NO_GUI */
 	}
 
 	EchoMode = ECHO_NORMAL;
 	return( cmdline );
 }
+
+#ifndef NO_GUI
 
 /*
  * Initialize labels[] array with labels of boot records
@@ -379,7 +408,7 @@ void graf_init( const unsigned long *video_res )
 {
 	int i, work_in[11], work_out[57];
 
-	if (NoGUI)
+	if (DontUseGUI)
 		return;
 	if (Debug)
 		cprintf( "Initializing VDI workstation\n" );
@@ -404,7 +433,7 @@ void graf_init( const unsigned long *video_res )
 	if (!grh) {
     	cprintf( "Error: Cannot open VDI workstation (v_opnwk failed)\n"
 			     "NoGUI mode enabled.\n" );
-		NoGUI = 1;
+		DontUseGUI = 1;
 		return;
 	}
 	workstation_open = 1;
@@ -429,22 +458,35 @@ void graf_init( const unsigned long *video_res )
 	v_clrwk( grh  );
 }
 
+#endif /* NO_GUI */
+
 /*
  * Close phys. VDI workstation, if open
  */
 void graf_deinit( void )
 {
+#ifndef NO_GUI
 	if (workstation_open) {
-		char buf[6];
 		v_clswk( grh );
 		workstation_open = 0;
-		/* try to put alpha cursor to last screen line */
-		sprintf( buf, "\033Y%c \n", scr_h/lineht+32 );
-		Cconws( buf );
 		if (Debug)
 			cprintf( "Closed VDI workstation\n" );
 	}
+#endif /* NO_GUI */
 }
+
+/* Goto last screen line by repeating ESC B; this goes down one line except
+ * already at the bottom. Assuming that the screen hasn't more than 160
+ * lines... :-) */
+void goto_last_line( void )
+{
+	int i;
+
+	for( i = 0; i < 160; ++i )
+		Cconws( "\033B" );
+}
+
+#ifndef NO_GUI
 
 /*
  * Process a key press
@@ -606,6 +648,7 @@ static int domouse( int x, int y )
 }
 
 
+
 /* ------------------------------------------------------------------------- */
 /*						   Editor Utility Functions							 */
 
@@ -715,6 +758,7 @@ static void show_cmdline( int start, int end, int newc )
 	v_show_c(grh,1);
 }
 
+#endif /* NO_GUI */
 
 /* ------------------------------------------------------------------------- */
 /*								Non-GUI editor								 */
@@ -860,6 +904,7 @@ static void serial_puts( const char *p )
 /* ------------------------------------------------------------------------- */
 /*						 Primitive Graphics Functions						 */
 
+#ifndef NO_GUI
 
 static void text( int x, int y, const char *str )
 {
@@ -901,6 +946,11 @@ static void text_extent( const char *str, int *w, int *h )
 	vqt_extent( grh, (char *)str, ext );
 	*w = ext[2];
 	*h = ext[5];
+}
+
+static void writemode( int mode )
+{
+	vswr_mode( grh, mode );
 }
 
 /* draw a box */
@@ -960,19 +1010,6 @@ static int getmouse( int *x, int *y )
 #endif
 	return( status );
 }
-
-#if 0
-static void line( int x1, int y1, int x2, int y2 )
-{
-	int xy[4];
-	
-	xy[0] = x1;
-	xy[1] = y1;
-	xy[2] = x2;
-	xy[3] = y2;
-	v_pline( grh, 2, xy );
-}
-#endif
 
 /* reverse character cell of cursor */
 static void reverse( void )
@@ -1039,6 +1076,8 @@ int v_gtext( int h, int x, int y, char *s )
 		  : : "g" (&VDIPARS) );
 	return( 0 );
 }
+
+#endif /* NO_GUI */
 
 /* Local Variables: */
 /* tab-width: 4     */
