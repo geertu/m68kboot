@@ -7,10 +7,13 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: rootsect.S,v 1.1 1997-08-12 15:27:12 rnhodek Exp $
+ * $Id: rootsect.S,v 1.2 1998-02-19 20:39:42 rnhodek Exp $
  * 
  * $Log: rootsect.S,v $
- * Revision 1.1  1997-08-12 15:27:12  rnhodek
+ * Revision 1.2  1998-02-19 20:39:42  rnhodek
+ * Fix wrong registers
+ *
+ * Revision 1.1  1997/08/12 15:27:12  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -148,12 +151,12 @@ start:
 	jbsr	putlc
 
 /* load all the sector chunks the map sector tells us */
-	movw	#N_MAPENTRIES-1,%d0
+	movw	#N_MAPENTRIES-2,%d3
 	addql	#6,%a5			/* skip first entry in map sector,
 					 * it's the file length */
-	movq	#'.',%d1		/* for output */
 load_loop:	
 	movl	%a5@+,%d6		/* sector number */
+	movq	#0,%d5
 	movw	%a5@+,%d5		/* number of sectors */
 	jbeq	load_end
 	jbsr	load_sector
@@ -161,8 +164,9 @@ load_loop:
 	lsll	#8,%d5
 	lsll	#1,%d5
 	addl	%d5,%a4			/* add %d5 * 512 to load address */
+	movq	#'.',%d1		/* for output */
 	jbsr	putc			/* print a '.' for each chunk */
-	dbra	%d0,load_loop
+	dbra	%d3,load_loop
 load_end:
 	
 #ifdef SECONDARY_ROOTSEC_NEEDED
@@ -248,7 +252,7 @@ back_to_rom:
  * saved to %d7 before clearing _bootdev.
  *
  * We don't supply here a special function for reading from ACSI, since all
- * machines Linux runs on have a TOS version >= 2.0 and therefor have DMAread.
+ * machines Linux runs on have a TOS version >= 2.0 and therefore have DMAread.
  */
 load_sector:
 	movw	%d4,%sp@-		/* device */
