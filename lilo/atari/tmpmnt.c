@@ -7,10 +7,24 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: tmpmnt.c,v 1.4 1998-02-25 10:38:35 rnhodek Exp $
+ * $Id: tmpmnt.c,v 1.5 1998-02-26 10:34:08 rnhodek Exp $
  * 
  * $Log: tmpmnt.c,v $
- * Revision 1.4  1998-02-25 10:38:35  rnhodek
+ * Revision 1.5  1998-02-26 10:34:08  rnhodek
+ * my_drive and vector maintainance on umounting should be done by umount_drv(),
+ * not umount().
+ * umount_drv() should also clear bit in _drvbits.
+ * New function list_mounts().
+ * unstall_vectors(): sizeof(XBRA) is 12, not 8.
+ * _rwabs: drive parameter is at offset 14, not 4.
+ * do_* functions: add debugging printfs.
+ * do_rwabs: Recognize lsector argument (if sector==-1); sector must also
+ * be multiplied with logical sector size.
+ * do_getbpb: Should not return error if mediach set, but reset the flag;
+ * dp->secsize should be multiplier for HARD_SECTOR_SIZE (needs >> 9);
+ * set up b->bflags correctly (we can mount floppies).
+ *
+ * Revision 1.4  1998/02/25 10:38:35  rnhodek
  * umount_drv() should also clear bit in _drvbits.
  *
  * Revision 1.3  1998/02/24 11:22:29  rnhodek
@@ -155,8 +169,6 @@ int umount( void )
 		if (my_drives & mask) {
 			if (!umount_drv( i ))
 				cprintf( "Error unmounting drive %c:\n", i+'A' );
-			else
-				my_drives &= ~mask;
 		}
 	}
 	return( my_drives == 0 );
@@ -171,6 +183,7 @@ int umount_drv( int drv )
 	static char *fname = "X:\\X";
 	int fd;
 	struct drv_param *dp = &drv_param[drv];
+	unsigned long mask = ~(1 << drv);
 
 	if (!(my_drives & (1 << drv))) {
 		cprintf( "Drive %c: not mounted\n", drv+'A' );
@@ -186,14 +199,41 @@ int umount_drv( int drv )
 	if ((fd = Fopen( fname, 0 )) >= 0)
 		Fclose( fd );
 
-	_drvbits &= ~(1 << drv);
+	/* if mediach flag is still set, some error happened */
+	if (dp->mediach != 0)
+		return( 0 );
+	
+	_drvbits &= mask;
+	my_drives &= mask;
 	if (Debug)
 		cprintf( "Unmounted drive %c:, mediach=%u\n", drv+'A',dp->mediach );
-
-	/* if mediach flag is still set, some error happened */
-	return( dp->mediach == 0 );
+	if (!my_drives)
+		uninstall_vectors();
+	return( 1 );
 }
 
+
+void list_mounts( void )
+{
+	int i;
+	struct drv_param *dp;
+	
+	for( i = 0; i < MAX_DRIVES; ++i ) {
+		if (!(my_drives & (1 << i)))
+			continue;
+		dp = &drv_param[i];
+		if (dp->dev >= 16)
+			cprintf( "  IDE%d", dp->dev - 16 );
+		else if (dp->dev >= 8)
+			cprintf( "  SCSI%d", dp->dev - 8 );
+		else if (dp->dev >= 0)
+			cprintf( "  ACSI%d", dp->dev );
+		else
+			cprintf( "  FLOP%s", dp->dev == -2 ? "A": dp->dev == -3 ? "B":"" );
+		cprintf( ":%lu on %c: (%s,logsecsize=%lu)\n",
+				 dp->start, i+'A', dp->rw ? "rw" : "ro", dp->secsize << 9 );
+	}
+}
 
 static void install_vectors( void )
 {
@@ -225,7 +265,7 @@ static int remove_vector( unsigned long *vec, const char *vecname )
 	XBRA *x;
 
 	for( ; vec; vec = &x->oldvec ) {
-		x = (XBRA *)(*vec - 8);
+		x = (XBRA *)(*vec) - 1;
 		if (x->magic != *(unsigned long *)"XBRA") {
 			cprintf( "Can't remove me from %s vector chain (XBRA violation)\n",
 					 vecname );
@@ -254,7 +294,7 @@ _old_rwabs:
 _rwabs:
 	movel	_my_drives,d0
 	moveq	#0,d1
-	movew	sp@(4),d1
+	movew	sp@(14),d1
 	btst	d1,d0
 	jbne	_do_rwabs
 	movel	pc@(_old_rwabs),a0
@@ -303,24 +343,38 @@ static long do_rwabs( int first_arg )
 	unsigned int drv = *argp++;
 	struct drv_param *dp = &drv_param[drv];
 	long err;
-	
-	if (dp->mediach && !(rwflag & 2))
-		return( -E_CHNG );
 
+	if (sector == 0xffff)
+		sector = *(unsigned long *)argp;
+	
+#ifdef DEBUG_RW_SECTORS
+	bios_printf( "rwabs(rw=%u,cnt=%u,sect=%lu,dev=%u)\n",rwflag,cnt,sector,drv);
+#endif
+	if (dp->mediach && !(rwflag & 2)) {
+#ifdef DEBUG_RW_SECTORS
+		bios_printf( "rwabs: mediach=%d, returning -E_CHNG\n", dp->mediach );
+#endif
+		return( -E_CHNG );
+	}
+
+	sector *= dp->secsize;
 	sector += dp->start;
+	cnt *= dp->secsize;
 	if (rwflag & 1) {
 		if (!dp->rw)
 			err = -EROFS;
 		else
-			err = WriteSectors( buffer, dp->dev, sector, cnt*dp->secsize );
+			err = WriteSectors( buffer, dp->dev, sector, cnt );
 	}
 	else {
-		err = WriteSectors( buffer, dp->dev, sector, cnt*dp->secsize );
+		err = ReadSectors( buffer, dp->dev, sector, cnt );
 	}
-	if (err && Debug)
-		cprintf( "rwabs DMA%s(sec=%lu,dev=%u): error %s \n",
-				 (rwflag & 1) ? "write" : "read", sector, dp->dev,
-				 tos_perror(err) );
+#ifdef DEBUG_RW_SECTORS
+	if (err)
+		bios_printf( "rwabs DMA%s(sec=%lu,dev=%u): error %s \n",
+					 (rwflag & 1) ? "write" : "read", sector, dp->dev,
+					 tos_perror(err) );
+#endif
 	
 	return( err );
 }
@@ -335,30 +389,43 @@ static _BPB *do_getbpb( unsigned int drv )
 	int secsize, clusize;
 	long err;
 	
-	if (dp->mediach) {
-		dp->mediach = 0;
-		return( NULL );
-	}
+#ifdef DEBUG_RW_SECTORS
+	bios_printf( "getbpb(drv=%u)\n",drv);
+#endif
+	dp->mediach = 0;
 
 	if ((err = ReadSectors( _dskbuf, dp->dev, dp->start, 1 ))) {
-		if (Debug)
-			cprintf( "getbpb DMAread(sec=%lu,dev=%u): error %s \n",
+#ifdef DEBUG_RW_SECTORS
+		bios_printf( "getbpb DMAread(sec=%lu,dev=%u): error %s \n",
 					 dp->start, dp->dev, tos_perror(err) );
+#endif
 		return( NULL );
 	}
 	boot = (struct boot_sector *)_dskbuf;
 
 	secsize = (short)BOOTSEC_FIELD2(boot,sector_size);
-	if (secsize < 512 || (secsize & 0xff))
+	if (secsize < 512 || (secsize & 0x1ff)) {
 		/* quick check for invalid sector size */
+#ifdef DEBUG_RW_SECTORS
+		bios_printf( "getbpb: invalid sector size %d\n", secsize);
+#endif
 		return( NULL );
+	}
 	clusize = (signed char)BOOTSEC_FIELD1(boot,cluster_size);
-	if (clusize <= 0)
+	if (clusize <= 0) {
+#ifdef DEBUG_RW_SECTORS
+		bios_printf( "getbpb: invalid cluster size %d\n", clusize);
+#endif
 		return( NULL );
-	if (BOOTSEC_FIELD1(boot,nfats) != 2)
+	}
+	if (BOOTSEC_FIELD1(boot,nfats) != 2) {
+#ifdef DEBUG_RW_SECTORS
+		bios_printf( "getbpb: bat number of fats: %d\n", BOOTSEC_FIELD1(boot,nfats));
+#endif
 		return( NULL );
+	}
 
-	dp->secsize = secsize;
+	dp->secsize = secsize >> 9;
 	b->recsiz = secsize;
 	b->clsiz  = clusize;
 	b->clsizb = secsize * clusize;
@@ -367,8 +434,11 @@ static _BPB *do_getbpb( unsigned int drv )
 	b->fatrec = BOOTSEC_FIELD2(boot,rsvd_sect) + b->fsiz;
 	b->datrec = b->fatrec + b->fsiz + b->rdlen;
 	b->numcl  = (BOOTSEC_FIELD2(boot,sectors) - b->datrec) / clusize;
-	b->bflags = 1; /* always 16bit FAT, since we do only disk filesystems */
+	b->bflags = (dp->dev < 0) ? 0 /* 12 bit FAT */: 1 /* 16 bit FAT */;
 
+#ifdef DEBUG_RW_SECTORS
+	bios_printf( "getbpb: bootsector ok\n");
+#endif
 	return( b );
 }
 
@@ -377,6 +447,9 @@ static long do_mediach( unsigned int _drv )
 {
 	unsigned int drv = *(unsigned short *)&_drv;
 	
+#ifdef DEBUG_RW_SECTORS
+	bios_printf( "mediach(drv=%u) mediach=%d\n",drv,drv_param[drv].mediach);
+#endif
 	if (drv_param[drv].mediach) {
 		drv_param[drv].mediach++;
 		return( 2 );
