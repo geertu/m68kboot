@@ -7,10 +7,13 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.11 1998-02-23 10:12:48 rnhodek Exp $
+# $Id: Makefile,v 1.12 1998-02-26 11:37:09 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.11  1998-02-23 10:12:48  rnhodek
+# Revision 1.12  1998-02-26 11:37:09  rnhodek
+# Added commands for doc subdir.
+#
+# Revision 1.11  1998/02/23 10:12:48  rnhodek
 # Add ($MACH) to do_install invocation, can be set from command line if
 # no /proc/hardware available.
 # Fix TAGS target.
@@ -100,7 +103,7 @@ ATARI_HOSTAR    = m68k-mint-ar
         atari atari-bootstrap atari-lilo atari-common \
         all clean distclean dep
 
-all: amiga atari
+all: amiga atari doc
 
 amiga: amiga-bootstrap amiga-lilo
 
@@ -118,14 +121,19 @@ amiga-lilo:
 atari-lilo:
 	$(MAKE) -C lilo MACH=atari
 
+doc:
+	$(MAKE) -C doc
+
 clean:
 	rm -f TAGS
 	$(MAKE) -C bootstrap clean
 	$(MAKE) -C lilo clean
+	$(MAKE) -C doc clean
 
 distclean:
 	$(MAKE) -C bootstrap distclean
 	$(MAKE) -C lilo distclean
+	$(MAKE) -C doc distclean
 
 dep:
 	if $(AMIGA_HOSTCC) -v >/dev/null 2>&1; then \
@@ -139,6 +147,7 @@ dep:
 
 install:
 	./do_install $(PREFIX) $(MACH)
+	$(MAKE) -C doc install PREFIX=$(PREFIX)
 
 binary:
 	doit=""; [ root = "`whoami`" ] || doit=sudo; $$doit ./make_binary
