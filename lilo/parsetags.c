@@ -6,10 +6,14 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: parsetags.c,v 1.2 1998-02-26 10:08:52 rnhodek Exp $
+ * $Id: parsetags.c,v 1.3 1998-02-26 11:16:13 rnhodek Exp $
  * 
  * $Log: parsetags.c,v $
- * Revision 1.2  1998-02-26 10:08:52  rnhodek
+ * Revision 1.3  1998-02-26 11:16:13  rnhodek
+ * Print notice that map file is to be readed now, so that the stream's
+ * progress report doesn't look so misplaced :-)
+ *
+ * Revision 1.2  1998/02/26 10:08:52  rnhodek
  * Implement new TAGTYPE_CARRAY; plain ARRAY didn't work correctly for
  * string arrays.
  * FindFileVector() shouldn't return NULL for files with "bootp:" prefix,
@@ -157,6 +161,7 @@ void ParseTags( void )
     Files = &mapfile;
 
     /* load map file */
+    Printf( "Reading map file:\n" );
     stream_init();
     stream_push( &file_mod );
     sopen( "__map__" );
