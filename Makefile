@@ -7,10 +7,14 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.6 1997-07-17 14:16:58 geert Exp $
+# $Id: Makefile,v 1.7 1997-08-10 19:49:46 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.6  1997-07-17 14:16:58  geert
+# Revision 1.7  1997-08-10 19:49:46  rnhodek
+# Hardwire $(CC) to m68k-linux-gcc, no sense in a cross-lilo :-)
+# >& /dev/null didn't work
+#
+# Revision 1.6  1997/07/17 14:16:58  geert
 # Use >& instead of >... 2>&1
 #
 # Revision 1.6  1997/07/17 14:09:34  rnhodek
@@ -58,7 +62,8 @@ endif
 
 TOPDIR	:= $(shell if [ "$$PWD" != "" ]; then echo $$PWD; else pwd; fi)
 
-CC              = gcc
+# it doesn't make sense to build a cross-lilo, so hardwire the target arch
+CC              = m68k-linux-gcc
 CFLAGS          = -O2 -fomit-frame-pointer -Wall
 
 AMIGA_HOSTCC    = m68k-cbm-amigados-gcc
@@ -106,11 +111,11 @@ distclean:
 	$(MAKE) -C lilo distclean
 
 dep:
-	if $(AMIGA_HOSTCC) -v >&/dev/null; then \
+	if $(AMIGA_HOSTCC) -v >/dev/null 2>&1; then \
 		$(MAKE) -C bootstrap dep MACH=amiga; \
 		$(MAKE) -C lilo dep MACH=amiga; \
 	fi
-	if $(ATARI_HOSTCC) -v >&/dev/null; then \
+	if $(ATARI_HOSTCC) -v >/dev/null 2>&1; then \
 		$(MAKE) -C bootstrap dep MACH=atari; \
 		$(MAKE) -C lilo dep MACH=atari; \
 	fi
