@@ -10,10 +10,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: bootinf.c,v 1.2 1997-07-16 13:57:05 rnhodek Exp $
+ * $Id: bootinf.c,v 1.3 1997-07-16 14:00:32 rnhodek Exp $
  * 
  * $Log: bootinf.c,v $
- * Revision 1.2  1997-07-16 13:57:05  rnhodek
+ * Revision 1.3  1997-07-16 14:00:32  rnhodek
+ * Forgot to include <linux/version.h>
+ *
+ * Revision 1.2  1997/07/16 13:57:05  rnhodek
  * Add check for version of kernel headers
  *
  * Revision 1.1.1.1  1997/07/15 09:45:38  rnhodek
@@ -29,6 +32,7 @@
 #include <sys/types.h>
 
 /* Check that kernel headers are sufficiently new */
+#include <linux/version.h>
 #if LINUX_VERSION_CODE < 0x02011a
 #error You need at least 2.1.26 kernel headers to compile m68kboot
 #endif
