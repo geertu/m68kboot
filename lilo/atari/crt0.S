@@ -7,10 +7,15 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: crt0.S,v 1.7 1998-03-02 13:08:29 rnhodek Exp $
+ * $Id: crt0.S,v 1.8 1998-03-16 10:47:26 schwab Exp $
  * 
  * $Log: crt0.S,v $
- * Revision 1.7  1998-03-02 13:08:29  rnhodek
+ * Revision 1.8  1998-03-16 10:47:26  schwab
+ * Call Dsetdrv(_bootdev) on exit_action==1, since setting the current drive from
+ * the loader process is lost on Pterm!
+ * Do not trap execption #5 (division by zero).
+ *
+ * Revision 1.7  1998/03/02 13:08:29  rnhodek
  * Print current basepage on exceptions, not basepage of loader.
  * Fix indexing of 'framesize' array (d1 is .w, not .l)
  * Also print USP on exceptions.
@@ -69,6 +74,7 @@
 #include "bootparam.h"
 
 #define _sysbase	0x4f2
+#define _bootdev	0x446
 #define STACK_SIZE	8192
 #define DEBUG_EXCEPTIONS
 
@@ -193,7 +199,6 @@ end_reloc:
 	movl	#exc_buserr,0x8
 	movl	#exc_addrerr,0xc
 	movl	#exc_general,0x10
-	movl	#exc_general,0x14
 	movl	#exc_general,0x18
 	movl	#exc_general,0x1c
 	movl	#exc_general,0x20
@@ -341,6 +346,12 @@ end_reloc:
 	bne	1f
 /* exit_action == 1: jump back to ROM by doing rts. Hopyfully the hd
  * driver is installed now. */
+
+	movew	_bootdev,-(sp)
+	movew	#14,-(sp)
+	trap	#1		/* Dsetdrv */
+	addql	#4,sp
+
 	movml	sp@+,d0-d7/a0-a6 /* pop registers saved by rootsect.S */
 	movw	#0xe0,d7 /* for old TOS versions, end boot-try loop (shouldn't
 	                  * be necessary, but anyway... */
