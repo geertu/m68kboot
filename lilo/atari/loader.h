@@ -7,10 +7,14 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: loader.h,v 1.4 1998-02-27 10:21:30 rnhodek Exp $
+ * $Id: loader.h,v 1.5 1998-03-02 13:09:41 rnhodek Exp $
  * 
  * $Log: loader.h,v $
- * Revision 1.4  1998-02-27 10:21:30  rnhodek
+ * Revision 1.5  1998-03-02 13:09:41  rnhodek
+ * Moved compile-time options to loader_config.h.
+ * Rename NoGUI to DontUseGUI, and #define it to 1 if NO_GUI set.
+ *
+ * Revision 1.4  1998/02/27 10:21:30  rnhodek
  * New debug switch STRACE_TOS.
  * Define bios_printf() to be empty if DEBUG_RW_SECTORS isn't defined, so
  * we can save the nasty #ifdef's around calls to bios_printf().
@@ -35,14 +39,17 @@
 #define _loader_h
 
 #include "loader_common.h"
+#include "loader_config.h"
 
-#undef DEBUG_RW_SECTORS
-#undef STRACE_TOS
+#ifdef NO_GUI
+#define DontUseGUI 1
+#else
+extern unsigned int DontUseGUI;
+#endif
 
 extern unsigned int SerialPort;
 extern unsigned int AutoBoot;
 extern const char *Prompt;
-extern unsigned int NoGUI;
 extern const struct BootRecord *dflt_os;
 extern int CurrentFloppy;
 extern struct TagTmpMnt *MountPointList;
