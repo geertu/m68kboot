@@ -7,10 +7,14 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: config_common.h,v 1.2 1997-09-19 09:06:45 geert Exp $
+ * $Id: config_common.h,v 1.3 1998-02-24 11:12:17 rnhodek Exp $
  * 
  * $Log: config_common.h,v $
- * Revision 1.2  1997-09-19 09:06:45  geert
+ * Revision 1.3  1998-02-24 11:12:17  rnhodek
+ * Rename loader template to contain machine name, so that more templates
+ * can be installed at once.
+ *
+ * Revision 1.2  1997/09/19 09:06:45  geert
  * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
  *
  * Revision 1.1  1997/08/12 15:26:56  rnhodek
@@ -30,7 +34,7 @@
 
 #define LILO_CONFIGFILE		"/etc/lilo.conf"
 #define LILO_MAPFILE		"/boot/map"
-#define LILO_LOADERTEMPLATE	"/boot/loader"
+#define LILO_LOADERTEMPLATE	"/boot/loader."MACHNAME
 #define LILO_LOADERFILE		"/boot/loader.patched"
 #define LILO_BACKUPFILEPREFIX	"/boot/backup"
 
