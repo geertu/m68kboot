@@ -12,7 +12,7 @@ size_t strlen(const char * s)
 
 int strncmp(const char * cs,const char * ct,size_t count )
 {
-	register signed char __res;
+	register signed char __res = 0;
 
 	while (count--) {
 		if ((__res = *cs - *ct++) != 0 || !*cs++)
@@ -84,7 +84,7 @@ char * strncat(char *dest, const char *src, size_t count)
 	return tmp;
 }
 
-void * memset(void * s,char c,size_t count)
+void * memset(void * s,int c,size_t count)
 {
 	char *xs = (char *) s;
 
