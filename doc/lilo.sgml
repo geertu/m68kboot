@@ -5,11 +5,11 @@
 
 <!-- Title information -->
 
-<title>Amiga Linux/m68k Loader
-<author>Geert Uytterhoeven
-<date>Version 2.2, Febrary 4, 1997
+<title>Linux/m68k Bootloaders
+<author>Geert Uytterhoeven and Roman Hodek
+<date>Version 6.0, March 1998
 <abstract>
-This document describes the usage of the Amiga Linux/m68k Loader
+This document describes the usage of the Linux/m68k boot loader, Lilo.
 </abstract>
 
 
@@ -23,32 +23,51 @@ This document describes the usage of the Amiga Linux/m68k Loader
 <sect>Introduction
 
 <p>
-The <em>Amiga Linux/m68k Loader</em> (short: <em/Lilo/) allows you to load
-<em>Linux/m68k</em> from a disk boot block. You can choose among multiple kernel
-images --- without having to transport those kernels from a <em>Linux/m68k</em>
-partition to an <em/AmigaOS/ partition --- and can boot even <em/AmigaOS/
-itself. This greatly eases the boot process for normal users and provides a
-development boost for kernel hackers.
+Linux/m68k currently can be booted in two ways: via a
+<em>bootstrap</em> program which runs under the native OS, or via
+<em>Lilo</em>, that is started directly from the disk's boot sector
+and before the native OS.
+
+<p>
+The advantage of using Lilo is that you don't have to transport
+kernels from a Linux/m68k partition to a native OS (<em/AmigaOS/ or
+<em/TOS/) partition. Atari Lilo also has a nice graphical boot menu.
+In each Lilo, you can choose among multiple kernel images and you can
+boot even the native OS (AmigaOS or TOS, resp.) itself. This greatly
+eases the boot process for normal users and provides a development
+boost for kernel hackers.
 
 
 <sect1>Features
 
 <p>
 <itemize>
-<item>Can boot <em>Linux/m68k</em> and <em/AmigaOS/.
+<item>Can boot Linux/m68k and native OS (AmigaOS or TOS).
+<item>Atari: can also boot arbitrary boot sectors for other operating
+systems (e.g. Atari System V)
 <item>Supports multiple kernel images.
-<item>Supports both <em/ELF/ and <em/a.out/ (<em/QMAGIC/ and
-<em/ZMAGIC/) kernels.
 <item>Supports multiple command lines.
-<item>Supports the standard <em/Amiga/ console and an <em/ANSI/ terminal
-connected to the builtin serial port.
-<item>Supports automatic and interactive booting, with an optional timeout.
+<item>Supports both ELF and a.out (QMAGIC and ZMAGIC) kernels.
+<item>Supports compressed kernels (autodetected).
+<item>Supports new 2.x bootinfo format for 2.1.x kernels and  bootinfo
+compability mode for 2.0.x kernels.
 <item>Supports ramdisk images.
-<item>Boot code can be installed on <em/AmigaOS/ and <em>Linux/m68k</em> partitions.
+<item>Supports the standard console and an ANSI terminal connected to
+a serial port.
+<item>Supports automatic and interactive booting, with an optional
+timeout.
+<item>Atari: Has a nice graphical boot menu.
+<item>Atari: Can run TOS programs either before displaying the boot
+menu, or before starting Linux. Main application is starting a video
+board driver.
+<item>Amiga: Boot code can be installed on AmigaOS and Linux/m68k partitions.
+<item>Atari: Boot sector can be installed on any primary TOS or
+Linux/m68k partition and the auxiliary rootsector of the first
+extended partition. The boot sector leaves space for a partition table
+(including ICD partitions) and TOS filesystem boot sector data.
 <item>Password protection on a per kernel base.
 <item>Boot monitor with a separate password.
 <item>Can backup and restore boot blocks.
-<item>Can load kernel images compressed with gzip.
 </itemize>
 
 
@@ -56,119 +75,183 @@ connected to the builtin serial port.
 
 <p>
 <itemize>
-<item>An <em/Amiga/ that can run <em>Linux/m68k</em>.
-<item>A working installation of <em>Linux/m68k 2.0.x</em>, <em/2.1.x/ or
-higher (kernel bootinfo interface versions <em/1.x/ and <em/2.x/) (You need
-at least kernel version \name{2.1.21} to compile <em/Lilo/).
-<item>An <em/AmigaOs/ cross-compiler (e.g. the <em/ADE/ package).
-<item><em/Kickstart V36/ or higher.
-<item><em/HdToolBox/.
+<item>An Amiga or Atari that can run Linux/m68k.
+<item>A working installation of Linux/m68k 2.0.x, 2.1.x or higher (kernel
+bootinfo interface versions 1.0 and 2.x) (You need at least kernel
+version \name{2.1.42} to compile the <em/m68kboot/ package.)
+<item>A cross-compiler for the native OS (AmigaOS, TOS) (e.g. the <em/ADE/
+package on Amiga) to compile the package.
+<item>Amiga: Kickstart V36 or higher, HdToolBox.
+<item>Atari: A TOS which implements the <tt/DMAread/ XBIOS function
+(TOS 2.0 or higher)
 </itemize>
 
 
-<sect1>Why <em/Lilo/ for <em/Amiga/?
+<sect1>Why Lilo?
 
 <p>
-I decided to write a version of <em/Lilo/ for the <em/Amiga/ because I was
-tired of putting <em>Linux/m68k</em> kernels on a floppy and read them back with
-the <em/FLAT-handler/ to test them. At that time this was the only decent way
-to transport files from a <em>Linux/m68k</em> partition to an <em/AmigaOS/
-partition, since you can't access files on an <em/ext2fs/ partition under
-<em/AmigaOS/ (However, this is going to change. For more information,
-take a look at
-<url url="http://theory.cs.bonn.edu/~fasten/" name="Ext2fs for AmigaOS">.).
+Geert decided to write a version of Lilo for the Amiga because he was
+tired of putting Linux/m68k kernels on a floppy and read them back
+with the <em/FLAT-handler/ to test them. At that time this was the
+only decent way to transport files from a Linux/m68k partition to an
+AmigaOS partition, since you can't access files on an ext2fs partition
+under AmigaOS (However, this is going to change. For more information,
+take a look at <url url="http://theory.cs.bonn.edu/~fasten/"
+name="Ext2fs for AmigaOS">.). And what with people who want to wipe
+AmigaOS or TOS completely off of their hard disk? But here is Lilo!
+The support for a terminal connected to the builtin serial port was
+added when Geert's A1960 monitor died (again) and he desperately
+needed such a feature.
 
-Now we have <em/Ethernet/ support file transport became much easier --- I
-usually <em/FTP/ my files to a <em/Sun SPARCstation 1/ or <em>Linux/i386</em>
-box, and get them back through <em>AmiTCP/IP</em> ---, but it's still a real
-hassle just to test a new kernel. And what with people who want to wipe
-<em/AmigaOS/ completely off of their hard disk? But here is <em/Lilo/!
-
-The support for a terminal connected to the builtin serial port
-was added when my <em/A1960/ monitor died (again) and I desperately needed
-such a feature.
-
+<p>
+The idea of Lilo for Atari was old, but noone ever implemented it,
+because it seemed complicated and dangerous to intercept the system
+boot procedure. But there also was a systematic problem: Linux/m68k
+can't (yet) initialize graphics boards, but must use a video mode
+programmed before it was booted. And for this, you needed to boot TOS
+anyway. Also, the pressure for Lilo wasn't ever that urgent, because
+it's rather easy to transfer new Linux kernels to a TOS filesystem
+(using the MS-DOS filesystem under Linux). But the problem with
+graphic board initialization has been solved, and still Lilo boots
+Linux faster than the bootstrap program, because you don't need to
+boot TOS before it.
 
 <!-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
 
 
-<sect>Installing <em/Lilo/
+<sect>Installing Lilo
 
 <p>
 <bf/Important notes:/
 <itemize>
-<item>To perform the actions described below, you must be <em/root/ on your
-<em>Linux/m68k</em> system, unless noted otherwise.
+<item>To perform the actions described below, you must be <tt/root/ on your
+Linux/m68k system, unless noted otherwise.
 
 <item>Some of these actions might be dangerous for the integrity of your
 system.  Always think twice, ... then think again, and <bf/use this at
 your own risk!/
 </itemize>
 
-First you need to choose a partition to install the <em/Lilo/ boot block on.
-This can be any <em>Linux/m68k</em> partition or <em/bootable AmigaOS/
-partition. If you want to use <em/Lilo/ to boot <em/AmigaOS/ too, you must
-install the <em/Lilo/ boot block on the <em/AmigaOS/ partition you want to
-boot from.
+<sect1>Choosing the Boot Partition<label id="sec:choosingbootdev">
 
-This boot partition is represented by a block special device file (created with
-<em/mknod/), which is usually located in the <tt>/dev</tt> directory. By
-convention block special device files for <em/SCSI/ drives are represented by
-entries of the kind <tt>/dev/sd*</tt>, while <em/IDE/ drives are associated
-with the <tt>/dev/hd*</tt> entries.
+<p>
+First you need to choose a partition to install the Lilo boot block
+on. What you can choose is inherently different between Amiga and
+Atari.
 
-I have e.g. 2 <em/IDE/ drives in my <em>A4000/040</em>: a <em/Conner
-CP30544/ (master) of 540 MB and the original <em/Seagate ST3144A/ (slave) of
-130 MB (This changed due to my (<em>Linux/m68k</em>'s? <em/X11R6.1/'s?)
-hunger for diskspace, but I left the original example for the sake of
-simplicity.).  The <em/Conner/ has six partitions, while the <em/Seagate/
-has only one partition.  So I have the following block special device files:
+The boot partition must be configured in <tt>/etc/lilo.conf</tt> as
+the parameter <tt/bootdev/. You need to give the name of a disk device
+there. Those device files usually reside under <tt>/dev</tt>. By
+convention, device files for SCSI drives are represented by entries of
+the kind <tt>/dev/sd*</tt>, while IDE drives are associated with the
+<tt>/dev/hd*</tt> entries. On Atari, ACSI devices are named
+<tt>/dev/ad*</tt>. The letter that follows the <tt/sd/, <tt/hd/, ...
+differentiates between the disks on your system. For each disk, there
+is a so-called <em/whole-disk/ device, which is just this disk name,
+e.g. <tt>/dev/sda</tt>. Single partitions finally are named after the
+whole-disk device, but have their partition number appended. For
+example, the second partition on device <tt/sda/ is
+<tt>/dev/sda2</tt>.
 
-<!-- TABLE -->
-<verb>
-Unit - Unit & Block special device file - File system - Usage
-</verb>
-<!-- TABLE -->
+<p>
+<bf/Amiga/: The boot partition can be any Linux/m68k partition or
+<em/bootable/ AmigaOS partition. If you want to use Lilo to boot
+AmigaOS, too, you must install the Lilo boot block on the AmigaOS
+partition you want to boot from. Note: A Linux swap partition is
+<em/not/ suitable for installing Lilo on it.
 
-Since I wanted to use <em/Lilo/ to boot both <em/AmigaOS/ (from
-<tt>/dev/hda1</tt>) and <em>Linux/m68k</em> (from <tt>/dev/hda3</tt>), I had to
-install <em/Lilo/ on <tt>/dev/hda1</tt>.
+<p>
+<bf/Atari/: The boot partition must be on your boot disk. That is the
+disk from which also TOS is booted. The ROMs first try the
+lowest-numbered SCSI disk as boot disk, then the lowest-numbered ACSI
+disk, and last the first (master) IDE disk (everything if the
+respective busses/devices exist). On that disk, you can choose between
+the following as Lilo boot partition:
 
+<p>
+<itemize>
+<item>Any primary<footnote>
+Basically an extended partition would be ok, too, but the most root
+sectors installed by TOS HD drivers only support booting from primary
+partitions. If your HD driver should support booting from extended
+partition, you could use a such one equally.
+</footnote>
+partition on your boot disk containing a TOS, Minix, or ext2
+filesystem. (Most other Unix filesystem types should also be ok, if
+they leave their first sector unused for boot purposes). Note: A Linux
+swap partition is <em/not/ suitable for installing Lilo on it.
 
-<sect1>Installing the <em/Lilo/ boot block
+<p>
+Please do <bf/not/ choose your current GEMDOS boot partition for Lilo,
+too! You would overwrite your HD driver's boot code, and won't be able
+to boot TOS anymore. (Of course you still can boot from floppy.)
+
+<item>The auxiliary root sector of the first extended partition, in
+the following called the <em/XGM partition/. The XGM partition is
+usually only a container for the extended partitions and isn't visible
+to the user. But if you have at least one extended partition, you have
+such a container, and it is ok to install Lilo on it.
+
+<p>
+On Atari, the XGM partition doesn't have an associated device
+under Linux (in difference to extended partitions on PCs). So Lilo
+recognizes a special syntax for it: Append an <tt/x/ to the name of
+the whole-disk device. For example, if the disk <tt>/dev/sda</tt>
+contains at least one extended partition, you can also use the pseudo
+device <tt>/dev/sdax</tt> for installing Lilo on the XGM partition.
+
+<item>You alson can install Lilo directly into the root sector of the
+whole disk. If you do this, the old root sector boot code will be
+overwritten, and Lilo will be the only method for booting. It will be
+started in any case, no matter what your boot preference is, and you
+will be able to boot TOS only through Lilo. If you want to use this
+method, configure the whole-disk device (e.g. <tt>/dev/sda</tt>) as
+<tt/bootdev/.
+</itemize>
+
+Note: That discussion applies only to where the Lilo boot sector can
+be located, and not to the other files accessed by the loader
+(<tt>/boot/loader.patched</tt>, <tt>/boot/map</tt>, and kernel and
+ramdisk images). On Atari, those files can reside on any device that
+is accessible by the XBIOS function <tt/DMAread/, i.e. all SCSI and
+ACSI disks, and the master IDE disk. (I've been told that <tt/DMAread/
+can't read a slave IDE disk.)
+
+<sect1>Installing the Lilo boot block
 
 <p>
 Now edit the file <tt>/etc/lilo.conf</tt>. Refer to Section <ref id="sec:conf"
 name="<tt>/etc/lilo.conf</tt>"> for the configuration file syntax.
 
-Then install the <em/Lilo/ boot block with the following command line:
+Then install the Lilo boot block with the following command line:
 <tscreen>
 <tt/lilo [--force]/
 </tscreen>
 with
 <descrip>
-<tag/<tt>--force</tt>/ To prevent data loss in case of a mistake, <em/Lilo/ will
-never overwrite an unknown boot block, unless you use this force option.
+<tag/<tt>--force</tt>/ (Only on Amiga:) To prevent data loss in case
+of a mistake, Lilo will never overwrite an unknown boot block, unless
+you use this force option.
 </descrip>
 
 If there exists no backup of the boot block yet --- i.e. if you're installing
-<em/Lilo/ for the first time --- it will automatically create a backup of the
+Lilo for the first time --- it will automatically create a backup of the
 old boot block in the file <tt>/boot/backup.xx.yy</tt> with <tt/xx/ and
 <tt/yy/ the major and minor numbers of the device you installed the
-boot block on. This will allow you to uninstall <em/Lilo/ completely or
+boot block on. This will allow you to uninstall Lilo completely or
 to recover from mistakes.
 
 In most cases you can just enter
 <tscreen>
 <tt/lilo/
 </tscreen>
-or
+On Amiga, you need
 <tscreen>
 <tt/lilo --force/
 </tscreen>
-if you're installing a <em/Lilo/ boot block on a partition with an
-<em/ext2fs/ or <em/minix/ file system for the first time because those
-partitions don't have a known boot block at that moment.
+if you're installing a Lilo boot block on a partition with an ext2fs
+or minix file system for the first time, because those partitions
+don't have a known boot block at that moment.
 
 <bf>Warning: Every time you change or move any kernel image or config file
 you <em/must/ rerun <tt/lilo/</bf>!  Just enter
@@ -178,17 +261,17 @@ you <em/must/ rerun <tt/lilo/</bf>!  Just enter
 to update all important data.
 
 
-<sect1>Updating the <em/Rigid Disk Block/
+<sect1>Amiga only: Updating the Rigid Disk Block
 
 <p>
-If this is the first time you install <em/Lilo/ you need to use
-<em/HdToolBox/ (under <em/AmigaOS/) to update the <em/Rigid Disk Block/ of
+If this is the first time you install Lilo you need to use
+<em/HdToolBox/ (under AmigaOS) to update the <em/Rigid Disk Block/ of
 the device your boot partition is located on. Make sure to remember the
 original values of all options you change, in case you might want to uninstall
-<em/Lilo/!
+Lilo!
 
-Start <em/HdToolBox/ and perform the following actions (This list
-reflects the <em/AmigaOS/ 3.1 version of <em/HdToolBox/. Other versions are
+Start HdToolBox and perform the following actions (This list
+reflects the AmigaOS 3.1 version of HdToolBox. Other versions are
 slightly different.):
 <itemize>
 <item>Select the corresponding device for your boot partition and click on
@@ -202,104 +285,219 @@ slightly different.):
 <item>Click on <tt/Change.../ to get the <tt/File System Characteristics/
 menu.
 
-<item>If you did <em/not/ install the <em/Lilo/ boot block on an
-<em/AmigaOS/ partition:
+<item>If you did <em/not/ install the Lilo boot block on an
+AmigaOS partition:
 <itemize>
 <item>Set <tt/File System/ to <tt/Custom File System/.
 
 <item>Fill in an appropriate value after <tt/Identifier =/.  I suggest
 <tt/0x45585432/ (<tt/EXT2/ in <em/HEX ASCII/) for a partition
-with <em/ext2fs/ and <tt/0x4D494E49/ (<tt/MINI/ in <em/HEX ASCII/) for a
-partition with the <em/minix/ file system.  Alternatively you could use
+with ext2fs and <tt/0x4D494E49/ (<tt/MINI/ in HEX ASCII) for a
+partition with the minix file system.  Alternatively you could use
 <tt/0x554E4901/ (<tt/UNI\01/ (This value was originally
-reserved for a <em/UNIX/ boot file system, i.e. for the boot partition of
-<em/Amiga UNIX System V Release 4/, also known as <em/AMIX/.) in <em/HEX
-ASCII/) if you do not intend to access the partition under <em/AmigaOS/.
+reserved for a UNIX boot file system, i.e. for the boot partition of
+<em/Amiga UNIX System V Release 4/, also known as <em/AMIX/.) in HEX
+ASCII) if you do not intend to access the partition under AmigaOS.
 
 <item>Don't worry about the warning you will get later that tells you the data
-on the partition will be lost. <em/HdToolBox/ doesn't know that <em/ext2fs/
-and the <em/minix/ file system don't use the <tt/File System/ field in the
-<em/Rigid Disk Block/.
+on the partition will be lost. HdToolBox doesn't know that ext2fs
+and the minix file system don't use the <tt/File System/ field in the
+Rigid Disk Block.
 </itemize>
 
 <item>Enable <tt/Use custom boot code/ and set <tt/Number of custom boot
 blocks/ to <tt/2/.  This value assumes the <tt/File system block size/ is set
-to it's default value of <tt/512/.  <em/Never/ enable this for an <em/AmigaOS/
-partition that contains the <em/original AmigaOS/ boot block, since this
+to it's default value of <tt/512/.  <em/Never/ enable this for an AmigaOS
+partition that contains the <em/original/ AmigaOS boot block, since this
 is definitely not bootable!.
 
 <item>Click on <tt/OK/, on <tt/OK/ and on <tt/Save Changes to Drive/.
 </itemize>
 
-If you installed the <em/Lilo/ boot block on another partition than the
-previous time, you also need to use <em/HdToolBox/ to update your <em/Rigid Disk Block/.
+If you installed the Lilo boot block on another partition than the
+previous time, you also need to use HdToolBox to update your Rigid Disk Block.
 
 
-<sect1>Uninstalling <em/Lilo/
+<sect1>Atari only: Change your Boot Preference
 
 <p>
-To uninstall a <em/Lilo/ boot block, just restore the <em/Rigid Disk Block/
-options for that partition to their original values (using <em/HdToolBox/),
-and use the <tt/--uninstall/ option of <em/Lilo/:
+You need to take the follows steps only on the first time you install
+Lilo. The settings are permanent, so you don't have to repeat this
+everytime.
+
+<p>
+On Atari, the boot code in the root sector by convention decides which
+partition to boot from by partition <em/boot flags/ and the <em/boot
+preferences/. Each partition can have a <em/boot flag/ set, which is a
+power of 2 from 0x08 to 0x80. The following values are currently used
+for boot flags:
+
+<p>
+<tscreen><verb>
+Boot Flag  Operating System
+0x80       GEMDOS/TOS
+0x40       Atari System V Unix
+0x20       NetBSD
+0x10       Linux/m68k
+</verb></tscreen>
+<!-- TABLE -->
+
+<p>
+The values for NetBSD and Linux aren't officially assigned by Atari,
+but used by convention. You can change a partition's boot flag for
+example in <tt/atari-fdisk/ with the `<tt/a/' command. Just start
+<tt/atari-fdisk/ for your boot disk (you need the <tt/-f/ option if
+devices are mounted from that disk) and select `<tt/a/' from the menu.
+Then enter the number of the partition whose boot flag you want to
+change. A number of 0 stands for the XGM partition (on which you can
+install Lilo with <tt>/dev/?d?x</tt>). Then choose boot flag 0x10
+(Linux) from the menu, save and exit. Partitioning utilities under TOS
+also could support changing boot flags, but Atari HDX definitively
+does not. I also couldn't find an option in SCSITOOL, and DISKUS seem
+to support only GEMDOS and Atari SysV.
+
+<p>
+Ok, with the boot flags, the root sector code knows which partitions
+provide boot sectors for which operating systems. But it still doesn't
+know which of those systems is to be booted by default. This is
+configured by the <em/boot preference/. The boot preference can have
+the same values as a boot flag, or 0 which stands for``no default''.
+In that case, most root sectors choose a partition with boot type 0x80
+(= GEMDOS).
+
+<p>
+The boot preference usually is stored in the NVRAM. Most utilities to
+modify NVRAM contents allow you to change the boot preference. To boot
+Lilo by default, enter the same value as you've choosen as boot type
+for the Lilo partition (most probably 0x10). The Lilo package also
+includes a <tt/BOOTFLAG.CPX/ CPX module for Atari's modular control
+panel, which also allows you to change the boot preference in NVRAM,
+and definitively knows about Linux. Also with Lilo comes a little
+Linux programm <tt/bootos/, which does the same thing. To change your
+boot preference to Lilo, use it as:
+<tscreen>
+<tt>bootos Linux</tt>
+</tscreen>
+To again select GEMDOS as the default OS, do:
+<tscreen>
+<tt>bootos GEMDOS</tt>
+</tscreen>
+
+<p>
+On machines that have an SCU (``System control unit'') chip (TT and
+Medusa (?)), there is also a second method for selecting the boot
+preference, called the <em/temporary boot preference/. This setting is
+valid only until you turn off the power, after that it's lost and the
+NVRAM setting takes control again. You can use that temporary
+preference if you want to change the default OS just for a session.
+The <tt/BOOTFLAG.CPX/ can also change the temporary preference (if an
+SCU is available). <tt/bootos/ under Linux unfortunately can't do
+that, because current kernels don't permit access to the SCU from user
+space, and there's no ioctl or similar for it. But --- due to a kernel
+bug :-) --- you can at least view the current setting. Use the <tt/-t/
+option to work with the temporary preference instead the permanent one
+in NVRAM.
+
+<p>
+If your machine doesn't have NVRAM (i.e., it's older than the TT),
+you're a bit out of luck. In that case, you can't change the boot
+preference at all. To boot Lilo, you have to give Lilo's boot
+partition a TOS boot flag (0x80), and remove the boot flag from your
+TOS boot partition. To switch back to default TOS boot, you have to
+undo those two steps.
+
+<sect1>Uninstalling Lilo
+
+<p>
+To uninstall a Lilo boot block, just restore the Rigid Disk Block
+options for that partition to their original values (using HdToolBox)
+(Amiga), and use the <tt/--uninstall/ option of <em/Lilo/:
 <tscreen>
 <tt/lilo --uninstall/
 </tscreen>
 This will automatically restore the boot block that was backed up during the
 first time installation.
 
+<p>
+On Atari, you afterwards have to change your boot preference back to
+TOS (0x80) or unspecified (0x0). You can also set the boot flag of the Lilo
+partition to back 0 (not bootable) if you like, but that isn't really
+necessary unless you modify your boot preference again.
 
 <!-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
 
 
-<sect>Files used by <em/Lilo/
+<sect>Files used by Lilo
 
-<sect1><tt>/boot/loader</tt>
+<sect1><tt>/boot/loader.</tt><em>machine</em>
 
 <p>
-This is a template for an <em/AmigaOS/ executable that displays the boot menu
-and loads the desired operating system on booting.
+This is a template for an AmigaOS or TOS executable that displays the
+boot menu and loads the desired operating system on booting.
+<em/machine/ is to be replaced by either <tt/amiga/ or <tt/atari/, for
+the respective systems.
 
 <sect1><tt>/boot/loader.patched</tt>
 
 <p>
-This is the actual raw PC-relative executable that displays the boot
-menu and loads the desired operating system on booting. It is created by
-<em/Lilo/ by patching <tt>/boot/loader</tt> and by adding a PC-relative
-header that decodes the <em/AmigaOS/ executable file format.
+This is the actual raw executable that displays the boot menu and
+loads the desired operating system on booting. It is created by Lilo
+by patching <tt>/boot/loader.<em/machine/</tt> and (on Amiga) by
+adding a PC-relative header that decodes the AmigaOS executable file
+format. On Atari, already the template contains the Lilo boot sector.
 
 <sect1><tt>/boot/map</tt>
 
 <p>
-This file contains all configuration options and all necessary information to
-find all files, as defined by <tt>/etc/lilo.conf</tt>. It is created by
-<em/Lilo/.
+This file contains all configuration options and all necessary
+information to find all files, as defined by <tt>/etc/lilo.conf</tt>.
+It is created by Lilo.
 
+<p>
 For more information about the used file format, see section
 <ref id="sec:tags" name="The tagged map file format">.
 
 <sect1><tt>/boot/backup.xx.yy</tt>
 
 <p>
-This file contains a backup of the original boot block on the device with major
-number <tt/xx/ and minor number <tt/yy/. It's created by <em/Lilo/ if you
-install a boot block on the corresponding device and no backup exists yet.
+This file contains a backup of the original boot block on the device
+with major number <em/xx/ and minor number <em/yy/. It's created by
+Lilo if you install a boot block on the corresponding device and no
+backup exists yet. If you install to an XGM partition on Atari (which
+has no associated device), <tt/ff/ is used as minor number <em/yy/.
 
 <sect1><tt>/sbin/lilo</tt>
 
 <p>
-This is the <em>Linux/m68k</em> executable that installs <em/Lilo/.
+This is the Linux/m68k executable that installs Lilo.
+
+
+<sect1><tt>/sbin/bootos</tt>
+
+<p>
+Atari only: A little utility to change the boot preference.
 
 
 <sect1><tt>/etc/lilo.conf</tt><label id="sec:conf">
 
 <p>
-This is the <em/Lilo/ configuration file, an <em/ASCII/ file which defines
-the boot configuration for <em/Lilo/.  It contains a header with global
-options, one or more boot records, and zero or more file definitions.
+This is the Lilo configuration file, an ASCII file which defines the
+boot configuration for Lilo. It contains a header with global options,
+one or more boot records, and zero or more file definitions.
 
-The character <tt/&num;/ indicates that the rest of the line is a comment and thus to be ignored. All numbers in this file can be entered in decimal (e.g.
-<tt/53270/), hexadecimal (e.g. <tt/0xD016/) or octal (e.g. <tt/0150026/)
-form.
+<p>
+The character `<tt/&num;/' indicates that the rest of the line is a
+comment and thus to be ignored. All numbers in this file can be
+entered in decimal (e.g. <tt/53270/), hexadecimal (e.g. <tt/0xD016/)
+or octal (e.g. <tt/0150026/) form. All numbers also can be suffixed by
+`<tt/k/' or `<tt/M/' (case-insensitive) to denote factors 1024 (1
+kByte) or 1048576 (1 MByte), resp. This may be handy for writing down
+memory sizes or the like.
+
+<p>
+For flag options (i.e. those that take <tt/true/ or <tt/false/ as
+arguments) you usually can omit <tt/true/ and write the option name
+alone. Its precense alone is enough to switch it on.
 
 
 <sect2>Header
@@ -314,80 +512,104 @@ endheader
 </verb></tscreen>
 
 Valid header options are:
+
+<sect3>Common Header Options
+
+<p>
 <descrip>
-<tag/<tt>bootdev "</tt><em>name</em><tt/"</tt>/ Specify the block special device to
-install the boot block on (e.g. <tt>/dev/hda1</tt>).
+<tag/<tt>bootdev "</tt><em>name</em><tt/"</tt>/
+Specify the block special device to install the boot block on (e.g.
+<tt>/dev/sda1</tt>). See section <ref id="sec:choosingbootdev"
+name="Choosing the Boot Partition"> for more information on how to
+choose the boot partition.
 
-<tag/<tt>altdev "</tt><em>device</em><tt>"</tt> <em>unit</em>/ Specify the <em/AmigaOS/ name
-and unit number for an alternate boot device (e.g. <tt/scsi.device/ and
-<tt/0/).
+<tag/<tt>default "</tt><em>label</em><tt/"</tt>/
+Specify that the boot record with label <em/label/ is the default
+operating system. Default is the first boot record.
 
-In most cases you don't need this option, but if the device that contains your
-kernel images and the files <tt>/boot/loader.patched</tt> and <tt>/boot/map</tt> is
-different from the device you want to install the boot block on (specified with
-the <tt/bootdev/ option), you need to specify the <em/AmigaOS/ device name and
+<tag/<tt>auto</tt> <em>flag</em>/
+If <em/flag/ is <tt/true/, Lilo will automatically boot the default
+operating system, unless you hold a qualifier (<tt/ALT/, <tt/AMIGA/
+(Amiga only), <tt/CTRL/, <tt/SHIFT/, <tt/CAPS LOCK/ or one of the
+mouse-buttons (Amiga only)) or press a key on the serial console
+during booting. If <em/flag/ is <tt/false/, a boot prompt or menu will
+always appear. Default is <tt/false/.
+
+<tag/<tt>timeout</tt> <em>number</em>/
+Specify the number of seconds to wait at the boot prompt before the
+default operating system is chosen automatically. Use <tt/0/ for an
+infinite timeout value. Default is 20 on Amiga, 0 on Atari. On Atari,
+this is different from <tt/delay/ by the fact that it's a timeout for
+the boot menu itself, not for showing the boot menu at all.
+
+<tag/<tt>password "</tt><em>name</em><tt>"</tt>/
+Specify the master password. This password will be asked for if you
+want to enter the boot monitor on booting. Default is an empty string.
+
+<tag/<tt>debug</tt> <em>flag</em>/
+If <em/flag/ is <tt/true/ the loader will enter debug mode and display
+additional information during startup. Default is <tt/false/.
+
+<tag/<tt>prompt "</tt><em>text</em><tt/"</tt>/
+Specify the loader prompt. The following character sequences are
+interpreted specially:
+<descrip>
+<tag/<tt>\b</tt>/ Backspace
+<tag/<tt>\e</tt>/ Escape
+<tag/<tt>\n</tt>/ Line Feed
+<tag/<tt>\r</tt>/ Carriage Return
+<tag/<tt>\t</tt>/ Tab
+<tag/<tt>\\</tt>/ Backslash
+</descrip>
+The default prompt is `<tt/Boot image: /' on Amiga, and `<tt/LILO
+boot: /' on Atari. On Atari, don't use control characters if you use
+the graphical boot menu, since the prompt is used there, too.
+
+</descrip>
+
+<sect3>Amiga Header Options
+
+<p>
+<descrip>
+<tag/<tt>altdev "</tt><em>device</em><tt>"</tt> <em>unit</em>/
+Specify the AmigaOS name and unit number for an alternate boot device
+(e.g. <tt/scsi.device/ and <tt/0/).
+
+<p>
+In most cases you don't need this option, but if the device that
+contains your kernel images and the files
+<tt>/boot/loader.patched</tt> and <tt>/boot/map</tt> is different from
+the device you want to install the boot block on (specified with the
+<tt/bootdev/ option), you need to specify the AmigaOS device name and
 unit number that corresponds with the device those files reside on.
 
-<tag/<tt>default "</tt><em>label</em><tt/"</tt>/ Specify that the boot record with
-label <em/label/ is the default boot operating system. Default is the first boot record.
+<tag/<tt>aux</tt> <em>flag</em>/
+If <em/flag/ is <tt/true/, the loader will not only use the standard
+console, but also the auxiliary console (a terminal on the builtin
+serial port). Default is <tt/false/.
 
-<tag/<tt>auto</tt> <em>flag</em>/ If <em/flag/ is <tt/true/, <em/Lilo/ will
-automatically boot the default operating system, unless you hold a qualifier (<tt/ALT/,
-<tt/AMIGA/, <tt/CTRL/, <tt/SHIFT/, <tt/CAPS LOCK/ or one of the
-mouse-buttons) or press a key on the auxiliary console during booting.
-If <em/flag/ is <tt/false/, a boot prompt will always appear.
-So use <tt/true/ if you think `Why do I need a boot menu? I already have one
-in ROM!'.  Default is <tt/false/.
+<tag/<tt>baud</tt> <em>number</em>/
+Specify the speed (in bps --- bits per second) for the auxiliary
+console (if enabled). Default is <tt/9600/ (ROM default).
 
-<tag/<tt>timeout</tt> <em>number</em>/ Specify the number of seconds to wait at the
-boot prompt before the default operating system is chosen automatically. Use <tt/0/ for an
-infinite timeout value. Default is <tt/20/.
+<tag/<tt>kickrange</tt> <em>min max</em>/
+If the current Kickstart version lies outside the range
+<em/min/--<em/max/, Lilo will always boot AmigaOS in case of a
+non-interactive boot. Use this if you have strange hardware that
+doesn't allow you to boot Linux/m68k from the `wrong' Kickstart
+version. The default range is 0--65535, so all Kickstart versions will
+be accepted.
 
-<tag/<tt>aux</tt> <em>flag</em>/ If <em/flag/ is <tt/true/, the loader will not
-only use the standard console, but also the auxiliary console (a terminal on
-the builtin serial port). Default is <tt/false/.
+<tag/<tt>chipram</tt> <em>size</em>/
+Override the detected Chip RAM size and set it to <em/number/ bytes.
 
-<tag/<tt>baud</tt> <em>number</em>/ Specify the speed (in bps --- bits per second)
-for the auxiliary console (if enabled). Default is <tt/9600/ (<em/ROM/
-default).
+<tag/<tt>fastram</tt> <em>address size</em>/
+Override the detected adresses and sizes of Fast RAM chunks. Each
+entry defines a Fast RAM chunk at adress <em/address/ containing
+<em/size/ bytes, thus you can specify multiple Fast RAM chunks.
 
-<tag/<tt>password "</tt><em>name</em><tt>"</tt>/ Specify the master password.  This
-password will be asked for if you want to enter the boot monitor on booting.
-Default is an empty string.
-
-<tag/<tt>debug</tt> <em>flag</em>/ If <em/flag/ is <tt/true/ the loader will enter
-debug mode and display additional information during startup. Default is
-<tt/false/.
-
-<tag/<tt>prompt "</tt><em>text</em><tt/"</tt>/ Specify the loader prompt. The
-following character sequences are interpreted specially:
-<descrip>
-<tag/<tt>\b</tt>/ <em/Backspace/
-<tag/<tt>\e</tt>/ <em/Escape/
-<tag/<tt>\n</tt>/ <em/Line Feed/
-<tag/<tt>\r</tt>/ <em/Carriage Return/
-<tag/<tt>\t</tt>/ <em/Tab/
-<tag/<tt>\\</tt>/ <tt/$\backslash$/
-</descrip>
-The default prompt is `<tt/Boot image: /'.
-
-<tag/<tt>kickrange</tt> <em>min max</em>/ If the current <em/Kickstart/
-version lies outside the range <em/min/--<em/max/, <em/Lilo/ will always
-boot <em/AmigaOS/ in case of a non-interactive boot. Use this if you have
-strange hardware that doesn't allow you to boot <em>Linux/m68k</em> from the
-`wrong' <em/Kickstart/ version. The default range is 0--65535, so all <em/Kickstart/
-versions will be accepted.
-
-<tag/<tt>chipram</tt> <em>size</em>/ Override the detected <em/Chip RAM/ size and
-set it to <em/number/ bytes.
-
-<tag/<tt>fastram</tt> <em>address size</em>/ Override the detected adresses
-and sizes of <em/Fast RAM/ chunks. Each entry defines a <em/Fast RAM/ chunk
-at adress <em/address/ containing <em/size/ bytes, thus you can specify
-multiple <em/Fast RAM/ chunks.
-
-<tag/<tt>model</tt> <em>type</em>/ Override the detected <em/Amiga/ model.
-<em/type/ can be any of
+<tag/<tt>model</tt> <em>type</em>/
+Override the detected Amiga model. <em/type/ can be any of
 <itemize>
 <item><tt/A500/
 <item><tt/A500+/
@@ -396,10 +618,10 @@ multiple <em/Fast RAM/ chunks.
 <item><tt/A1200/
 <item><tt/A2000/
 <item><tt/A2500/
-<item><item><tt/A3000/
+<item><tt/A3000/
 <item><tt/A3000T/
 <item><tt/A3000+/
-<item><item><tt/A4000/
+<item><tt/A4000/
 <item><tt/A4000T/
 <item><tt/CDTV/
 <item><tt/CD32/
@@ -408,13 +630,15 @@ multiple <em/Fast RAM/ chunks.
 or a number corresponding to one of the model definitions in
 <tt>&lt;asm/amigatypes.h&gt;</tt>.
 
-Note that <em/lilo/ can't distinguish among models that are very similar to each
-other (e.g. <em/A500//<em/A1000//<em/A2000//<em/A2500/ and
-<em/A3000//<em/A3000T/). Of course this is harmless and there's no real need to
-use this option in that case.
+<p>
+Note that Lilo can't distinguish among models that are very similar to
+each other (e.g. A500/A1000, A2000/A2500 and A3000/A3000T). Of course
+this is harmless and there's no real need to use this option in that
+case.
 
-<tag/<tt>processor</tt> <em>cfm</em>/ Override the detected processor type.
-<em/cfm/ must be a three-digit number with
+<tag/<tt>processor</tt> <em>cfm</em>/
+Override the detected processor type. <em/cfm/ must be a three-digit
+number with
 <descrip>
 <tag/<tt>c</tt>/ CPU (Central Processing Unit) type
 <tag/<tt>f</tt>/ FPU (Floating Point Unit) type
@@ -422,22 +646,175 @@ use this option in that case.
 </descrip>
 from the table below:
 
-\begin{center} \begin{tabular}{|c||c|c|c|}
-\hline
-Value & CPU & FPU & MMU \\
-\hline \hline
-0 & --- & --- & --- \\
-1 & 68020 & 68881 & 68851 \\
-2 & 68030 & 68882 & 68030 \\
-3 & 68040 & 68040 & 68040 \\
-4 & 68060 & 68060 & 68060 \\
-\hline
-\end{tabular} \end{center}
-e.g. <tt/444/ if you have a <em/68060/ and <tt/303/ if you have a <em/68LC040/.
 
-Note that normally you don't have to use this option. It's only needed for some
-combinations of an old <em/kickstart ROM/ and a new processor (e.g. a
-<em/68060/). Use it only if you really need it!
+<p>
+<tscreen><verb>
+Value  CPU    FPU    MMU
+0      ---    ---    ---
+1     68020  68881  68851
+2     68030  68882  68030
+3     68040  68040  68040
+4     68060  68060  68060
+</verb></tscreen>
+<!-- /TABLE -->
+e.g. <tt/444/ if you have a 68060 and <tt/303/ if you have a 68LC040.
+
+<p>
+Note that normally you don't have to use this option. It's only needed
+for some combinations of an old kickstart ROM and a new processor
+(e.g. a 68060). Use it only if you really need it!
+
+</descrip>
+
+<sect3>Atari Header Options<label id="sec:atariheaderopts">
+
+<p>
+<descrip>
+<tag/<tt>skip-on-keys "</tt><em>modifier-list</em><tt>"</tt>/
+With this option, you can define which modifier keys can be pressed to
+skip Lilo during booting. The default (if you don't use this option)
+is the <tt/ALT/ key, as usual on Atari. <em/modifier-list/ is a list
+of space-separated modifier names, which are: <tt/RShift/,
+<tt/LShift/, <tt/Shift/, <tt/Control/, <tt/Alt/, and <tt/CapsLock/.
+Names can be abbreviated and are case-insensitive. <tt/Shift/ stands
+for any of the two shift keys. If any of the keys you listed is
+pressed when the Lilo boot sector is loaded, it will immediately exit
+and pass on control to the next bootable device.
+
+<p>
+An application example of this could be: If you have a TOS HD driver
+installed on a second disk, and that driver skips on <tt/ALT/, you can
+define <em/modifier-list/ as <tt/"Control Alt"/ for maximum
+flexibility in choosing what to boot: If you hold down <tt/Control/,
+Lilo will skip itself, but the HD driver (which is tried next by the
+ROMs) won't. If you instead press <tt/Alt/, both Lilo and the driver
+will skip, and --- if there's no other bootable disk --- the BIOS will
+boot from floppy drive <tt/A:/.
+
+<tag/<tt>delay</tt> <em>number</em>/
+If you selected auto boot mode (see <tt/auto/ opion above), the loader will
+wait <em>number</em> seconds for a modifier key, after ringing the
+console bell and before booting the default OS. You can use this if
+you want to press a modifier after the bell, and don't want to hold it
+already some time before.
+
+<tag/<tt>nogui</tt> <em>flag</em>/
+If <em/flag/ is true, the graphical boot menu is suppressed and you
+only see a text mode boot prompt. Default is <tt/false/.
+
+<tag/<tt>serial</tt> <em>device</em> <em>baud</em> <em>parameters</em> <tt>[</tt><em>flowmode</em><tt>]</tt>/
+If this option is present, the loader will also accept input (for
+choosing the operating system) from a serial port. Also all its output
+(except the graphics of the menu :-) can be received over the serial
+line.
+
+<p>
+<em/device/ is the serial port to use, and it can be one of:
+<tt/modem1/, <tt/modem2/, <tt/serial1/, <tt/serial2/, or <tt/default/.
+The latter means to use the TOS default serial port, usually Modem1,
+except that doesn't exist (Falcon), then Modem2. You can also give the
+BIOS device number of a serial port as a number.
+
+<p>
+<em/baud/ is the baud rate to use. Only rates supported by the plain
+BIOS and up to 19200 bps are supported. <em/parameters/ are the other
+parameters for serial communication (number of data bits, parity,
+number of stop bits) in the usual notation (e.g. <tt/8N1/). All
+settings the BIOS supports are valid.
+
+<p>
+<em/flowmode/ is optional and can be one of <tt/xon/, <tt/rtscts/,
+<tt/xon-rtscts/ (both), or <tt/none/. Default is <tt/none/.
+
+<tag/<tt>no-bing</tt> <em>flag</em>/
+If <em/flag/ is <tt/true/, ringing the console bell after the loader
+is ready is suppressed (if you mind the noise...).
+
+<tag/<tt>resolution</tt> <em>name</em>/
+Select the video resolution in which the boot menu is displayed.
+Values for <em/name/ can be <tt/st-low/, <tt/st-mid/, <tt/st-high/,
+<tt/tt-low/, <tt/tt-mid/, <tt/tt-high/, or a number. That number must
+be the same as used for the <tt/Setscreen/ XBIOS function, and must
+also be valid for <tt/v_opnwk/, but for this 2 is added (as usual).
+The default is to use the current resolution. If you have a video
+board, this option is probably useless, since the video mode is
+selected by the board's driver.
+
+<tag/<tt>machine</tt> <em>type</em>/
+Set the <tt/_MCH/ cookie to machine type <em/type/. Valid <em/type/s
+are: <tt/st/, <tt/ste/, <tt/megaste/, <tt/tt/, <tt/falcon/, or a
+number, which will be put in the upper word of the <tt/_MCH/ cookie.
+If you use the notation <em/upper//<em/lower/, the number <em/upper/
+is put into the high word, and <em/lower/ into the low word.
+You can use this option if the ROM initializes the cookie wrong, and
+it is usually corrected by an auto folder program. The value of the
+<tt/_MCH/ cookie is also used by Linux.
+
+<tag/<tt>cpu</tt> <em>cpu</em>/
+Set the <tt/_CPU/ cookie. <em/cpu/ can be <tt/68030/ or similar. You
+can use this option if the ROM initializes the cookie wrong, and it is
+usually corrected by an auto folder program. Linux tests for the CPU
+type itself, so it doesn't look at the cookie. But it could be useful
+for some TOS programs you want to run.
+
+<tag/<tt>fpu</tt> <em>fpu</em>/
+Set the <tt/_FPU/ cookie. <em/fpu/ can be <tt/none/, <tt/intern/
+(68040 or 68060), <tt/68881/, or <tt/68882/. You can use this option
+if the ROM initializes the cookie wrong, and it is usually corrected
+by an auto folder program. Linux tests for the FPU type itself, so it
+doesn't look at the cookie. But it could be useful for some TOS
+programs you want to run.
+
+<tag/<tt>mount "</tt><em>device</em><tt>" on </tt><em>drive</em> <tt>[</tt>rw<tt>|</tt>ro<tt>]</tt>/
+Mount some GEMDOS partition, for running TOS programs from it, or so
+that TOS programs can access data on it. <em/device/ is a usual Linux
+device name, e.g. <tt>/dev/sda1</tt>. <em/drive/ is the TOS drive
+letter under which that partition should be available, e.g. <tt/C:/ or
+some other letter up to <tt/P:/. It is a runtime-error to mount on a
+drive that is already mounted (for example, <tt/A:/ and <tt/B:/ are
+always available by the BIOS). Optionally you can also append <tt/rw/
+or <tt/ro/ to the <tt/mount/ option, to mount the drive read-write or
+read-only, resp. Read-only mounts do not allow changing data on the
+partition and are the default.
+
+<p>
+Mounts defined in this header section are done before running TOS
+programs (see <tt/exec/ below) and displaying the boot menu, but after
+the check for auto boot. This is so that so can save the time for
+mounts if the default OS is booted.
+
+<tag/<tt>exec "</tt><em>program</em><tt>" [chdir "</tt><em>dir</em><tt>"]</tt> <tt>[no-cache]</tt>/
+Execute a TOS program <em/program/. It must reside on a drive mounted
+with <tt/mount/ (see above). If <em/program/ contains spaces, they
+separate arguments to the program from the program name. You
+optionally can append <tt/chdir/ to change the current directory to
+<em/dir/ for this program. The default current directory is <tt/A:\/,
+or if you have a <tt/boot-drive/ option, the root directory of this drive.
+
+<p>
+Another option of <tt/exec/ is <tt/no-cache/, which specifies to turn
+off caches for running this program. Lilo turns on the CPU caches to
+speed up its execution, but TOS leaves them off during processing the
+AUTO folder. So there could be programs that expect the caches to be
+off and fail otherwise. I've noticed that with older versions of NVDI
+(specifically 2.50).
+
+<tag/<tt>boot-drive</tt> <em>drive</em>/
+Set the <tt/_bootdev/ system variable and the current directory to
+<em/drive/, e.g. <tt/C:/. Also an environment variable
+<tt/PATH=/<em/drive/<tt/:\/ is set, for compability in the broken way
+the BIOS does it. This can be needed for running TOS
+programs properly that expect those settings to be valid. <em/drive/
+should have been mounted with <tt/mount/.
+
+<tag/<tt>setenv "</tt><em>name</em><tt>=</tt><em>value</em><tt>"</tt>/
+Set an environment variable <em/name/ to <em/value/. Those environment
+settings are available only to TOS programs started by Lilo, and are
+gone after Lilo has handed control to TOS<footnote> This could be
+changed in future if there's demand. </footnote>. <tt/setenv/ can
+be useful if a program that you want to run expects some value in an
+environment variable (should be rare). Note that the <tt/PATH/
+environment variable can be set by <tt/boot-drive/.
 
 </descrip>
 
@@ -445,59 +822,188 @@ combinations of an old <em/kickstart ROM/ and a new processor (e.g. a
 <sect2>Boot records
 
 <p>
-The boot records define one or more {operating system/s you can select at
-boot time. Make sure all your kernel images and the files <tt>/boot/map</tt>,
-<tt>/boot/loader.patched</tt> are located on the same physical device.
+The boot records define one or more operating systems you can select
+at boot time. On Amiga, you have to make sure that all your kernel
+images and the files <tt>/boot/map</tt>, <tt>/boot/loader.patched</tt>
+are located on the same physical device. On Atari, this restriction
+doesn't exist. These files only must reside on devices that can be
+accessed by <tt/DMAread/, i.e. all SCSI and ACSI disks, or the first
+IDE disk.
 
 A boot record is defined by
 <tscreen><verb>
 bootrec "label"
     options
     ...
-endrec/
+endrec
 </verb></tscreen>
-with <em/label/ the label of the boot record.
+where <em/label/ the name of the boot record.
 
 Valid boot record options are:
+
+<sect3>Common Boot Record Options
+
+<p>
 <descrip>
-<tag/<tt>alias "</tt><em>label</em><tt>"</tt>/ Specify an alias name for this boot
-record.
-<tag/<tt>type "</tt><em>name</em><tt>"</tt>/ Specify the operating system type for this boot
-record. Valid types are:
-<descrip>
-<tag/<tt>linux</tt>/ <em>Linux/m68k</em>. This is the default.
-<tag/<tt>amiga</tt>/ <em/AmigaOS/. This only works if you install the <em/Lilo/ boot
-block on a valid <em/AmigaOS/ boot partition.
-<tag/<tt>netbsd</tt>/ <em/NetBSD-Amiga/. This doesn't work yet~:-)
+<tag/<tt>alias "</tt><em>label</em><tt>"</tt>/
+Specify an alias name for this boot record. This can be handy if the
+proper name is descriptive for the menu, but hard or impossible to
+type. For example, names with spaces look nice in the graphical Atari
+boot menu, but you can't enter them manually, because a space
+separates the OS name from arguments. So you could define an alias
+without spaces for such a record. Another application could be to use
+the same string as the proper name, but everything lowercase, so that
+you don't have to use the shift key.
+
+<tag/<tt>image "</tt><em>name</em><tt>"</tt>/
+
+Specify the full qualified file name of the kernel image for this boot
+record. This option must not be used if <tt/type/ is set to anything
+else than <tt/linux/. This file needs not to exist, except for the
+default boot record, which is useful for testing purposes (e.g. a test
+kernel that doesn't always exist).
+
+<p>
+On Amiga, the file must be located on the <tt/bootdev/ device, or on
+the <tt/altdev/ device, if the <tt/altdev/ option is specified.
+
+<tag/<tt>args "</tt><em>name</em><tt>"</tt>/
+Specify the kernel command line for this boot record. This option is
+valid only  if <tt/type/ is <tt/linux/. Default is an empty string.
+
+<tag/<tt>password "</tt><em>name</em><tt>"</tt>/
+If this option is defined, <em/name/ is the password for this boot
+record. It must be supplied if you want to boot from this record.
+Default is no password.
+
+<tag/<tt>ramdisk "</tt><em>name</em><tt>"</tt>/
+
+Specify the full qualified file name of a file containing a file
+system to be used a a ramdisk. This file needs not to exist, just as
+with <tt/image/. This option is valid only if <tt/type/ is <tt/linux/.
+Default is to use no ramdisk.
+
+<p>
+On Amiga, the ramdisk file must be located on the <tt/bootdev/ device,
+or on the <tt/altdev/ device, if the <tt/altdev/ option is specified.
+
 </descrip>
 
-<tag/<tt>image "</tt><em>name</em><tt>"</tt>/ Specify the full qualified file
-name of the kernel image for this boot record. This file needs not to
-exist (except for the default boot record) --- this is useful for testing
-purposes ---, but if it exists, it must be located on the <tt/bootdev/ device,
-or on the <tt/altdev/ device, if the <tt/altdev/ option is specified. This
-option must not be used if <tt/type/ is set to <tt/amiga/.
+<sect3>Amiga Boot Record Options
 
-<tag/<tt>args "</tt><em>name</em><tt>"</tt>/ Specify the kernel command line for this
-boot record. This option must not be used if <tt/type/ is set to <tt/amiga/.
-Default is an empty string.
+<p>
+<descrip>
+<tag/<tt>type "</tt><em>name</em><tt>"</tt>/
+Specify the operating system type for this boot record. Valid types are:
+<descrip>
+<tag/<tt>linux</tt>/ Linux/m68k. This is the default.
+<tag/<tt>amiga</tt>/ AmigaOS. This only works if you install the Lilo boot
+block on a valid AmigaOS boot partition.
+<tag/<tt>netbsd</tt>/ NetBSD-Amiga. (This doesn't work yet.)
+</descrip>
 
-<tag/<tt>password "</tt><em>name</em><tt>"</tt>/ If this option is defined, <em/name/
-is the password for this boot record.  It must be supplied if you want to boot
-from this record.  Default is no password.
-
-<tag/<tt>ramdisk "</tt><em>name</em><tt>"</tt>/ Specify the full qualified file name of
-a file containing a file system to be used a a ramdisk. This file needs
-not to exist but if it exists, it must be located on the <tt/bootdev/ device,
-or on the <tt/altdev/ device, if the <tt/altdev/ option is specified. This
-option must not be used if <tt/type/ is set to <tt/amiga/. Default is an
-empty string.
-
-<tag/<tt>chipram</tt> <em>size</em>/
-<tag/<tt>fastram</tt> <em>address size</em>/
-<tag/<tt>model</tt> <em>type</em>/
+<tag/<tt>chipram</tt> <em>size</em>/ <p>
+<tag/<tt>fastram</tt> <em>address size</em>/ <p>
+<tag/<tt>model</tt> <em>type</em>/ <p>
 <tag/<tt>processor</tt> <em>cfm</em>/ Override detected properties or global
 options for this boot record only. 
+
+</descrip>
+
+<sect3>Atari Boot Record Options
+
+<p>
+<descrip>
+<tag/<tt>type "</tt><em>name</em><tt>"</tt>/
+Specify the operating system type for this boot record. Valid types are:
+<descrip>
+<tag/<tt>linux</tt>/ Linux/m68k.
+<tag/<tt>tos</tt>/ TOS.
+<tag/<tt>bootsector</tt>/ An arbitrary bootsector for an other, not
+directly supported operating system (e.g. Atari System V Unix).
+</descrip>
+
+<p>
+If no <tt/type/ is given, Lilo tries to autodetect the correct type,
+which works in most cases except very exotic ones. If an <tt/image/
+option is present, the type is assumed to be <tt/linux/. Otherwise, if
+a <tt/boot-drive/ is specified, the presence of a <tt/driver/
+option distincts between <tt/tos/ and <tt/bootsector/. 
+
+<tag/<tt>ignore-tt-ram</tt> <em>flag</em>/
+Tell Linux to ignore any TT-RAM if <em/flag/ is <tt/true/. Default is
+<tt/false/. This option is valid only if <tt/type/ is <tt/linux/.
+
+<tag/<tt>load-to-st-ram</tt> <em>flag</em>/
+Load Linux kernel into ST-RAM if <em/flag/ is <tt/true/. Otherwise the
+kernel will be loaded into TT-RAM if TT-RAM exists. Default is
+<tt/false/. This option is valid only if <tt/type/ is <tt/linux/.
+
+<tag/<tt>force-st-ram-size</tt> <em>size</em>/
+Define size of ST-RAM to be <em/size/, instead of the auto-deceted size.
+This option is valid only if <tt/type/ is <tt/linux/.
+
+<tag/<tt>force-tt-ram-size</tt> <em>size</em>/
+Define size of TT-RAM to be <em/size/, instead of the auto-deceted size.
+This option is valid only if <tt/type/ is <tt/linux/.
+
+<tag/<tt>exta-mem</tt> <em>size</em> <tt>at</tt> <em>address</em>/
+Define an extra memory block to pass to the Linux kernel. This could
+e.g. be used for memory on a VME board (if such a thing should exist
+at all...) This option is valid only if <tt/type/ is <tt/linux/.
+
+<tag/<tt>mount "</tt><em>device</em><tt>" on</tt> <em>drive</em> <tt>[</tt>rw<tt>|</tt>ro<tt>]</tt>/
+Mount some GEMDOS partition, for running TOS programs from it, or so
+that TOS programs can access data on it. The parameters are the same
+as for the header option <tt/mount/ (see section <ref id="sec:atariheaderopts"
+name="Atari Header Options">). The difference to the header option is
+that the mounts defined in the boot record are only executed if this
+record is about to be booted. This option is valid only if <tt/type/
+is <tt/linux/.
+
+<tag/<tt>exec "</tt><em>program</em><tt>" [chdir "</tt><em>dir</em><tt>"]</tt> <tt>[no-cache]</tt>/
+Execute a TOS program <em/program/. It must reside on a drive mounted
+with a <tt/mount/ (see above) in this boot record. Mounts done from
+the header section are already unmounted at the stage where running
+these programs. The parameters are the same as for the header option
+<tt/exec/ (see section <ref id="sec:atariheaderopts" name="Atari
+Header Options">. The difference to the header option is
+that the programs defined in the boot record are only executed if this
+record is about to be booted. This option is valid only if <tt/type/
+is <tt/linux/.
+
+<tag/<tt>partition "</tt><em>device</em><tt>"</tt>/
+Specify the partition from which to boot a non-Linux operating system
+(types <tt/tos/ or <tt/bootsector/). For the latter, simply the boot
+sector (sector 0) of that partition is loaded and executed, just as
+the root sector code would have done it. For type <tt/tos/, the
+partition is temporarily mounted (automatically) to load the TOS HD
+driver from it. This option is valid only if <tt/type/ is not
+<tt/linux/, and is also required in that case.
+
+<tag/<tt>driver "</tt><em>name</em><tt>"</tt>/
+
+Specify the filename of the TOS hard disk driver. This is usually a
+file named <tt/*.SYS/ in the root directory of your TOS boot drive,
+but depends on the HD driver you use. For example, if you use
+SCSITOOLS, the driver's name is <tt/HUSHI.SYS/, Atari HDX uses the
+name <tt/SHDRIVER.SYS/. The <em/name/ usually needs not contain a path
+specification, since drivers reside in the root directory most of the
+time. But if needed, you can also specify a path relative to the root
+directory of the boot partition. (Note: The loader prefixes <em/name/
+with <tt/C:\/, since the boot partition, defined by <tt/partition/, is
+always mounted on <tt/C:/.) This option is valid only if <tt/type/ is
+<tt/tos/, and is also required for this case.
+
+<tag/<tt>boot-drive</tt> <em>drive</em>/
+Define the TOS boot drive, i.e. the drive from which auto folder
+programs and accessories should are loaded. The loader puts this
+value into the system variable <tt/_bootdev/ and makes it the current
+directory if the drive exists. <em/drive/ should be something like
+<tt/C:/, which is also the default. Note that the <em/drive/ given
+here needs not be mounted by Lilo, it refers to a drive later
+available under TOS (i.e. made available by the TOS HD driver). This
+option is valid only if <tt/type/ is <tt/tos/.
 
 </descrip>
 
@@ -505,10 +1011,10 @@ options for this boot record only.
 <sect2>File definitions
 
 <p>
-The file definitions allow you to specify some addional files to be added to
-the map file. These files can then be referenced from withing the boot monitor.
-Make sure all these files are located on the same physical device as the kernel
-images.
+The file definitions allow you to specify some addional files to be
+added to the map file. These files can then be referenced from within
+the boot monitor. On Amiga, as usual make sure that all these files
+are located on the same physical device as the kernel images.
 
 A file definition looks like
 <tscreen>
@@ -517,17 +1023,17 @@ A file definition looks like
 with <em/name/ the full qualified file name of the file.
 
 
-<sect2>Sample configuration file
+<sect2>Amiga Sample Configuration File
 
 <p>
 This example assumes:
 <itemize>
-<item><tt>/dev/hda1</tt> is your main <em/AmigaOS/ partition,
-<item><tt>/dev/hdb1</tt> is your main <em>Linux/m68k</em> partition,
-<item><tt>/boot/*</tt>, <tt>/vmlinux</tt> and <tt>/usr/src/linux/vmlinux</tt> reside
-on <tt>/dev/hdb?</tt>,
-<item><tt>/dev/hdb</tt> under <em>Linux/m68k</em> is equivalent to <tt/scsi.device/ unit
-<tt/1/ under <em/AmigaOS/.
+<item><tt>/dev/hda1</tt> is your main AmigaOS partition,
+<item><tt>/dev/hdb1</tt> is your main Linux/m68k partition,
+<item><tt>/boot/*</tt>, <tt>/vmlinux</tt> and
+<tt>/usr/src/linux/vmlinux</tt> reside on <tt>/dev/hdb?</tt>,
+<item><tt>/dev/hdb</tt> under Linux/m68k is equivalent to
+<tt/scsi.device/ unit <tt/1/ under AmigaOS.
 </itemize>
 
 Note that in this case the <tt/altdev/ option is used because <tt>/dev/hda</tt>
@@ -543,7 +1049,7 @@ and <tt>/dev/hdb</tt> are two different physical devices.
 
 header
     bootdev "/dev/hda1"
-#   altdev "scsi.device" 1
+    altdev "scsi.device" 1
     default "linux"
     auto false
     timeout 20
@@ -595,15 +1101,101 @@ file "/boot/filesys-ELF-2.0.x"
 </verb></tscreen>
 
 
+<sect2>Atari Sample Configuration File
+
+<p>
+This example assumes:
+<itemize>
+<item><tt>/dev/sda1</tt> is your TOS boot partition
+<item><tt>/dev/sda2</tt> is an Atari System V partition
+<item><tt>/dev/sda3</tt> is your root Linux/m68k partition
+<item><tt>/dev/sdb1</tt> is is an alternative Linux root partition of
+a test installation
+</itemize>
+
+<tscreen><verb>
+#
+#	Atari Linux/m68k Loader
+#
+#	Sample Configuration File
+#
+
+header
+	bootdev "/dev/sda2"
+	default "linux"
+	resolution tt-mid
+	no-bing
+	auto
+	delay 5
+	timeout 20
+	serial Modem2 9600 8N1 rtscts
+	password "atari"
+	machine TT
+	cpu 68030
+	fpu 68881
+	mount "/dev/sda1" on C:
+	mount "/dev/sda3" on D:
+	exec "C:\AUTO\NVDI.PRG" workdir "C:\"
+	exec "D:\FOO.PRG" no-cache
+endheader
+
+bootrec "TOS"
+	partition "/dev/sda1"
+	driver "HUSHI.SYS"
+	boot-drive C:
+endrec
+
+bootrec "linux"
+	image "/boot/vmlinux"
+	args "root=/dev/sda3"
+endrec
+
+bootrec "single"
+	image "/boot/vmlinux"
+	args "root=/dev/sda3 single"
+	password "single"
+endrec
+
+bootrec "ramdisk"
+	image "/boot/vmlinux"
+	ramdisk "/boot/filesys-ELF-2.0.x.gz"
+	args "root=/dev/ram"
+	password "ramdisk"
+endrec
+
+bootrec "test1"
+	image "/usr/src/linux/vmlinux"
+	args "root=/dev/sdb1"
+endrec
+
+bootrec "test2"
+	image "/usr/src/linux/vmlinux"
+	args "root=/dev/sdb1"
+	mount "/dev/sda1" on C:
+	exec "C:\AUTO\GEMENV.PRG"
+	ignore-tt-ram
+	load-to-st-ram
+	extra-mem 16M at 0x02000000
+endrec
+
+bootrec "asv"
+	partition "/dev/sda2"
+endrec
+
+file "/boot/ramdisk"
+
+</verb></tscreen>
+
+
 <!-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
 
 
 <sect>Command line options
 
 <p>
-<tt>/sbin/lilo</tt> is used to install a <em>Linux/m68k</em> boot block loader on a
-boot partition. It can also be used to save boot blocks to a file or restore
-boot blocks from a file.
+<tt>/sbin/lilo</tt> is used to install a Linux/m68k boot block loader
+on a boot partition. It can also be used to save boot blocks to a file
+or restore boot blocks from a file.
 
 <tscreen>
 <tt/lilo/ <tt/[/<em/options .../<tt/]/
@@ -611,50 +1203,79 @@ boot blocks from a file.
 
 Valid options are:
 <descrip>
-<tag/<tt>--help</tt>/ Display the usage information.
-<tag/<tt>--verbose</tt>/ Enable verbose mode.
-<tag/<tt>--force</tt>/ Force installation on a partition with an unknown boot
-block.
-<tag/<tt>--backup</tt>/ Force a boot block backup on installation, even if a
-backup already exists.
-<tag/<tt>--uninstall</tt>/ Uninstall <em/Lilo/ by restoring the backed up boot
-block.
-<tag/<tt>--root</tt> <em>prefix</em>/ Specify the prefix to be used for all
-path names, except for special device nodes. This is useful when creating boot
-floppies, or for debugging.
-<tag/<tt>--restore-from</tt> <em>file</em>/ Restore the boot block from <em/file/.
-<tag/<tt>--save-to</tt> <em>file</em>/ Save the boot block to <em/file/ first.
-<tag/<tt>--device</tt> <em>device</em>/ Override the block special device that's
-specified in <tt>/etc/lilo.conf</tt>.
-<tag/<tt>--dostype</tt> <em>id</em>/ Specify the <em/DosType/ for the boot
-block. Valid <em/DosTypes/ are:
+<tag/<tt>--help</tt>/
+Display the usage information.
+
+<tag/<tt>--version</tt>/
+Display the version information.
+
+<tag/<tt>--verbose</tt>/
+Enable verbose mode.
+
+<tag/<tt>--backup</tt>/
+Force a boot block backup on installation, even if a backup already
+exists.
+
+<tag/<tt>--uninstall</tt>/
+Uninstall Lilo by restoring the backed up boot block.
+
+<tag/<tt>--root</tt> <em>prefix</em>/
+Specify the prefix to be used for all path names, except for special
+device nodes. This is useful when creating boot floppies, or for
+debugging.
+
+<tag/<tt>--restore-from</tt> <em>file</em>/
+Restore the boot block from <em/file/.
+
+<tag/<tt>--save-to</tt> <em>file</em>/
+Save the boot block to <em/file/ first.
+
+<tag/<tt>--device</tt> <em>device</em>/
+Override the block special device that's specified in <tt>/etc/lilo.conf</tt>.
+
+<tag/<tt>--config-file</tt> <em>file</em>/
+Use <em/file/ instead of <tt>/etc/lilo.conf</tt> as configuration file.
+
+</descrip>
+
+<p>
+The following options are available only on Amiga:
+<descrip>
+<tag/<tt>--force</tt>/
+Force installation on a partition with an unknown boot block.
+
+<tag/<tt>--dostype</tt> <em>id</em>/
+Specify the <em/DosType/ for the boot block. Valid DosTypes are:
 <descrip>
 <tag/<tt>BOOU</tt>/ Generic boot disk
-<tag/<tt>DOS0</tt>/ <em/OFS/ disk
-<tag/<tt>DOS1</tt>/ <em/FFS/ disk
-<tag/<tt>DOS2</tt>/ <em/OFS INTL/ disk
-<tag/<tt>DOS3</tt>/ <em/FFS INTL/ disk
-<tag/<tt>DOS4</tt>/ <em/OFS DC/ disk
-<tag/<tt>DOS5</tt>/ <em/FFS DC/ disk
-<tag/<tt>muFS</tt>/ <em/MultiUser FFS INTL/ disk
-<tag/<tt>muF0</tt>/ <em/MultiUser OFS/ disk
-<tag/<tt>muF1</tt>/ <em/MultiUser FFS/ disk
-<tag/<tt>muF2</tt>/ <em/MultiUser OFS INTL/ disk
-<tag/<tt>muF3</tt>/ <em/MultiUser FFS INTL/ disk
-<tag/<tt>muF4</tt>/ <em/MultiUser OFS DC/ disk
-<tag/<tt>muF5</tt>/ <em/MultiUser FFS DC/ disk
+<tag/<tt>DOS0</tt>/ OFS disk
+<tag/<tt>DOS1</tt>/ FFS disk
+<tag/<tt>DOS2</tt>/ OFS INTL disk
+<tag/<tt>DOS3</tt>/ FFS INTL disk
+<tag/<tt>DOS4</tt>/ OFS DC disk
+<tag/<tt>DOS5</tt>/ FFS DC disk
+<tag/<tt>muFS</tt>/ MultiUser FFS INTL disk
+<tag/<tt>muF0</tt>/ MultiUser OFS disk
+<tag/<tt>muF1</tt>/ MultiUser FFS disk
+<tag/<tt>muF2</tt>/ MultiUser OFS INTL disk
+<tag/<tt>muF3</tt>/ MultiUser FFS INTL disk
+<tag/<tt>muF4</tt>/ MultiUser OFS DC disk
+<tag/<tt>muF5</tt>/ MultiUser FFS DC disk
 </descrip>
-Default is the original <em/DosType/ of the partition, or <tt/BOOU/ for
-partitions with an unknown boot block (if <tt/--force/ is specified too).
-<tag/<tt>--checksum</tt>/ Fix the boot block checksum.
-<tag/<tt>--create-reset</tt>/ Write a boot block that reboots the computer if
-you boot from it. This option is useful if you have a hard disk that spins up
-too slowly to be detected after a cold reboot and that needs a manual reset,
-while you also have a faster disk. Put your main boot block on the slow disk
-and create a reset boot block (with a lower boot priority) on the fast disk.
-After a cold reboot, your system will be reset until the slow disk is
-available.
-<tag/<tt>--version</tt>/ Display the version information.
+Default is the original DosType of the partition, or <tt/BOOU/ for
+partitions with an unknown boot block (if <tt/--force/ is specified, too).
+
+<tag/<tt>--checksum</tt>/
+Fix the boot block checksum.
+
+<tag/<tt>--create-reset</tt>/
+Write a boot block that reboots the computer if you boot from it. This
+option is useful if you have a hard disk that spins up too slowly to
+be detected after a cold reboot and that needs a manual reset, while
+you also have a faster disk. Put your main boot block on the slow disk
+and create a reset boot block (with a lower boot priority) on the fast
+disk. After a cold reboot, your system will be reset until the slow
+disk is available.
 </descrip>
 
 All options also have a short form:
@@ -668,34 +1289,49 @@ All options also have a short form:
 <tag/<tt>-r</tt>/ <tt/--restore-from/
 <tag/<tt>-s</tt>/ <tt/--save-to/
 <tag/<tt>-d</tt>/ <tt/--device/
+<tag/<tt>-C</tt>/ <tt/--config-file/
 <tag/<tt>-t</tt>/ <tt/--dostype/
 <tag/<tt>-c</tt>/ <tt/--checksum/
 <tag/<tt>-x</tt>/ <tt/--create-reset/
 <tag/<tt>-V</tt>/ <tt/--version/
 </descrip>
 Note: people who understand Dutch or German will probably easily
-remember that <tt/-w/ is short for <tt/--root/.
+remember that <tt/-w/ is short for <tt/--root/ :-)
 
 
 <!-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
 
 
-<sect>The <em/Lilo/ boot prompt
+<sect>The Lilo boot prompt
 
 <p>
-If <em/Lilo/ is configured not to boot automatically, or if you do one of the
-following things during boot time:
+A boot prompt will appear on the console and, if enabled, on the
+serial terminal, if Lilo is not configured to boot automatically, or
+if you do one of the following things during boot time:
 <itemize>
-<item>hold <tt/ALT/, <tt/AMIGA/, <tt/CTRL/, <tt/SHIFT/ or <tt/CAPS LOCK/,
-<item>hold one of the mouse-buttons,
-<item>press a key on the terminal connected to the builtin serial
-port if the auxiliary console is enabled,
+<item>hold <tt/ALT/, <tt/AMIGA/ (on Amiga only), <tt/CTRL/, <tt/SHIFT/,
+or <tt/CAPS LOCK/,
+<item>hold one of the mouse-buttons (Amiga only),
+<item>press a key on the terminal connected to the serial port if the
+serial console is enabled.
 </itemize>
-a boot prompt will appear on the <em/Amiga/ console and, if enabled, on the
-terminal too.
 
+On Atari, the boot prompt will appear only if the graphical boot menu
+has been disabled in <tt>/etc/lilo.conf</tt> (with the <tt/nogui/
+option), or if the VDI workstation couldn't be opened. But also if the
+graphical menu is shown, the boot prompt still appears on the serial
+console (if that is enabled).
 
-<sect1>Normal user prompt
+On Atari, Lilo also obeys the usual convention that you can skip a
+boot stage if you press down the <tt/Alt/ key. This means, if you hold
+<tt/Alt/ pressed while the Lilo boot sector is loaded, it will
+immediately exit as if it wasn't bootable at all. The ROM boot loop
+will try the other available boot devices in order, and --- if none is
+found --- it will boot from floppy disk. You can also configure on
+which keys Lilo should skip with the <tt/skip-on-keys/ option in
+<tt>/etc/lilo.conf</tt>.
+
+<sect1>Normal User Prompt
 
 <p>
 You can perform the following actions:
@@ -703,69 +1339,352 @@ You can perform the following actions:
 <item>Hit <tt/ENTER/ to boot the default operating system.
 
 <item>Enter <tt/?/ or <tt/help/, or press <tt/TAB/ to get a list of valid
-commands and boot record labels.
+commands and boot record labels. On Atari, <tt/TAB/ doesn't work.
 
-<item>Enter the label of a boot record to boot the corresponding operating system. If
-this record has a password attached to it, the loader will prompt
-for it first and will boot from this record only if you enter the correct
-password.
+<item>Enter the label of a boot record to boot the corresponding
+operating system. If this record has a password attached to it, the
+loader will prompt for it first and will boot from this record only if
+you enter the correct password.
 
 <item>Enter <tt/su/ to enter the boot monitor.  The loader will prompt for the
 master password first and will enter the boot monitor only if you enter the
 correct password.
 
-<item>Sit and wait: after the specified timeout the loader will boot the
-default operating system automatically.
+<item>Sit and wait: after the specified timeout the loader will
+boot the default operating system automatically.
 </itemize>
 
+<p>
+The keys available for editing the input are only <tt/Backspace/ for
+deleting to the left, and --- on Atari --- <tt/CTRL/-<tt/U/ for
+deleting the whole line.
 
-<sect1>The boot monitor
+<sect1>Atari Graphical Boot Menu
+
+<p>
+Atari machines have the advantage that all necessary functions for
+drawing graphics are already built into the ROMs and are initialized
+rather early in the boot process. Thus they are already available for
+Lilo. (The AES are available only after executing the auto folder.)
+Lilo uses VDI functions to display a graphical boot menu that is
+hopefully easy and intuitive to use. The bottons somehow look like GEM
+buttons, but they aren't really. Lilo draws them itself using VDI
+functions.
+
+<p>
+The boot menu screen consists of three main areas: A logo to the
+right, some buttons to the left, and a command line text field at the
+bottom. Using the buttons should be obvious: Each one stands for one
+boot record, and if you click on it, the associated operating system
+will be booted. Each button is also labeled with a function key
+(<tt/F1/...<tt/F8/, and <tt/Shift-F1/...<tt/Shift-F8/). If you don't
+have the mouse at hand, you can also press the corresponding function
+key to activate a button.
+
+<p>
+If you press some other key than a function key, you will edit the
+text in the text field at the bottom of the screen. There, you can
+enter the name of a boot record manually. The advantage of using the
+command line text field is that you can also enter parameters for the
+operating system to be booted. Currently, parameters can be passed
+only to Linux. Other operating system types ignore them.
+
+<p>
+The parameters you enter on the command line are passed to the kernel
+first, followed by the arguments configured for this boot record in
+<tt>/etc/lilo.conf</tt> (option <tt/args/). If you do not want that
+the configured parameters are appended, enter <tt/override/ as the
+first parameter. This causes Lilo to omit the parameters from the
+configuration file. For example, if the boot record `<tt/linux/' has
+`<tt>root=/dev/sda3</tt>' as arguments in <tt/lilo.conf/, and you
+enter
+<tscreen><verb>
+linux stram_swap=0
+</verb></tscreen>
+the following command line will be passed to the kernel:
+<tscreen><verb>
+stram_swap=0 root=/dev/sda3
+</verb></tscreen>
+But if you enter
+<tscreen><verb>
+linux override root=/dev/sdb1 stram_swap=0
+</verb></tscreen>
+the kernel command line will be
+<tscreen><verb>
+root=/dev/sdb1 stram_swap=0
+</verb></tscreen>
+i.e., the <tt/root=/ option from the config file was omitted.
+
+<p>
+The keys available for editing the command line are:
+<descrip>
+<tag/<tt>Home</tt>, <tt>SHIFT</tt>-<tt>Left</tt>, <tt>CTRL</tt>-<tt>Home</tt>, <tt>CTRL</tt>-<tt>A</tt>/
+Go to start of line.
+
+<tag/<tt>SHIFT</tt>-<tt>Home</tt>, <tt>SHIFT</tt>-<tt>Right</tt>, <tt>CTRL</tt>-<tt>SHIFT</tt>-<tt>Home</tt>, <tt>CTRL</tt>-<tt>E</tt>/
+Go to end of line.
+
+<tag/<tt>Left</tt>, <tt>CTRL</tt>-<tt>B</tt>/
+Go one character to the left.
+
+<tag/<tt>Right</tt>, <tt>CTRL</tt>-<tt>F</tt>/
+Go one character to the right.
+
+<tag/<tt>CTRL</tt>-<tt>Left</tt>, <tt>ALT</tt>-<tt>B</tt>/
+Go one word to the left.
+
+<tag/<tt>CTRL</tt>-<tt>Right</tt>, <tt>ALT</tt>-<tt>F</tt>/
+Go one word to the right.
+
+<tag/<tt>Backspace</tt>/
+Delete character left of cursor.
+
+<tag/<tt>Delete</tt>, <tt>CTRL</tt>-<tt>D</tt>/
+Delete character under cursor.
+
+<tag/<tt>ALT</tt>|<tt>CTRL</tt>-<tt>Backspace</tt>/
+Delete word left of cursor.
+
+<tag/<tt>ALT</tt>|<tt>CTRL</tt>-<tt>Delete</tt>, <tt>ALT</tt>-<tt>D</tt>/
+Delete word right of cursor.
+
+<tag/<tt>SHIFT</tt>-<tt>Backspace</tt>/
+Delete to start of line.
+
+<tag/<tt>SHIFT</tt>-<tt>Delete</tt>, <tt>CTRL</tt>-<tt>K</tt>/
+Delete to end of line.
+
+<tag/<tt>ESC</tt>, <tt>CTRL</tt>-<tt>U</tt>, <tt>CTRL</tt>-<tt>X</tt>/
+Delete the whole line.
+
+</descrip>
+These keyboard commands include most of the usual Atari editing
+keystrokes, and also those Emacs addicts are used to.
+
+
+<sect1>The Boot Monitor
 
 <p>
 Once you're in the boot monitor, the timeout is disabled and you have advanced
 control over the booting process.
 
-You can enter one of the following commands:
+Commands are case-insensitive and can be abbreviated.You can enter
+one of the following commands:
 <descrip>
-<tag/<tt>help</tt> or <tt>?</tt>/ Display usage information.
-<tag/<tt>version</tt>/ Display version information.
-<tag/<tt>list records</tt> or <tt>list files</tt>/ List all available boot records
-and/or files.
-<tag/<tt>boot</tt> <em>label</em>/ Boot from boot record <em/label/. If <em/label/
-is omitted, the current boot settings are used.
-<tag/<tt>use</tt> <em>label</em>/ Copy the boot record <em/label/ to the current
-boot settings. If <em/label/ is omitted, the default boot record is assumed.
-<tag/<tt>info</tt> <em>label</em>/ Get information about the boot record
-<em/label/.  If <em/label/ is omitted, information about the current boot
-settings is dumped.
-<tag/<tt>set</tt> <em>var values</em> .../ Change a variable for the
-current boot settings. If <em/var/ is omitted, this command is equivalent to
-<tt/list/. If no values are specified, the behavior depends on the variable
-but tries to be intuitive. The following variables can be changed:
+<tag/<tt>help</tt> or <tt>?</tt>/
+Display usage information.
+
+<tag/<tt>version</tt>/
+Display version information.
+
+<tag/<tt>list [records|files|mounts]</tt>/
+List all available boot records, files, or active temporary mounts.
+The latter is available only on Atari. If the second argument is
+omitted, all three categories are printed.
+
+<tag/<tt>use [</tt><em>label</em><tt>]</tt>/
+Copy the boot record <em/label/ to the current boot settings. If
+<em/label/ is omitted, the default boot record is assumed.
+
+<tag/<tt>info [</tt><em>label</em><tt>]</tt>/
+Get information about the boot record <em/label/. If <em/label/ is
+omitted, information about the current boot settings is dumped.
+
+<tag/<tt>set</tt> <em>var values</em> .../
+Change a variable for the current boot settings. If <em/var/ is
+omitted, this command is equivalent to <tt/info/. If no values are
+specified, the behavior depends on the variable but tries to be
+intuitive. The following variables can be changed:
 <descrip>
-<tag/<tt>type</tt>/ The operating system type.
-<tag/<tt>kernel</tt>/ The full qualified file name of the kernel image. This file
-<em/must/ be available. Use the <tt/file/ option in the configuration file
-to add your own files.
-<tag/<tt>ramdisk</tt>/ The full qualified file name of the ramdisk image.  This
-file <em/must/ be available.  Use the <tt/file/ option in the configuration
-file to add your own files.
-<tag/<tt>args</tt>/ The kernel command line.
-<tag/<tt>debug</tt>/ The debug flag: <tt/true/ or <tt/false/.
-<tag/<tt>model</tt>/ The <em/Amiga/ model. Default is <tt/auto/, i.e.
-autodetect.
-<tag/<tt>proc</tt>/ The processor type. Default is <tt/auto/, i.e. autodetect.
-<tag/<tt>chip</tt>/ The amount of <em/Chip RAM/. Default is <tt/auto/, i.e.
-autodetect.
-<tag/<tt>nummem</tt>/ The number of <em/Fast RAM/ chunks. Default is
-<tt/auto/, i.e. autodetect.
-<tag/<tt>mem</tt>/ The address and size of a <em/Fast RAM/ chunk. The value
-syntax is <em/number address size/, with <em/number/ the number
-(1--<tt/nummem/) of the memory chunk.
+<tag/<tt>type</tt>/
+The operating system type.
+
+<tag/<tt>kernel</tt>/
+The full qualified file name of the kernel image. This file <em/must/
+be available. Use the <tt/file/ option in the configuration file to
+add your own files.
+
+<tag/<tt>ramdisk</tt>/
+The full qualified file name of the ramdisk image. This file <em/must/
+be available. Use the <tt/file/ option in the configuration file to
+add your own files.
+
+<tag/<tt>args</tt>/
+The kernel command line.
+
+</descrip>
+Amiga specific variables:
+<descrip>
+<tag/<tt>debug</tt>/
+The debug flag: <tt/true/ or <tt/false/.
+
+<tag/<tt>model</tt>/
+The Amiga model. Default is <tt/auto/, i.e. autodetect.
+
+<tag/<tt>proc</tt>/
+The processor type. Default is <tt/auto/, i.e. autodetect.
+
+<tag/<tt>chip</tt>/
+The amount of Chip RAM. Default is <tt/auto/, i.e. autodetect.
+
+<tag/<tt>nummem</tt>/
+The number of Fast RAM chunks. Default is <tt/auto/, i.e. autodetect.
+
+<tag/<tt>mem</tt>/
+The address and size of a Fast RAM chunk. The value syntax is
+<em/number address size/, with <em/number/ the number (1--<tt/nummem/)
+of the memory chunk.
+</descrip>
+Atari specific variables:
+<descrip>
+<tag/<tt>ignorettram [</tt><em>number</em><tt>]</tt>/
+Ignore any TT-RAM for Linux. Default is <tt/0/ for <tt/false/. Use
+<tt/1/ for <tt/true/.
+
+<tag/<tt>loadtostram [</tt><em>number</em><tt>]</tt>/
+Load kernel into ST-RAM. Default is <tt/0/ for <tt/false/. Use
+<tt/1/ for <tt/true/.
+
+<tag/<tt>forcestram [</tt><em>size</em><tt>]</tt>/
+Force ST-RAM to be <em/size/ big, instead of the auto-detected size.
+Default is auto-detect.
+
+<tag/<tt>forcettram [</tt><em>size</em><tt>]</tt>/
+Force TT-RAM to be <em/size/ big, instead of the auto-detected size.
+Default is auto-detect.
+
+<tag/<tt>extrastart [</tt><em>address</em><tt>]</tt>/
+Define start address of an additional memory block that is not
+autodetected. Default is there's no such block.
+
+<tag/<tt>extrasize [</tt><em>size</em><tt>]</tt>/
+Define size of an additional memory block that is not autodetected.
+Default is there's no such block.
+
+<tag/<tt>execprog</tt> <em>index</em><tt> [</tt><em>program</em><tt>]</tt>/
+Set name of program to be executed before booting Linux. There can be
+(currently) max. 4 such programs with indices 0..3. You have to give
+the index of the program name which you want to set. If <em/program/
+is omitted, the slot for <em/index/ becomes undefined, and no program
+will be started from it. <em/program/ can include arguments, separated
+with spaces from the program name, but then you have to surround the
+second argument with quotes.
+
+<tag/<tt>driver [</tt><em>name</em><tt>]</tt>/
+Set name of TOS hard disk driver used to boot GEMDOS. Default is
+undefined.
+
+<tag/<tt>bootdrv [</tt><em>letter</em><tt>|</tt><em>number</em><tt>]</tt>/
+Set the boot drive for TOS, from which auto folder and accessories
+will be loaded. The drive can be given either as a drive letter, or as
+a number (0 = <tt/A:/, 1 = <tt/B:/, ...).
+
+<tag/<tt>device [</tt><em>device</em><tt>]</tt>/
+Set the device used for loading a boot sector (type <tt/bootsector/)
+or the TOS driver (type <tt/tos/). The syntax for <em/device/ is
+described below.
+
+<tag/<tt>sector [</tt><em>number</em><tt>]</tt>/
+Set the sector number of the boot sector (type <tt/bootsector/), or
+the start sector of the boot partition, on which the TOS driver
+resides (type <tt/tos/).
+
 </descrip>
 </descrip>
 
-Commands are case insensitive, and can be abbreviated.
+<p>
+The following commands are available only on Amiga:
+<descrip>
+<tag/<tt>boot</tt> <em>label</em>/
+Boot from boot record <em/label/. If <em/label/ is omitted, the
+current boot settings are used.
+</descrip>
+
+<p>
+The following commands are available only on Atari:
+<descrip>
+<tag/<tt>boot [</tt><em>partition</em><tt> [</tt><em>driver</em><tt> [</tt><em>boot-drive</em><tt>]]]</tt>/
+If called without any argument, this command boots the current boot
+record. That record can be selected with the <tt/use/ command, and its
+properties can be edited with the <tt/set/ command.
+
+<p>
+If called with one argument <em/partition/, it boots a boot sector.
+The sector number included in <em/partition/ needs not really be a
+partition start sector, but can be any sector number. This sector will
+be loaded and executed. <em/partition/ is in the usual syntax
+described below.
+
+<p>
+If called with two or three arguments, this command will boot TOS. It
+will load the TOS HD driver <em/driver/ from <em/partition/ and
+execute it, and then return to ROM to continue the usual TOS boot. The
+optional third argument <em/boot-drive/ defines the drive from which
+the auto folder and accessories will be loaded, just as the
+<tt/boot-drive/ configuration option. It can be a single letter, or of
+the form `<em/letter/:'.
+
+<p>
+The extended forms of the <tt/boot/ command (with arguments) are
+shortcuts for the general booting of a boot record. They save you
+defining the necessary parameters with the <tt/set/ command.
+
+<tag/<tt>partition </tt><em>device</em>/
+Show the partition table of <em/device/. <em/device/ has the common
+syntax described below. For each partition the ID, flags, start
+sector, and size (in kBytes) will be shown. The start sectors can be
+useful for giving a partition as argument to another monitor
+command, which requires knowing the partition start.
+
+<tag/<tt>mount <em>partition drive</em> [ro</tt>|<tt>rw]</tt>/
+
+Mounts <em/partition/ (which is in the usual syntax, see below) as
+drive <em/drive/, just as the <tt/mount/ options in <tt/lilo.conf/
+would do. <em/drive/ can be a single letter, or of the form
+`<em/letter/:'. An optional third argument tells whether to mount the
+drive read-only or read-write. The default is read-only.
+
+<tag/<tt>umount [</tt><em>drive</em><tt>]</tt>/
+Unmounts the drive <em/drive/, which can be a single letter or
+`<em/letter/:'. If <em/drive/ is omitted, all currently mounted drives
+are unmounted.
+
+<tag/<tt>exec [-n] </tt><em>program</em><tt> [</tt><em>workdir</em><tt>]</tt>/
+Execute a TOS program <em/program/, which must be on a mounted drive.
+<em/program/ should be a full path, since you can't rely on a certain
+working directory in Lilo. If you want to give arguments to the
+program, include them in <em/program/, separated by spaces. You need
+to quote <em/program/ either with single or double quotes for this.
+
+<p>
+The <tt/-n/ option means to turn off caches during running the
+program. Some programs could require this. If the optional
+<em/workdir/ is given, Lilo changes its current working directory to
+<em/workdir/ before launching <em/program/.
+
+</descrip> 
+
+<p>
+Several Atari commands take parameters that are either device names or
+partitions. Those all have the common syntax:
+<tscreen>
+<em/bus/<em/ID/<tt/[:/<em/startsector/<tt/]/
+</tscreen>
+where <em/bus/ is one of <tt/SCSI/, <tt/ACSI/, <tt/IDE/, or <tt/FLOP/.
+<em/ID/ is the SCSI/ACSI device ID for those two busses, for IDE it's
+the target number (0 = master, 1 = slave<footnote>I doubt that the
+<tt/DMAread/ function really can access the second IDE drive, so it's
+useless inside Lilo, but you can at least write down the device name
+:-)</footnote>). For <tt/FLOP/, <em/ID/ is either <tt/A/ or <tt/B/ or
+empty, which means to use the floppy from which the loader was loaded
+itself. If the loader wasn't booted from floppy disk, <tt/FLOP/ alone
+is the same as <tt/A:/.
+
+The `<tt/:/<em/startsector/' part is needed only for partitions, not for
+device names. <em/startsector/ tells what the first sector of that
+partition is (as absolute sector number). You can use the
+<tt/partition/ command to view the partition table of a disk and learn
+the start sectors.
 
 
 <!-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
@@ -773,10 +1692,10 @@ Commands are case insensitive, and can be abbreviated.
 
 <sect>Miscellaneous
 
-<sect1>Implicit kernel command line options
+<sect1>Implicit Kernel Command Line Options
 
 <p>
-<em/Lilo/ automatically adds the following options to the kernel command line:
+Lilo automatically adds the following options to the kernel command line:
 <descrip>
 <tag/<tt>BOOT_IMAGE=</tt><em>label</em>/ <em/label/ is the label of the boot
 record that's used for booting.
@@ -791,86 +1710,155 @@ of the following cases:
 
 Of course you can override this when you're in the boot monitor.
 
+<p>
+TODO: This isn't yet the case with Atari Lilo...
 
-<sect1>Keeping <em/Lilo/ up-to-date
+
+<sect1>Creating Boot Floppies
 
 <p>
-<em/Lilo/ now uses the same bootstrap code as <em/Amiboot/ to ease code
-maintenance.  This also means that all you have to do to keep pace with the
-newest bootstrap code is to recompile <em/Lilo/ on every <em/Amiboot/
-update.
-
-
-<sect1>Creating boot floppies
-
-<p>
-If you want to create a boot floppy with a <em/Lilo/ boot block, use the
-<tt/--root/ option to tell <em/Lilo/ to use the file system on the floppy
+If you want to create a boot floppy with a Lilo boot block, use the
+<tt/--root/ option to tell Lilo to use the file system on the floppy
 instead of your normal root file system, e.g.
 <tscreen>
 <tt/lilo --root /floppy/
 </tscreen>
 assuming you have mounted the floppy file system on <tt>/floppy</tt>.
+The file system type used for the floppy doesn't matter.
 
-After running <em/Lilo/, you may want to remove the following files from the
+<p>
+After running Lilo, you may want to remove the following files from the
 floppy file system to recover valuable space:
 <itemize>
-<item><tt>boot/loader</tt>
+<item><tt>boot/loader.</tt><em/machine/
 <item><tt>boot/backup.*</tt>
 <item><tt>etc/lilo.conf</tt>
 </itemize>
-<em/Lilo/ only needs <tt>/boot/loader.patched</tt> and <tt>/boot/map</tt> (and
+Lilo only needs <tt>/boot/loader.patched</tt> and <tt>/boot/map</tt> (and
 a kernel image, of course) to boot.
 
 
 <!-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
 
 
-<sect>Theory of operation
+<sect>Theory of Operation
 
 <p>
-If you're not familiar with the internals of the <em/Amiga/ boot process, you
-may want to read Appendix
-<ref id="apx:booting" name="The Amiga boot process"> first.
+If you're not familiar with the internals of the Amiga or Atari boot
+process, you may want to read Appendix <ref id="apx:amiga-booting"
+name="The Amiga Boot Process"> or <ref id="apx:atari-booting"
+name="The Atari Boot Process"> first.
 
 
-<sect1>Program flow
+<sect1>Program Flow
 
 <p>
-If you install a special <em/Lilo/ boot block on a device, <em/Lilo/
-performs the following actions:
+If you install a Lilo boot block on a device, Lilo performs
+the following actions:
 
 <itemize>
 <item>First it reads and parses the configuration file <tt>/etc/lilo.conf</tt>.
 
-<item>Since <em/AmigaOS/ can't access files on an <em/ext2fs/ or
-<em/minix/ file system natively, it should know where the data blocks of the
-files are stored. Thus for every kernel image you may want to boot from,
-<em/Lilo/ looks up the data blocks of the images, using the <tt/FIBMAP/
-<em/ioctl()/ and stores them in the file <tt>/boot/map</tt>, together with the
-configuration options.
+<item>Since AmigaOS or TOS, resp., can't access files on an ext2 or
+minix file system natively, it should know where the data blocks of
+the files are stored. Thus for every kernel image you may want to boot
+from, Lilo looks up the data blocks of the images, using the
+<tt/FIBMAP/ ioctl, and stores them in the file <tt>/boot/map</tt>,
+together with the configuration options.
 
-<item>Then <em/Lilo/ reads the loader template executable
-<tt>/boot/loader</tt>, looks up where <tt>/boot/map</tt> is stored on the disk,
-patches the loader template executable so it knows where to find the data
-blocks of <tt>/boot/map</tt>, adds a PC-relative header that decodes the
-<em/AmigaOS/ executable file format and stores the result in
-<tt>/boot/loader.patched</tt>.
+<item>Then Lilo reads the loader template executable
+<tt>/boot/loader.</tt><em/machine/, looks up where <tt>/boot/map</tt>
+is stored on the disk, and patches the loader template executable so
+it knows where to find the data blocks of <tt>/boot/map</tt>. On
+Amiga, also PC-relative header is added to the template that decodes
+the AmigaOS executable file format. The result of all this is stored
+in <tt>/boot/loader.patched</tt>.
 
-<item>During the last step <em/Lilo/ looks up the data blocks for
+<item>During the last step Lilo looks up the data blocks for
 <tt>/boot/loader.patched</tt>, fills them in in the boot code and
 writes the boot code to the boot block of the device specified in
 <tt>/etc/lilo.conf</tt>.
+
+<p>
+On Atari, space in the boot sector is very tight, because it has to
+leave room for the boot sector information of GEMDOS filesystems at
+the beginning and for partition tables at the end. Therefore, it first
+loads a second sector, called the <em/map sector/, in which the sector
+numbers of the <tt/loader.patched/ file are stored. With this
+information, it can load the rest of that file into memory. The boot
+block prototype and empty space for the map sector are included in the
+template as the first 1024 bytes. The filled-in map sector can be
+found as bytes 512...1023 of <tt/loader.patched/. Only the device
+number and absolute sector number of the map sector are directly
+written into the boot sector.
 </itemize>
 
-If the <em/Amiga/ tries to boot from a partition you installed <em/Lilo/ on,
-the system loads the special boot code and executes it. The boot code loads the
-raw PC-relative executable <tt>/boot/loader.patched</tt> and executes it.
-Afterwards <tt>/boot/loader.patched</tt> reads <tt>/boot/map</tt>, eventually asks
-the user for a boot operating system, and loads the desired operating system.
+<p>
+If the machine tries to boot from a partition you installed Lilo on,
+the system loads the special boot code and executes it. The boot code
+loads <tt>/boot/loader.patched</tt> and executes it (how is
+system-dependent). Afterwards <tt>/boot/loader.patched</tt> reads
+<tt>/boot/map</tt>, eventually asks the user for a boot operating
+system, and loads the desired operating system.
 
 
-<sect1>The boot block code
+<sect1>File Representation
+
+<p>
+The boot loader code can't use files the normal way, because either
+the filesystem part of the native operating system isn't initialized
+yet (Amiga), and/or the files can reside on filesystem types the
+native OS doesn't know about (ext2 or minix, for example).
+
+<p>
+As an alternative, a file is represented by an array of <tt/struct
+vecent/s, called a <em/vector/ in Lilo. The <tt/struct vecent/
+consists of a start sector (type <tt/u_long/) and a length (type
+<tt/u_short/). It represents a contiguously stored part of a file on
+the disk. All those parts concatenated let you access the whole file.
+The last vector element contains zeros for both, start and length,
+to denote the end of file. Sector numbers and counts are always
+relative to 512 byte sectors.
+
+<p>
+The first element of a vector is handled specially: The <tt/start/
+component contains the total length of the file. This allows to easily
+determine the file size without reading it before. On Atari, the
+<tt/length/ component of the first element additionally contains the
+TOS device number (as used e.g. with <tt/DMAread/) of the device on
+which the file resides. On Amiga, the data blocks can be read by using
+the <em/BootRequest/, or by opening the alternate boot device if the
+<tt/altdev/ option was used in <tt>/etc/lilo.conf</tt>.
+
+<p>
+Special care is needed if files contain <em/holes/. If there is a
+region in a file that contains only zeros, and through this a disk
+block of the file also would contain only zeros, Linux can avoid to
+actually allocate a block, instead it can leave a so-called hole. If
+you read the data of such a hole, the Linux kernel notes that there's
+no disk block for certain region of the file, and concludes that all
+contents are just zero bytes, and returns those. This works fine so
+far, but if Lilo wants to get a file's mapping to build up a vector,
+the holes are a problem. Since there are no disk sectors associated
+with a hole, the vector contents would be undefined. The solution is
+to allocate a few sectors specially for Lilo and fill them with zeros.
+Then these special sectors can be used for mapping the holes in a
+vector, i.e. the vector element points to the first special sector as
+start sector, and the length is the minimum of how much bytes should
+be covered by the hole and how many bytes are available in the special
+sectors. If the latter is the smaller, the procedure can be repeated.
+The special sectors are allocated by the tag <tt/TAG_ZEROHOLE/ in the
+map file. That tag's value is a number of zero bytes. The number of
+bytes needed is calculated as follows: First, the current disk block
+should be filled up, and then the complete next block. This way, we
+have a defined Linux disk block (usually 1024 bytes) which contains
+the necessary zeros.
+
+<p>
+Vectors are used to represent <tt>/boot/loader.patched</tt>,
+<tt>/boot/map</tt>, and all kernel and ramdisk images.
+
+<sect1>Amiga Boot Block Code
 
 <p>
 The system calls the boot block code and passes it the <em/BootRequest/ (of
@@ -879,20 +1867,9 @@ not been initialized completely, e.g. <em/dos.library/ is still missing.
 This has the following consequences:
 <itemize>
 <item>We can't use files, so we need to use raw device I/O. Besides,
-<em/AmigaOS/ doesn't know <em/ext2fs/ or the <em/minix/ file system
-either.
-
-As an alternative a file is represented by an array of <tt/u_long/s (a
-<em/vector/).  The first <tt/u_long/ in this array contains the length of
-the file (in bytes); the following <tt/u_long/s are disk offsets for the data
-blocks, with holes (A hole is a place in a file where a whole block
-contains nothing but zeroes.  <em>Linux/m68k</em> doesn't store such a block on disk
-explicitly, but marks it specially, to save diskspace.) indicated by a disk
-offset of 0.  The data block size is 1024 bytes (This is the default
-block size for <em>Linux/m68k</em>.  <em/AmigaOS/ however uses a default block size of 512
-bytes.).  The data blocks can be read by using the <em/BootRequest/, or by
-opening the alternate boot device if the <tt/altev/ option was used in
-<tt>/etc/lilo.conf</tt>.
+AmigaOS doesn't know ext2 or the minix filesystem either. To overcome
+this, a file is represented as a vector, as described in the previous
+chapter.
 
 <item>We can't use <em/DOS/ devices like <em/CON:/. Thus the loader opens a
 window and uses the <em/console.device/ for communication with the user.
@@ -904,20 +1881,22 @@ private <em/exec.library/ functions <em/RawMayGetChar()/ and
 
 The boot block code loads and calls the loader. The loader should return
 <tt/FALSE/ in case of an error, and <tt/TRUE/ if the user wants to boot
-<em/AmigaOS/; in all other cases it shouldn't return.
+AmigaOS; in all other cases it shouldn't return.
 
 
-<sect1>The boot library
+<sect1>Amiga Boot Library
 
 <p>
-The boot block code exports some functions for file access and execution by
-passing a function table pointer to the loader.
+On Amiga, the boot block code exports some functions for file access
+and execution by passing a function table pointer to the loader.
 
+<p>
+TODO: Geert, are the infos below still current?
 
 <sect2>File access functions
 
 <p>
-These functions provide basic file access.
+These functions provide basic file access:
 
 <itemize>
 <item><tt/void Open(u_long *vector)/
@@ -926,21 +1905,20 @@ Open a file. Only one file can be opened at the same time.
 
 <item><tt/void Close(void)/
 
-Close the file opened with <em/Open()/.
+Close the file opened with <tt/Open()/.
 
 <item><tt/void Read(void *dest, u_long length)/
 
-Read <em/length/ bytes of data from the file opened with <em/Open/ and store
+Read <em/length/ bytes of data from the file opened with <tt/Open/ and store
 them in memory starting at <em/dest/. This routine does not check whether you
 try to read beyond the end of the file.
 
 <item><tt/void Seek(u_long offset)/
 
-Seek to the absolute position <em/offset/ in the file opened with <em/Open/.
+Seek to the absolute position <em/offset/ in the file opened with <tt/Open/.
 This routine does not check whether you try to seek beyond the end of the file.
 
 </itemize>
-
 
 <sect2>File execution functions
 
@@ -951,144 +1929,233 @@ These functions provide for the loading and execution of files.
 <item><tt/u_long *Load(u_long *vector)/
 
 Load a file and return a pointer to the loaded data. This function uses
-<em/Open()/, so it may not be called if there's already a file opened.
+<tt/Open()/, so it may not be called if there's already a file opened.
 
 <item><tt/void UnLoad(u_long *data)/
 
-Unload a file loaded with <em/Load()/.
+Unload a file loaded with <tt/Load()/.
 
 <item><tt/long Exec(u_long *data, long arg)/
 
 Execute a block of code pointed to by <em/data/. It pushes all caches first
-and passes the supplied <em/arg/ in register <em/D0/ and returns the return
+and passes the supplied <em/arg/ in register <tt/d0/ and returns the return
 code after execution.
 </itemize>
+
+
+<sect1>Atari Boot Sector Code and Loader Environment
+
+<p>
+The Atari boot sector code is loaded either by the root sector code,
+because the partition it resides in is marked with the same boot flag
+as the boot preference is. Or, if you have installed Lilo on the
+whole-disk device, the Lilo boot sector <em/is/ the root sector code
+and thus is started by the BIOS. It first tests as usual (with
+<tt/Kbshift/) if the <tt/ALT/ key is pressed. If yes, it exits
+immediately to allow skipping Lilo and use other means of booting.
+If <tt/ALT/ is not pressed, it outputs an `<tt/L/'.
+
+<p>
+Here would be a hook in the code for loading a secondary boot sector.
+This would be needed if the code should become too big for one sector.
+Fortunately, this isn't the case yet, so that step is skipped. After
+the secondary sector is (maybe virtually :-) present, an `<tt/I/' is
+printed.
+
+<p>
+The next step is to allocate the biggest available memory block with
+<tt/Malloc/. This block is used for loading the map sector and the
+loader into it. After the block has been allocated, another `<tt/L/'
+is printed and the boot sector loads the map sector to the start of
+the memory block. The device and sector number of the map sector have
+been written directly into the boot sector by <tt>/sbin/lilo</tt>.
+As soon as the map sector has been loaded, an `<tt/O/' is printed.
+
+<p>
+In the following, all sectors defined in the map sector are loaded to
+the memory block plus 512 bytes (the space before is used for the map
+sector). The map sector itself contains a vector (as described above),
+i.e. pairs of start sectors and lengths. For each such pair processed
+successfully, a `<tt/./' is printed. 
+
+<p>
+All this reading of sectors is done with <tt/DMAread/, or <tt/Rwabs/
+for floppy devices. If an error should be returned by the ROM
+function, the error number is printed as a negative decimal number,
+and the boot code exits back to ROM.
+
+<p>
+The file described by the map sector and that is now loaded into
+memory is <tt>/boot/loader.patched</tt>, which is a concatenation of:
+<itemize>
+<item>The boot sector template (512 bytes)
+<item>The map sector (512 bytes)
+<item>The TOS binary <tt/loader.tos/, which is the loader proper.
+</itemize>
+The first two items can be skipped, since the template is
+uninteresting at run time, and the map sector already has been loaded.
+So the boot sector code finally jumps to offset 1024 of the loaded
+file (this is offset 1536 in the allocated memory block), which is the
+start address of <tt/loader.tos/. This works though at that address
+there's first the TOS program header, because the first two bytes of
+that header (also used as magic) are a <tt/BRA.S/ instruction that
+jump around the rest of the header.
+
+<p>
+At the very start of that TOS program, and `<tt/b/' is printed. Since
+the program (<tt/loader.tos/) hasn't been loaded by <tt/Pexec/, it
+isn't relocated yet. To do this, it contains a special startup file
+(<tt/crt0.S/ in the source) whose first job is to relocate itself,
+using only PC-relative addressing until this is done. Program text and
+data size are available from the program header, which is immediately
+before the code, and thus can be easily addressed PC-relative, too.
+After the relocation, an `<tt/o/' is printed.
+
+<p>
+The next step is to shrink the allocated memory block to the size
+actually needed, since the size requirements can now be calculated
+from the program header. <tt/Mshrink/ is used for this. Then we're
+going to start a new GEMDOS process. For this a basepage is
+constructed manually at the start of our memory block. <tt/Pexec(5)/
+can't be used, since that would allocate the biggest free memory block
+again, but we already have enough, and maybe there's nothing free
+anymore. So the important fields of the basepage are filled in: TPA
+and segment sizes, empty command line, pointer to DTA, parent process
+(the root process) and a dummy environment. Finally, also the standard
+handles are all initialized to device -1 (<tt/CON:/), for which some
+undocumented fields in the basepage are necessary. But if we don't do
+this, we couldn't use stdout or stderr. Finally the BSS of the program
+is cleared, another `<tt/o/' is printed, and <tt/Pexec(4)/ is called
+to start the new process.
+
+<p>
+That process first goes to supervisor mode again (<tt/Pexec/ starts
+all new processes in user mode) and then prints a `<tt/t/'. Then it
+initializes some things for the library (<tt/MiNTLib/), since our
+<tt/crt0.S/ replaces the one supplied by <tt/libmint.olb/. After all
+this is done, an `<tt/e/' is printed and <tt/_main/ is called, so we
+finally end up in the C code in <tt/bootmain.c/. There, the final
+`<tt/d/' is printed, and all the characters together give
+`<tt/LILO...booted/'. (Of course, the number of dots varies with the
+number of vector entries needed for <tt/loader.patched/.)
+
+<p>
+Another special thing is what happens if the new process calls
+<tt/exit()/. That function is supplied by <tt/crt0.S/ and simply calls
+<tt/Pterm/. A side effect of <tt/Pterm/ is that all memory allocated
+by the loader process is freed by the GEMDOS. That way, we don't have
+to keep track of all memory we've allocated, it can be freed at once.
+That's the main reason why a new process is created. The <tt/Pterm/
+call returns to after the <tt/Pexec(5)/ done earlier. There the main
+memory block (which contains basepage and TPA) is freed and the C
+variable <tt/ExitAction/ decides what to do next: A value of 1 means
+to return to the BIOS to boot TOS. So registers saved at the start of
+the boot sector code are restored again and a <tt/rts/ instruction is
+issued. This returns to the boot loop in the ROM, which notices that
+the value of <tt/hdv_rw/ has changed (because we've installed a TOS HD
+driver) and terminates.
+
+<p>
+If <tt/ExitAction/ has the value 2 this means that a boot sector
+should be booted. That boot sector already has been loaded to
+<tt/_dskbuf/ by C code, so the only task is to jump to there. Any
+other value of <tt/ExitAction/ shouldn't happen, so a message
+`<tt/Loader exited -- system halted./' is printed, and an endless loop
+is entered.
+
+<p>
+Due to all the setups in <tt/crt0.S/, the C code of the loader can use
+most features that are normally available. For example, <tt/malloc/,
+<tt/stdout/, and <tt/stderr/ work as usual. The only thing to watch
+about is that hard disks aren't available yet, since no driver is
+loaded. So Lilo has to take care about this itself. And the way to do
+this are the <em/temporary mounts/ you've already heard about in this
+document. Lilo implements a rudimentary hard disk driver that works by
+calling <tt/DMAread/. This driver is located in the source file
+<tt/tmpmnt.c/. It should behave just like any other HD driver, with
+the only difference that <tt/DMAread/ is slow, (So this isn't the
+ultimate solution :-), but for running a few programs it's ok.)
+Unmounting drives again uses the usual tricks with the medium change
+status, to persuade GEMDOS that the drive doesn't exist anymore.
+
+<p>
+One last special item that should be documented: When the ROM calls
+the boot sector code, the current stack (the BIOS stack) contains some
+return addresses and saved values. Also the Lilo boot sector saves
+some registers to this stack. But when GEMDOS starts a new process, it
+uses the same BIOS stack for the default supervisor stack pointer for
+that process. And the new SSP is the <em/top/ of that stack. So, if
+the process then calls GEMDOS (or receives an interrupt, or ...), the
+stack frame of the exception is written to the top of the BIOS stack
+and overwrites the return addresses. This would mean that returning to
+the BIOS boot loop wouldn't be possible. To fix this, Lilo saves the
+contents of the BIOS stack and restores it before doing the <tt/rts/
+to ROM.
 
 
 <sect1>The tagged map file format<label id="sec:tags">
 
 <p>
 The map file <tt>/boot/map</tt> consists of a concatenation of <em/tag
-records/.  A tag record contains a <em/Tag/, indicating its type, a
-<em/Size/ (must be a multiple of 4 bytes) and <em/Size/ bytes of data. This
-makes the file format very simple to understand and easy to parse and extend.
-
-<sect2>General structure
+records/. A tag record contains a <em/tag/, indicating its type, a
+<em/size/ (must be a multiple of 4 bytes) and <em/size/ bytes of data.
+This makes the file format very simple to understand and easy to parse
+and extend.
 
 <p>
 The general structure of the map file looks like:
 
-\begin{center/ \begin{tabular/{|l|r|l|l|/
-\hline
-Tag                 & Size & Data         & Info \
-\hline \hline
-\multicolumn{4/{|c|/{<bf/File identification// \
-\hline
-TAG_LILO            &    0 & ---          & \
-\hline \hline
-\multicolumn{4/{|c|/{<bf/Boot options// \
-\hline
-TAG_HEADER          &    0 & ---          & \
-\multicolumn{3/{|c|/{\vdots/  & <em/Boot option tags/ \
-TAG_HEADER_END      &    0 & ---          & \
-\hline \hline
-\multicolumn{4/{|c|/{<bf/One or more boot records// \
-\hline
-TAG_BOOT_RECORD     &    ? & char []      & Boot record label \
-\multicolumn{3/{|c|/{\vdots/  & <em/Boot record tags/ \
-TAG_BOOT_RECORD_END &    0 & ---          & \
-\hline
-\multicolumn{4/{c/{\vdots/ \
-\hline
-\multicolumn{4/{|c|/{<bf/Zero or more file definitions// \
-\hline
-TAG_FILE_DEF        &    ? & char []      & File name \
-\multicolumn{3/{|c|/{\vdots/  & <em/File definition tags/ \
-TAG_FILE_DEF_END    &    0 & ---          & \
-\hline
-\multicolumn{4/{c/{\vdots/ \
-\hline
-\multicolumn{4/{|c|/{<bf/End of file// \
-\hline
-TAG_EOF             &    0 & ---          & \
-\hline
-\end{tabular/ \end{center/
+<tscreen><verb>
+Tag                 Size    Data          Information in Data
+======================================================================
+						 File Identification
+----------------------------------------------------------------------
+TAG_LILO            0       -
+TAG_ZEROHOLE        varies  all zeros
+----------------------------------------------------------------------
+							 Boot Options
+----------------------------------------------------------------------
+TAG_HEADER          0       -
+... (boot option tags)
+TAG_HEADER_END      0       -
+----------------------------------------------------------------------
+					   One or More Boot Records
+----------------------------------------------------------------------
+TAG_BOOT_RECORD     ?       char[]        label of boot record
+... (boot record tags)
+TAG_BOOT_RECORD_END 0       -
+----------------------------------------------------------------------
+					  Zero or More Boot Records
+----------------------------------------------------------------------
+TAG_FILE_DEF        ?       char[]        name of file
+... (file definition tags)
+TAG_FILE_DEF_END    0       -
+----------------------------------------------------------------------
+				 Temporary Mount Records (Atari only)
+----------------------------------------------------------------------
+TAG_TMP_MOUNT       4       u_long        drive number (mount point)
+... (tmp mount tags)
+TAG_TMP_MOUNT_END   0       -
+----------------------------------------------------------------------
+							 End of File
+----------------------------------------------------------------------
+TAG_EOF             0       -
+----------------------------------------------------------------------
+</verb></tscreen>
 
-<sect2>Boot option tags
+You can view the contents of a map file with the debugging utility
+<tt/dumpmapfile/. What tags actually exist can be looked up in the
+files <tt>lilo/tags.def</tt> and
+<tt>lilo/</tt><em>machine</em><tt>/tags.def</tt>. Both files are
+merged together and processed by an <tt/awk/ script to produce the
+files <tt/tagdef.h/, <tt/tagdef.c/, and <tt/tagnames.c/, all in the
+machine subdirectory.
 
-<p>
-\begin{center/ \begin{tabular/{|l|r|l|p{34mm/|/
-\hline
-Tag                 & Size & Data         & Info \
-\hline \hline
-TAG_DEFAULT         &    ? & char []      & Default boot image \
-TAG_AUTO            &    4 & u_long      & Automatic boot flag \
-TAG_TIME_OUT        &    4 & u_long      & Time out value \
-TAG_AUX             &    4 & u_long      & Auxiliary console \
-TAG_BAUD            &    4 & u_long      & Baud for auxiliary console \
-TAG_MASTER_PASSWORD &    ? & char []      & Master password \
-TAG_DEBUG           &    4 & u_long      & Debug flag \
-TAG_PROMPT          &    ? & char []      & Boot prompt \
-TAG_KICKRANGE       &    4 & u_short [2] & Valid <em/Kickstart/ version range \
-\hline
-\end{tabular/ \end{center/
 
-<sect2>Boot record tags
+<sect1>Lilo Alert Codes (Amiga)
 
 <p>
-\begin{center/ \begin{tabular/{|l|r|l|l|/
-\hline
-Tag                 & Size & Data         & Info \
-\hline \hline
-TAG_ALIAS           &    ? & char []      & Alias label name \
-TAG_OS_TYPE         &    4 & u_long      & operating system type \
-TAG_KERNEL          &    ? & char []      & Kernel image \
-TAG_ARGUMENTS       &    ? & char []      & Boot arguments \
-TAG_PASSWORD        &    ? & char []      & Password \
-TAG_CHIP_RAM_SIZE   &    4 & u_long      & Chip RAM size \
-TAG_FAST_RAM_CHUNK  &    8 & u_long [2]  & Fast RAM chunk \
-TAG_MODEL           &    4 & u_long      & <em/Amiga/ model \
-TAG_PROCESSOR       &    4 & u_long      & Processor type \
-TAG_RAMDISK         &    ? & char []      & Ramdisk image \
-\hline
-\end{tabular/ \end{center/
-
-<sect2>File definition tags
-
-<p>
-\begin{center/ \begin{tabular/{|l|r|l|l|/
-\hline
-Tag                    & Size & Data         & Info \
-\hline \hline
-TAG_VECTOR            &    ? & u_long []   & File vector \
-\hline
-\end{tabular/ \end{center/
-
-<sect2>Debugging
-
-<p>
-You can examine the contents of a map file with the <tt/dumpmapfile/ utility.
-
-
-<sect1>Booting <em>Linux/m68k</em>
-
-<p>
-If the user wants to boot <em>Linux/m68k</em>, the loader calls an adapted
-version of the <em/Amiboot/ utility. If this fails, it returns <tt/FALSE/
-to the boot code.
-
-
-<sect1>Booting <em/AmigaOS/
-
-<p>
-If the user wants to boot <em/AmigaOS/, the loader just returns <tt/TRUE/
-and the boot code uses the default boot method.
-
-
-<sect1><em/Lilo/ alert codes
-
-<p>
-The following alert codes are used by <em/Lilo/:
+The following alert codes are used by Lilo:
 <descrip>
 <tag/<tt>30000001</tt>/ Boot error when automatic boot
 <tag/<tt>CC010000</tt>/ No memory
@@ -1108,7 +2175,7 @@ The following alert codes are used by <em/Lilo/:
 </descrip>
 Other alert codes (especially those of the form <tt/8000000x/, with <tt/x/
 equal to <tt/3/, <tt/4/, <tt/A/ or <tt/B/) may indicate that something went
-wrong with the <em/Lilo/ installation, e.g. you forgot to rerun <tt/lilo/ after
+wrong with the Lilo installation, e.g. you forgot to rerun <tt/lilo/ after
 you changed some important files.
 
 
@@ -1118,13 +2185,26 @@ you changed some important files.
 <sect>Credits
 
 <p>
-<itemize>
-<item>The <em>Amiga Linux/m68k Loader</em> was written by Geert Uytterhoeven
-(<htmlurl url="mailto:Geert.Uytterhoeven@cs.kuleuven.ac.be"
-name="Geert.Uytterhoeven@cs.kuleuven.ac.be">).
+Lilo for m68k is part of the <em/m68kboot/ package, which has been
+written by Geert Uytterhoeven (<htmlurl
+url="mailto:Geert.Uytterhoeven@cs.kuleuven.ac.be"
+name="Geert.Uytterhoeven@cs.kuleuven.ac.be">) and Roman Hodek
+(<htmlurl url="mailto:Roman.Hodek@informatik.uni-erlangen.de"
+name="Roman.Hodek@informatik.uni-erlangen.de">). Geert has written all
+the basics of Lilo and the Amiga code, and Roman did the machine
+abstractions as he implemented Atari Lilo from the same source.
 
-<item>The following people inspired me with their comments and/or provided
-fixes:
+<p>
+The m68kboot package itself additionally contains the bootstrap
+programs for both, Amiga and Atari. All these programs have been
+collected into one source tree, because they have much code in common.
+Some of the code for booting a Linux kernel can be shared between
+Amiga and Atari, and the machine-specific code for booting Linux is
+common to <tt/bootstrap/ and Lilo.
+
+<p>
+The following people inspired Lilo development with their comments
+and/or provided fixes:
 <itemize>
 <item>Janos Farkas (<htmlurl url="mailto:chexum@sparta.banki.hu"
 name="chexum@sparta.banki.hu">)
@@ -1138,31 +2218,36 @@ name="cdamian@mediaconsult.com">)
 name="jongk@cs.utwente.nl">)
 </itemize>
 
-<item>The <em>Linux/m68k</em> bootstrap code was taken from:
+<p>
+m68kboot and Lilo include code of the former separate <tt/amiboot/ and
+<tt/ataboot/ packages:
 <quote>
-<em/Amiboot/: This program loads the <em>Linux/m68k</em> kernel into an
-<em/Amiga/ and launches it. &copy; Copyright 1993, 1994 by Hamish
+<em/Amiboot/: &copy; Copyright 1993, 1994 by Hamish
 Macdonald (<htmlurl url="mailto:hamish@border.ocunix.on.ca"
 name="hamish@border.ocunix.on.ca">), Greg Harp (<htmlurl
 url="mailto:harp@netcom.com" name="harp@netcom.com">).
 </quote>
-
-<item>The original idea for this program comes from the <em/Linux/
-distribution:
 <quote>
-<em/LILO/: Generic Boot Loader for <em/Linux/ (<em/LInux LOader/) by
-Werner Almesberger (<htmlurl url="mailto:werner.almesberger@lrc.di.epfl.ch"
+<em/Ataboot/: &copy; Copyright 1993-98 by Arjan Knor, Robert de Vries, Roman
+Hodek (<htmlurl url="mailto:Roman.Hodek@informatik.uni-erlangen.de"
+name="Roman.Hodek@informatik.uni-erlangen.de">), and Andreas Schwab
+(<htmlurl url="mailto:schwab@issan.informatik.uni-dortmund.de"
+name="schwab@issan.informatik.uni-dortmund.de">).
+</quote>
+
+<p>
+The original idea for this program comes from PC Linux:
+<quote>
+<em/LILO/: Generic Boot Loader for Linux (<em/LI/nux <em/LO/ader) by Werner
+Almesberger (<htmlurl url="mailto:werner.almesberger@lrc.di.epfl.ch"
 name="werner.almesberger@lrc.di.epfl.ch">).
 </quote>
 
-<item>The <tt/rlatex/ script was taken from the <em/LILO/ distribution and
-is &copy; Copyright 1992-1996 Werner Almesberger.
-</itemize>
-
-And of course I want to thank the whole <em/Linux/ community, especially the
-other <em>Linux/m68k</em> guys, for this great <em/Operating System/ (Note the
-uppercase `O' and `S'. IMHO <em/icrosoft/ should refer to <em/indows 95/
-with <em/perating ystem/~:-)
+<p>
+And of course we want to thank the whole Linux community, especially
+the other Linux/m68k guys, for this great Operating System. (Note the
+uppercase `O' and `S'. IOHO <em/icrosoft/ should refer to <em/indows
+95/ as <em/perating ystem/~:-)
 
 
 <!-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
@@ -1171,25 +2256,25 @@ with <em/perating ystem/~:-)
 <sect>The <em/GNU General Public License/
 
 <p>
-The <em>Amiga Linux/m68k Loader</em> and its documentation are &copy;
-Copyright 1995 by Geert Uytterhoeven. However, they are also subject to the
+The m68kboot package and its documentation are &copy; Copyright 1995-98 by
+Geert Uytterhoeven and Roman Hodek. However, they are also subject to the
 terms and conditions of the <em/GNU General Public License/. See the file
-<tt/COPYING/ for more details.
+<tt/COPYING/ in the top-level source directory for more details.
 
 
 <!-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
 
 
-<sect>The <em/Amiga/ boot process<label id="apx:booting">
+<sect>The Amiga Boot Process<label id="apx:amiga-booting">
 
 <p>
-An <em/Amiga/ can boot from different devices. After initialization of all
-internal (motherboard) and external (<em/Zorro II/III/ boards)
-devices, a list of bootable devices is created, sorted by boot priority. This
-list can be modified using the system boot menu (The system boot menu
-is invoked by holding both the left and right mouse buttons at boot up.). The
-first floppy drive (<tt/DF0:/) always has boot priority 5, while the default
-boot priority of a hard drive partition is 0.
+An Amiga can boot from different devices. After initialization of all internal
+(motherboard) and external (Zorro II/III boards) devices, a list of bootable
+devices is created, sorted by boot priority. This list can be modified using
+the system boot menu. (The system boot menu is invoked by holding both the left
+and right mouse buttons at boot up.) The first floppy drive (<tt/DF0:/)
+always has boot priority 5, while the default boot priority of a hard drive
+partition is 0.
 
 Then the system tries to boot from the bootable devices in the list, the one
 after the other starting with the device with the highest boot priority, until
@@ -1200,48 +2285,125 @@ A device is a candidate for booting if it's marked as bootable and if one of
 the following conditions is met:
 
 <itemize>
-<item>The device has a valid file system (i.e. its <em/DosType/ is the same
-as that of a <em/ROM/ file system or a file system that's stored in the
-<em/Rigid Disk Block/ of one of the hard drives) and the file system could be
+<item>The device has a valid file system (i.e. its DosType is the same
+as that of a ROM file system or a file system that's stored in the
+Rigid Disk Block of one of the hard drives) and the file system could be
 initialized for this device. This should be the case for your default
-<em/AmigaOS/ boot partition.
+AmigaOS boot partition.
 
 <item>There is no valid file system for the device. This is the case if you
-specify <tt/0x45585432/ (<tt/EXT2/ in <em/HEX ASCII/) for the
-<em/DosType/ and there is no file system in a <em/Rigid Disk Block/ with <em/DosType/
-<tt/0x45585432/.
+specify <tt/0x45585432/ (<tt/EXT2/ in HEX ASCII) for the DosType and there is
+no file system in a Rigid Disk Block with DosType <tt/0x45585432/.
 </itemize>
 
-There are two ways to boot from a boot device:  with or without execution of
-the boot block (The boot block is the first block --- actually the
-first $n$ blocks, with default $n = 2$.  Since the default block size under
-<em/AmigaOS/ is 512 bytes, the default boot block size is 1024 bytes --- of the
+TODO: Geert, the above aren't two alternatives... something's wrong with the
+logic :-)
+
+There are two ways to boot from a boot device: with or without execution of
+the boot block. (The boot block is the first block --- actually the first
+<em/n/ blocks, with default <em/n/ = 2. Since the default block size under
+AmigaOS is 512 bytes, the default boot block size is 1024 bytes --- of the
 device, which has a special purpose.):
 
 <itemize>
 <item>Without execution of the boot block the system just ignores the boot
 block contents and uses the default boot method. This is the default behavior
-for hard drive partitions, which can be overridden by enabling <em/Custom
-Boot Code/ for the partition.
+for hard drive partitions, which can be overridden by enabling Custom Boot
+Code for the partition.
 
 <item>With execution of the boot block the system loads the boot block and
 calculates a checksum value. If the checksum is correct, the boot code in the
-boot block is executed, with the <em/BootRequest/ (of type <tt/struct
-IOStdReq/) for the boot device passed to it as a parameter. If the checksum is
-incorrect, the boot process fails for this device. This is the default behavior
-for the floppy drive and the behavior for hard drive partitions if <em/Custom
-Boot Code/ is enabled. <em/Lilo/ uses this method too.
+boot block is executed, with the BootRequest (of type <tt/struct IOStdReq/)
+for the boot device passed to it as a parameter. If the checksum is incorrect,
+the boot process fails for this device. This is the default behavior for the
+floppy drive and the behavior for hard drive partitions if Custom Boot Code is
+enabled. Lilo uses this method too.
 </itemize>
 
 The default boot method --- this method is also used in the default boot code
 for floppies --- just checks whether <em/dos.library/ is resident and
 returns a pointer to the initialization routine of <em/dos.library/.
 
+<sect>The Atari Boot Process<label id="apx:atari-booting">
+
+<p>
+After the BIOS has initialized itself and the hardware, it calls the
+initialization functions of GEMDOS and the VDI. So these two subsystem are
+already fully available for Lilo. After this has been done, the BIOS tests
+floppy and hard disk devices (in that order) if they can supply a boot
+sector. For that it tries to read the first sector of the device, and if
+that succeeds it makes a checksum over the block. If the sum yields 0x1234,
+it assumes that the checksum field has been set up correctly and the sector
+contents are intended for booting.
+
+<p>
+The first boot device is the first floppy<footnote>But you can change this
+by setting the system variable <tt/_bootdev/ to 1. Then drive <tt/B:/ is
+used instead.</footnote> (<tt/A:/). Next, all SCSI, ACSI, and IDE disks
+are tried, in that order. (TODO: does IDE come first or last?) If there is
+more than one disk on a bus system, the ID on that system gives the order
+to try. For example, on SCSI first the disk with ID 0 is tested, then ID 1,
+and so on.
+
+<p>
+If any of these devices can supply an executable boot sector, the BIOS does
+a <tt/jsr/ to the start of it. The current boot device and some other
+informations are passed in registers (but the Lilo boot sector doesn't use
+them). If the boot sector came from a hard disk, the BIOS compares after
+return from the boot sector code if the contents of the system variable
+<tt/_hdv_rw/ have changed<footnote>Older TOS versions didn't do this yet,
+and required the boot sector to put 0xe0 into register <tt/d7/, which
+corresponds to the last ACSI device. Then the BIOS load loop thinks all
+devices have been tested already. But those old TOS versions can't run on a
+CPU newer than a 68000 anyway, so this is no problem for Lilo
+:-)</footnote>. This variable is a function pointer for block device
+accesses (used by <tt/Rwabs/), and a modification to it signals that
+(probably) a hard disk driver has been installed. So the BIOS exits from
+the boot loop in this case, otherwise it continues with the next device.
+
+<p>
+The boot sector code can also choose to return back to the BIOS without
+actually having done anything. This is done by convention if the <tt/Alt/
+key is pressed, to give the user a chance to boot from a different device
+than usual. If all devices have been tried for boot sectors and no
+<tt/_hdv_rw/ modification has been detected, TOS treats floppy drive
+<tt/A:/ as boot device and loads the auto folder and accessories from
+there.
+
+<p>
+For a hard disk, the first sector is usually called <em/root sector/
+instead of boot sector. This is because the name boot sector is already in
+use for the first sector of a (GEMDOS) partition. Almost always the root
+sector code has been installed by your TOS HD driver. But nevertheless,
+most root sectors do exactly the same kind of thing (though you don't have
+a guarantee for this): They go through the partition table in the root
+sector and look for a partition whose boot flag matches the current boot
+preference<footnote>If this is on a machine which can't store a boot
+preference, it is 0 and this case is treated the same as it would be 0x80
+(= TOS).</footnote>. If such a partition is found, the first sector from it
+(the boot sector) is loaded and executed again. Since much code would be
+required to also read the auxiliary root sectors of extended partitions,
+the root sector code in most cases doesn't undergo that trouble. This is
+the reason why you can boot only from primary partitions.
+
+<p>
+In case of a normal TOS installation, that boot sector resides on your TOS
+boot partition, and is again part of the TOS HD driver. It loads the HD
+driver from the partition (where it resides as a plain file) and starts it.
+The boot sector usually is designed to cooperate with the root sector code,
+for example the latter passes some values or function pointers to it. Due
+to this, you can't usually just execute the boot sector of a partition to
+boot TOS. This doesn't work because the root sector code is missing. And
+again this is the reason why Lilo executes the HD driver directly instead
+of loading and starting a partition boot sector.
+
+
+
 
 <!-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ -->
 
 
-<sect>History
+<sect>Amiga Lilo History
 
 <sect1>Version 0.1
 
@@ -1264,10 +2426,10 @@ same time.
 <p>
 <itemize>
 <item>Handles files with holes.
-<item>Fixes for <em/Kickstart V36/ (<em/A3000 Beta ROM/).
+<item>Fixes for Kickstart V36 (A3000 Beta ROM).
 <item>Debug option.
 <item>Rounds memory chunks to a multiple of 256K instead of 1M (for e.g. users
-of the <em/A3640 MapROM/ feature).
+of the A3640 MapROM feature).
 </itemize>
 
 <sect1>Version 0.4
@@ -1275,33 +2437,34 @@ of the <em/A3640 MapROM/ feature).
 <p>
 <itemize>
 <item>Support added for a terminal connected to the builtin serial port.
-<item>Documentation in <em>LaTeX 2e</em>.
+<item>Documentation in LaTeX 2e.
 </itemize>
 
 <sect1>Version 0.4a
 
 <p>
 <itemize>
-<item>Recompile to compensate for the changes in <tt>&lt;asm/bootinfo.h&gt;</tt>.
+<item>Recompile to compensate for the changes in
+<tt>&lt;asm/bootinfo.h&gt;</tt>.
 </itemize>
 
 <sect1>Version 0.5
 
 <p>
 <itemize>
-<item><em/Seek()/ function added to the boot library.
-<item>Bootstrap code updated to the <em/Amiboot/ 2.1 level:
+<item><tt/Seek()/ function added to the boot library.
+<item>Bootstrap code updated to the Amiboot 2.1 level:
 <itemize>
-<item>Support added for <em/ELF/ kernels,
-<item>Support added for <em/a.out ZMAGIC/ kernels.
+<item>Support added for ELF kernels,
+<item>Support added for a.out ZMAGIC kernels.
 </itemize>
-<item><em/LoadSeg()/ and <em/UnLoadSeg()/ functions of the boot library are
-replaced by <em/Load()/ and <em/UnLoad()/.
-<item><tt>/boot/loader</tt> is no longer an <em/AmigaOS/ executable. Now it's a
-raw PC-relative executable created with the normal <em/cc1/ of
-<em/m68k-linux-gcc/ 2.7.x and the <tt/fixpic/ <em/perl/ script. As a
-consequence you no longer need <em/gcc/ under <em/AmigaOS/ or a cross-compiler
-to create it. Another step in the direction of an <em/AmigaOS/-free Amiga~:-)
+<item><tt/LoadSeg()/ and <tt/UnLoadSeg()/ functions of the boot library are
+replaced by <tt/Load()/ and <tt/UnLoad()/.
+<item><tt>/boot/loader</tt> is no longer an AmigaOS executable. Now it's a raw
+PC-relative executable created with the normal <tt/cc1/ of <tt/m68k-linux-gcc/
+2.7.x and the <tt/fixpic/ Perl script. As a consequence you no longer need
+<tt/gcc/ under AmigaOS or a cross-compiler to create it. Another step in the
+direction of an AmigaOS-free Amiga :-)
 <item>New configuration file format with additional options:
 <descrip>
 <tag/<tt>baud</tt>:/ Serial terminal speed,
@@ -1316,11 +2479,11 @@ to create it. Another step in the direction of an <em/AmigaOS/-free Amiga~:-)
 <itemize>
 <item>New options for the configuration file:
 <descrip>
-<tag/<tt>chipram</tt>:/ <em/Chip RAM/ size,
-<tag/<tt>fastram</tt>:/ <em/Fast RAM/ address and size.
-<tag/<tt>model</tt>:/ <em/Amiga/ model.
+<tag/<tt>chipram</tt>:/ Chip RAM size,
+<tag/<tt>fastram</tt>:/ Fast RAM address and size.
+<tag/<tt>model</tt>:/ Amiga model.
 </descrip>
-<item>Now <em/Amiboot/ and <em/Lilo/ use the same bootstrap code to ease
+<item>Now Amiboot and Lilo use the same bootstrap code to ease
 code maintenance.
 <item>Changed the data block size from 512 to 1024 bytes.
 <item>New command line option <tt/--checksum/.
@@ -1339,7 +2502,7 @@ code maintenance.
 <tag/<tt>alias</tt>:/ Alias label for a boot record,
 <tag/<tt>ramdisk</tt>:/ File containing a file system to be used as a ramdisk.
 </descrip>
-<item><em/Lilo/ now knows the version of <em/Amiboot/ it's compatible with.
+<item>Lilo now knows the version of Amiboot it's compatible with.
 <item>Implicit kernel command line options <tt/BOOT_IMAGE=/<tt/label/ and
 <tt/auto/ added.
 </itemize>
@@ -1348,13 +2511,13 @@ code maintenance.
 
 <p>
 <itemize>
-<item>Now <em/Lilo/ also works under <em>Linux/m68k 1.3.x</em> or higher.
+<item>Now Lilo also works with Linux/m68k 1.3.x or higher.
 <item>Support added for gzipped kernel images and ramdisks.
 <item>Addition of a boot monitor.
 <item>Now all file vectors are stored only once in the map file.
 <item>New options for the configuration file:
 <descrip>
-<tag/<tt>kickrange</tt>:/ Specify the valid <em/Kickstart/ version range,
+<tag/<tt>kickrange</tt>:/ Specify the valid Kickstart version range,
 <tag/<tt>file</tt>:/ Add your own files to the map file.
 </descrip>
 <item>Included <tt/fakeboot.c/ for debugging.
@@ -1365,13 +2528,13 @@ code maintenance.
 <p>
 <itemize>
 <item><tt/fixpic/ is dead, long live <tt/m68k-cbm-amigados-gcc/!
-<tt>/boot/loader</tt> is again an <em/AmigaOS/ executable.
+<tt>/boot/loader</tt> is again an AmigaOS executable.
 <item>Support for gzipped kernel images and ramdisks removed because it doesn't
 work with <tt/m68k-cbm-amigados-gcc/.
 <item>Automatic creation of a boot block backup for easy uninstalling.
 <item>New command line options <tt/--backup/, <tt/--uninstall/ and
 <tt/--version/.
-<item>Added experimental documentation in <em/Linuxdoc-SGML/ format.
+<item>Added experimental documentation in Linuxdoc-SGML format.
 </itemize>
 
 <sect1>Version 1.01
@@ -1400,7 +2563,7 @@ names.
 
 <p>
 <itemize>
-<item>Updated for <em/amiboot/ 5.2.
+<item>Updated for Amiboot 5.2.
 <item>New option for the configuration file:
 <descrip>
 <tag/<tt>processor</tt>:/ Processor type.
@@ -1409,10 +2572,10 @@ names.
 <item>Fixed broken <tt/kickrange/.
 <item>The following configuration file options now also have a global variant:
 <descrip>
-<tag/<tt>chipram</tt> <em>size</em>/
-<tag/<tt>fastram</tt> <em>address size</em>/
-<tag/<tt>model</tt> <em>type</em>/
-<tag/<tt>processor/ <em>cfm</em>/
+<tag/<tt>chipram</tt> size/ <p>
+<tag/<tt>fastram</tt> address size/ <p>
+<tag/<tt>model</tt> type/ <p>
+<tag/<tt>processor</tt> cfm/ <p>
 </descrip>
 </itemize>
 
@@ -1420,7 +2583,27 @@ names.
 
 <p>
 <itemize>
-<item>Updated for <em/amiboot/ 5.3 (gzipped kernel images).
+<item>Updated for amiboot 5.3 (gzipped kernel images).
+</itemize>
+
+<sect1>Version 3.0 (never released)
+
+<p>
+<itemize>
+<item>?
+</itemize>
+
+<sect>m68kboot History
+
+We've choosen 6.0 as initial version number for m68kboot, because it's
+higher than the version number of all included packages (Amiboot, Ataboot,
+Amiga Lilo).
+
+<sect1>Version 6.0
+
+<p>
+<itemize>
+<item>?
 </itemize>
 
 
