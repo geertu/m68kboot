@@ -11,10 +11,18 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.c,v 1.13 2004-08-15 11:51:16 geert Exp $
+ * $Id: linuxboot.c,v 1.14 2004-08-15 11:52:25 geert Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.13  2004-08-15 11:51:16  geert
+ * Revision 1.14  2004-08-15 11:52:25  geert
+ * The bootstrap 3.2/3.3 never printed out how much memory was missing.  This
+ * patch corrects it so that users know exactly how much memory they'll need.
+ * Sometime the low memory can be fixed simply by removing some programs from
+ * memory before starting the bootstrap and this will help users to overcome
+ * that.
+ * (from Petr Stehlik)
+ *
+ * Revision 1.13  2004/08/15 11:51:16  geert
  * Correct behavior of "-t" (=ignore TT/FastRAM) so it is truly ignored and no
  * FastRAM test on AB40 is run.
  * (from Petr Stehlik)
@@ -238,7 +246,7 @@ void linux_boot( void )
 	    bi.ramdisk.addr = (u_long)start_mem + mem_size - rd_size;
     }
     
-    /* create the bootinfo structure */
+    /* create the bootinfo structure (set bi_size to a value) */
     if (!create_bootinfo())
 	ERROR( "Couldn't create bootinfo\n" );
 
@@ -252,7 +260,8 @@ void linux_boot( void )
     
     /* allocate RAM for the kernel */
     if (!(memptr = malloc( memreq )))
-	ERROR( "Unable to allocate memory for kernel\n" );
+	ERROR( "Unable to allocate %ld kB of memory for kernel%s\n",
+		memreq / 1024, (rd_size > 0) ? " and ramdisk" : "" );
     /* Second part of the AB40 no-FastRAM test */
     if (bi.mch_type == ATARI_MACH_AB40 && ((unsigned long)memptr & 0xff000000))
 	ERROR( "Error: Bootstrap may not allocate memory from FastRAM "
