@@ -44,10 +44,13 @@
  *	31 May 1994 Memory thrash problem solved (Geert)
  *	11 May 1994 A3640 MapROM check (Geert)
  * 
- * $Id: linuxboot.c,v 1.5 1997-07-18 12:10:37 rnhodek Exp $
+ * $Id: linuxboot.c,v 1.6 1997-08-10 19:03:41 rnhodek Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.5  1997-07-18 12:10:37  rnhodek
+ * Revision 1.6  1997-08-10 19:03:41  rnhodek
+ * Removed ALIGN_STR to avoid dependency on <linux/linkage.h>
+ *
+ * Revision 1.5  1997/07/18 12:10:37  rnhodek
  * Call open_ramdisk only if ramdisk_name set; 0 return value means error.
  * Rename load_ramdisk/move_ramdisk to open_ramdisk/load_ramdisk, in parallel
  * to the *_kernel functions.
@@ -82,7 +85,6 @@
 #include <sys/types.h>
 
 #include <linux/version.h>
-#include <linux/linkage.h>
 #include <asm/amigahw.h>
 #include <asm/page.h>
 
@@ -883,8 +885,8 @@ static void start_kernel(void (*startfunc)(), char *stackp, char *memptr,
      *	    d3 = bi_size
      */
 
-asm(".text\n"
-ALIGN_STR "\n"
+asm(".text
+	.align 4\n"
 SYMBOL_NAME_STR(copyall) ":
 				| /* copy kernel text and data */
 	movel	a3,a0		| src = (u_long *)memptr;
@@ -928,8 +930,8 @@ SYMBOL_NAME_STR(copyallend) ":
      *	Test for a MapROMmed A3640 Board
      */
 
-asm(".text\n"
-ALIGN_STR "\n"
+asm(".text
+	.align 4\n"
 SYMBOL_NAME_STR(maprommed) ":
 	oriw	#0x0700,sr
 	moveml	#0x3f20,sp@-
