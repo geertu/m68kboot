@@ -7,10 +7,13 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: monitor.c,v 1.9 1998-03-05 12:34:45 rnhodek Exp $
+ * $Id: monitor.c,v 1.10 1998-03-05 12:47:09 rnhodek Exp $
  * 
  * $Log: monitor.c,v $
- * Revision 1.9  1998-03-05 12:34:45  rnhodek
+ * Revision 1.10  1998-03-05 12:47:09  rnhodek
+ * Fix harmless typo ("rw" instead of "ro").
+ *
+ * Revision 1.9  1998/03/05 12:34:45  rnhodek
  * boot command without arguments boots the current boot record.
  *
  * Revision 1.8  1998/03/05 10:26:39  rnhodek
@@ -670,7 +673,7 @@ static void do_mount( int argc, const char *argv[] )
 	if (argc >= 3) {
 		if (strcasecmp( argv[2], "rw" ) == 0)
 			mnt.rw = 1;
-		else if (strcasecmp( argv[2], "rw" ) == 0)
+		else if (strcasecmp( argv[2], "ro" ) == 0)
 			;
 		else {
 			cprintf( "Third arg must be 'ro' or 'rw'\n" );
