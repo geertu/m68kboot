@@ -1,0 +1,221 @@
+
+				Linux/68k Atari Bootstrap version 3.0
+				-------------------------------------
+
+Date: Jul 6, 1997
+Linux/68k version: 2.1.42
+Author: Roman.Hodek@informatik.uni-erlangen.de (Roman Hodek)
+
+
+1) Introduction
+===============
+
+This document describes the options available for the Atari bootstrap
+(``ataboot''). This bootstrap program (program name BOOTSTRA.TTP or
+ATABOOT.TTP, depending on your taste :-) is used to boot the Linux/68k
+kernel from TOS. It can be started either from the desktop, by simply
+double-clicking on it, or from a shell. If you start it in the
+desktop, you'll be prompted for a command line. You can then either
+enter some options (unfortunately, the space is rather limited...), or
+rely on the default arguments feature described in section 3.
+
+ataboot in many versions is available on
+
+  ftp.uni-erlangen.de:/pub/Linux/680x0/vx.y/boot
+
+where vx.y is a kernel version (with the patchlevel omitted). There
+are usually two version, one with BOOTP and one without (see section 5
+on how to include BOOTP support if compiling yourself).
+
+FAQ 1: Where is the source for ataboot?
+A: You already have it if you have this document. The bootstrap
+sources are included in the kernel source tree, in directory
+arch/m68k/boot/atari.
+
+FAQ 2: How can I compile my own bootstrap?
+A: Unfortunately, that's not too easy :-( ataboot is a TOS program
+(obviously), so it must be compiled with a TOS compiler. On the other
+hand, it needs several files from include/{linux,asm}, so it needs the
+kernel source tree. And that isn't easy to unpack under TOS, because
+of its size and long file names. The best solution seems to be using a
+cross compiler, i.e. a compiler that runs under Linux but produces TOS
+programs. Such cross compilers (running under m68k-linux or
+i486-linux) are available at ftp.uni-erlangen.de, under
+/pub/Linux/680x0/tools.
+
+
+2) Options
+==========
+
+ataboot itself knows several options that modify its behaviour. These
+are:
+
+ -?
+   Display help information
+
+ -d
+   Enable debugging. This will print some additional data before
+   lauching the kernel, and will also wait for a key being pressed.
+
+ -k <kernel-name>
+   Sets the name of the kernel image to boot. Default is "vmlinux".
+   The name is first tried with ".gz" appended, to find a compressed
+   kernel. If such a file isn't found, the plain name is tried.
+
+   Specials if is supported: If the name is exactly "vmlinux", the
+   name sent to the BOOTP server is "" (empty string), which means use
+   the default kernel. A prefix "local:" before the name means to skip
+   BOOTP, and load a local disk file (name with prefix stripped).
+
+ -r <ramdisk-name>
+   Gives the name of a ramdisk image to pass to the kernel. Default is
+   not to use any ramdisk. You probably will also need the argument
+   "root=/dev/ram" to let the kernel recognize the ramdisk as its boot
+   device.
+
+   With BOOTP, a "local:" prefix is supported as above.
+
+ -s ("to ST-RAM")
+   Load kernel into ST-RAM, even if there is TT-RAM (which would be
+   preferred normally).
+
+   Note that -s is ignored on a Medusa, the kernel is always loaded to
+   ST-RAM there (it's the same kind of memory, no speed difference).
+
+ -t ("ignore TT-RAM")
+   Ignore any TT-RAM found, tell kernel only about ST-RAM. (Mainly for
+   testing purposes, or if you have problems under Linux with your
+   TT-RAM).
+
+ -S <size> ("force ST-RAM size")
+   Pretend that the ST-RAM has size <size>. <size> is a number in
+   decimal, a "0" prefix means octal, and "0x" hexadecimal. You can
+   append either "k" or "m" (case-insensitive) to denote kBytes or
+   MBytes, resp.
+
+   Making ST-RAM smaller than it really is can make sense if you have
+   lots of TT-RAM (min. 16 MB, better > 32 MB). Then using too much
+   ST-RAM would only slow down the machine. But remind that some
+   amount of ST-RAM is always needed for DMA buffer (video, floppy,
+   ...). ataboot knows this, and if <size> should be smaller than
+   256k, it announces 256k of ST-RAM nevertheless.
+
+   If <size> is bigger than the physical amount of ST-RAM you have,
+   the kernel will crash...
+
+ -T <size> ("force TT-RAM size")
+   Is the same as -S for TT-RAM, just no forcing of at least 256k is
+   done. As above, the kernel will probably crash is <size> is greater
+   than how much TT-RAM you really have.
+
+ -m <addr>:<size> ("memory block")
+   Tell the kernel about an additional memory block that isn't ST-RAM
+   or TT-RAM, or isn't autodetected (could happen for some Falcon
+   memory boards that aren't explictly supported. Magnum and BlowUp FX
+   are.) If the memory you announce isn't really present, a bad crash
+   will happen.
+
+   <addr> is the (physical) start address of the memory block, as
+   above "0" means octal notation, and "0x" hexadecimal. <size> can be
+   as above, i.e. with a "k" or "m" postfix.
+
+ -n ("no BOOTP")
+   If ataboot supports BOOTP, you can turn off its use with this
+   option. ataboot will search for local disk files for kernel and
+   ramdisk. (Usually a remote image has preference.)
+
+After these option understood by bootp, you can append further options
+that are passed to the kernel. See the file kernel-options.txt in this
+directory for a description of these. Just note: Kernel options *must
+follow* the bootstrap options, mixing both is not possible!
+
+
+3) Default Arguments (bootargs)
+===============================
+
+You'll see that most of the time, you'll be using ever the same
+arguments to bootstrap (kernel name, root device, maybe a video=
+option.) Since all these together can get quite long, there's an
+abbreviation to save typing. You can put a set of default options into
+a file "bootargs" in the same directory where the ataboot program is.
+
+In this file you can write down your default options just as you would
+have typed them on the command line. Just one exception: You can use
+newlines as separators, to make the file more readable (no over-long
+lines necessary). Newlines count simply as whitespace.
+
+The "bootargs" file is used whenever there are no options given to
+ataboot. (Really no options, not even a "-d" or the like...) E.g., if
+you just press RETURN in the desktop's dialog that lets you enter a
+command line.
+
+
+4) Bootinfo Version
+===================
+
+ataboot needs to pass some information to the kernel (machine type,
+memory configuration, command line, ...). These informations are
+stored in a structure called "boot info". Now different versions of
+kernels can need/use different infos from this bootinfo. In the past,
+we often had problems because ataboot's and the kernels view of the
+bootinfo strcuture were different. To fix this, a version number for
+the bootinfo has been introduced. The initial version used since
+around 1.2.13 was 1.0. (Seems we've added this versioning at a time
+where no more dramatic changes were needed... :-)
+
+Starting with 2.1 kernels, the bootinfo's internal structure has been
+changed totally, with the main advantage that no more incompabilities
+between the bootstrapper and the kernel are possible anymore. This
+format has been given version 2.0, and it probably is the highest
+version ever given to a bootinfo. (As stated, the new format should be
+general enough to avoid any mismatches.)
+
+Why I'm telling you all this? Well, 2.0 kernels still use bootinfo
+1.0, whereas 2.1 kernels use 2.0 bootinfo. So you basically can't boot
+a 2.0 kernel with a bootstrap from a 2.1 source, and vice versa. But
+all new bootstraps (in 2.1.x kernel sources) have a compability mode
+that allows to also boot a kernel with 1.0 bootinfo (i.e., 2.0.x, or
+even older). If you really want, you can omit that compat mode, by
+undefining BOOTINFO_COMPAT_1_0 (see next section).
+
+If there should be any unexpected problems with bootinfo versions,
+ataboot should tell you about it. The above should give you an idea
+what's going on. For the rest, ask an guru...
+
+
+5) Compile Time Options
+=======================
+
+ataboot has --in addition to the command line options described
+above-- also some compile time options. These are selected in
+arch/m68k/boot/Makefile (variable ATARI_BOOTOPTS), or on make's
+command line, e.g. like this:
+
+  make bootstrap ATARI_BOOTOPTS='-DBOOTINFO_COMPAT_1_0 -DAOUT_KERNEL'
+
+The options currently available are:
+
+ - BOOTINFO_COMPAT_1_0:
+   Support bootinfo version 1.0, in addition to current 2.0. This is
+   necessary to be able to boot 2.0.x kernels with a 3.0 ataboot.
+
+ - AOUT_KERNEL:
+   Support kernels in a.out executable format. By now, such kernels
+   should have become rather seldom, and can't even be built anymore
+   since 2.1.x. It's unprobable that you need it...
+
+ - USE_BOOTP:
+   Include support for the BOOTP and TFTP protocols, to read the
+   kernel (and ramdisk) image from a boot server (instead from disk).
+   This comes *very* handy if you use another machine to cross-compile
+   Linux/68k kernels :-) If USE_BOOTP is defined, also some Ethernet
+   low-level drivers should be selected by defining ETHLL_* macros.
+   The only such driver is current ETHLL_LANCE, for Lance-based boards
+   (RieblCard, PAM VME).
+
+The default configuration is -DBOOTINFO_COMPAT_1_0 only, others are
+off. Support for BOOTP/TFTP can be selected by adding "USE_BOOTP=yes"
+on the make command line:
+
+  make bootstrap USE_BOOTP=yes
+
