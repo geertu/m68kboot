@@ -7,10 +7,15 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: lilo.l.c,v 1.2 1997-08-12 21:51:07 rnhodek Exp $
+ * $Id: lilo.l.c,v 1.3 1997-08-23 23:09:35 rnhodek Exp $
  * 
  * $Log: lilo.l.c,v $
- * Revision 1.2  1997-08-12 21:51:07  rnhodek
+ * Revision 1.3  1997-08-23 23:09:35  rnhodek
+ * New parameter 'set_bootdev' to parse_device
+ * Fix handling of XGM partitions
+ * Minor output enhancements
+ *
+ * Revision 1.2  1997/08/12 21:51:07  rnhodek
  * Written last missing parts of Atari lilo and made everything compile
  *
  * Revision 1.1  1997/08/12 15:27:09  rnhodek
@@ -183,15 +188,14 @@ struct devent {
 } *device_cache = NULL;
 
 
-void parse_device( const char *device, int *devnum, unsigned long *start,
-				   int allow_xgm, enum flopok floppy_ok )
+void parse_device( char *device, int *devnum, unsigned long *start,
+				   int allow_xgm, enum flopok floppy_ok, int set_bootdev )
 {
 	struct devent *dc;
 	struct stat stbuf;
 	unsigned major, minor;
 	int is_xgm = 0;
 	int len = strlen(device);
-	char dev2[len];
 
 	/* first search the cache */
 	for( dc = device_cache; dc; dc = dc->next )
@@ -215,10 +219,11 @@ void parse_device( const char *device, int *devnum, unsigned long *start,
 		 * without the 'x', we assume the user means an XGM partition */
 		int ok = 0;
 		if (len > 1 && device[len-1] == 'x') {
-			strncpy( dev2, device, len-1 );
-			dev2[len] = 0;
-			if (stat( dev2, &stbuf ) == 0)
+			device[len-1] = 0;
+			if (stat( device, &stbuf ) == 0)
 				ok = is_xgm = 1;
+			else
+				device[len-1] = 'x';
 		}
 		if (!ok)
 			Die( "Can't stat %s: %s\n", device, strerror(errno) );
@@ -227,6 +232,14 @@ void parse_device( const char *device, int *devnum, unsigned long *start,
 		Die( "%s is no block special device\n", device );
 	major = MAJOR(stbuf.st_rdev);
 	minor = MINOR(stbuf.st_rdev);
+	if (set_bootdev) {
+		/* In case of XGM we have to fake a minor... But it's only used in
+		 * CreateBackupFile for the filename. */
+		if (is_xgm)
+			BootDevice = (major << 8) | 255;
+		else
+			BootDevice = stbuf.st_rdev;
+	}
 
 	/* for SCSI and ACSI devices, use (or try) GET_IDLUN ioctl to get
 	 * device ID */
@@ -292,7 +305,7 @@ static int get_TOS_devicenum( dev_t device )
 
 	FindDevice( device, devname );
 	/* XXX CUR_FLOPPY or ANY_FLOPPY ?? */
-	parse_device( devname, &tos_devnum, NULL, 0, CUR_FLOPPY );
+	parse_device( devname, &tos_devnum, NULL, 0, CUR_FLOPPY, 0 );
 	return( tos_devnum );
 }
 
@@ -321,13 +334,8 @@ static void get_partition_start( const char *device, int is_xgm,
 {
 	if (!is_xgm)
 		GeometryDevice( device, start );
-	else {
-		int len = strlen(device);
-		char dev2[len+1];
-		strncpy( dev2, device, len-1 );
-		dev2[len] = 0;
-		get_XGM_sector( dev2, start );
-	}
+	else
+		get_XGM_sector( device, start );
 }
 
 
@@ -510,8 +518,8 @@ static void Usage(void)
 
 int main( int argc, char *argv[] )
 {
-    struct stat info;
     const char *device = NULL, *conffile = NULL;
+	char *pdevice;				/* device name for printing */
 #if 0
 	extern int confdebug; confdebug = 1;
 #endif
@@ -593,18 +601,23 @@ int main( int argc, char *argv[] )
         Device = device;
     }
 
-    if (stat(Device, &info) == -1)
-		Error_Stat(Device);
-    if (!S_ISBLK(info.st_mode))
-		Die("%s is not a block special device\n", Device);
-    BootDevice = info.st_rdev;
-	parse_device( Device, &BootTOSDevno, &BootStartSector, 1, CUR_FLOPPY );
+	parse_device( (char *)Device, &BootTOSDevno, &BootStartSector, 1,
+				  CUR_FLOPPY, 1 );
+	if (MINOR(BootDevice) == 255) {
+		if (!(pdevice = malloc( strlen(Device) + 2 )))
+			Error_NoMemory();
+		strcpy( pdevice, Device );
+		strcat( pdevice, "x" );
+	}
+	else
+		pdevice = Device;
+		
     BackupFile = CreateBackupFileName();
 
     ReadBootBlock( Device, BootStartSector );
-    printf( "%s: ", Device );
-    printf( "%s, root sector is %sbootable\n",
-			BootBlock.LiloID == LILO_ID ? " (created by Lilo)" : "",
+    printf( "%s: ", pdevice );
+    printf( "%sroot sector is %sbootable\n",
+			BootBlock.LiloID == LILO_ID ? "(created by Lilo), " : "",
 			check_checksum( &BootBlock ) ? "" : "not " );
 	
     if (SaveBootBlock) {
