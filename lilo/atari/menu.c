@@ -7,10 +7,20 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: menu.c,v 1.4 1998-02-25 10:37:36 rnhodek Exp $
+ * $Id: menu.c,v 1.5 1998-02-26 10:23:27 rnhodek Exp $
  * 
  * $Log: menu.c,v $
- * Revision 1.4  1998-02-25 10:37:36  rnhodek
+ * Revision 1.5  1998-02-26 10:23:27  rnhodek
+ * New 'timeout_canceled' that is set after the first keypress, mouse
+ * move, or receive from the serial. The timeout should fire only if
+ * there wasn't any user action at all.
+ * Respect NoGUI in menu_error() and get_password().
+ * Fix going to last line of screen in graf_deinit().
+ * Turn on and off cursor in read_line().
+ * Fix handling of Backspace in read_line().
+ * Make read_line() also obey EchoMode, for reading passwords.
+ *
+ * Revision 1.4  1998/02/25 10:37:36  rnhodek
  * New argument 'doprompt' to read_line().
  * Use correct length in show_cmdline().
  * Make asm in v_gtext() look nicer.
@@ -71,6 +81,8 @@ static int hcmdo, vcmd, hcmdc, vtop, vhei, hborder, hwid, hoff;
 /* flag whether phys. VDI workstation is open */
 static int workstation_open = 0;
 
+/* set after first keypress or mouse move */
+static int timeout_canceled = 0;
 
 /* various definitions for key codes*/
 #define	CTRL(x)		((x) & 0x1f)
@@ -249,21 +261,25 @@ char *boot_menu( const char *dflt_label )
 
 	while( 1 ) {
 		if (Cconis()) {
+			u_long key;
+			timeout_canceled = 1;
 			/* make sure Kbshift() status matches status at the time the key
 			 * was pressed, so don't put both calls into the arg list */
-			u_long key = Crawcin();
+			key = Crawcin();
 			if (dokey( key, Kbshift(-1) ))
 				break;
 		}
 		if (serial_instat()) {
+			timeout_canceled = 1;
 			if (dokey( serial_getc(), 0 ))
 				break;
 		}
 		if (getmouse( &x, &y ) & 1) {
+			timeout_canceled = 1;
 			if (domouse( x, y ))
 				break;
 		}
-		if (BootOptions->TimeOut && _hz_200 >= timeout) {
+		if (!timeout_canceled && BootOptions->TimeOut && _hz_200 >= timeout) {
 			/* timed out, use default OS */
 			set_cmdline( labels[dflt_index] );
 			AutoBoot = 1;
@@ -283,6 +299,11 @@ void menu_error( const char *str )
 	int x, y;
 	unsigned long to;
 
+	if (NoGUI) {
+		cprintf( "%s\n", str );
+		return;
+	}
+	
 	y = vcmd+lineht;
 	y += (scr_h - y) / 2;
 	x = (scr_w - strlen(str)*charw)/2;
@@ -301,16 +322,22 @@ void menu_error( const char *str )
 char *get_password( void )
 {
 	EchoMode = ECHO_STARS;
-	text( hcmdo, vcmd-lineht, "Password:    " );
-	init_editor();
 	
-	while( 1 ) {
-		if (Cconis())
-			if (dokey( Crawcin(), Kbshift(-1) ))
-				break;
-		if (serial_instat()) {
-			if (dokey( serial_getc(), 0 ))
-				break;
+	if (NoGUI) {
+		cprintf( "Password: " );
+		read_line( 1, 0 );
+	}
+	else {
+		text( hcmdo, vcmd-lineht, "Password:    " );
+		init_editor();
+		while( 1 ) {
+			if (Cconis())
+				if (dokey( Crawcin(), Kbshift(-1) ))
+					break;
+			if (serial_instat()) {
+				if (dokey( serial_getc(), 0 ))
+					break;
+			}
 		}
 	}
 
@@ -406,13 +433,12 @@ void graf_deinit( void )
 		v_clswk( grh );
 		workstation_open = 0;
 		/* try to put alpha cursor to last screen line */
-		sprintf( buf, "\033Y%c \n", scr_h/lineht );
+		sprintf( buf, "\033Y%c \n", scr_h/lineht+32 );
 		Cconws( buf );
 		if (Debug)
 			printf( "Closed VDI workstation\n" );
 	}
 }
-
 
 /*
  * Process a key press
@@ -701,20 +727,23 @@ char *read_line( int dotimeout, int doprompt )
 	*cmdline = 0;
 	if (doprompt)
 		cprintf( "%s", Prompt );
+	printf( "\033e" ); fflush(stdout); /* enable cursor */
 
 	if (dotimeout && BootOptions->TimeOut)
 		timeout = _hz_200 + *BootOptions->TimeOut * HZ;
 	
 	while( 1 ) {
 		if (Cconis()) {
+			timeout_canceled = 1;
 			c = Crawcin();
 			goto process_key;
 		}
 		if (serial_instat()) {
+			timeout_canceled = 1;
 			c = serial_getc();
 		  process_key:
 			if ((c == ASC_BS || c == ASC_DEL) && len > 0) {
-				cmdline[len--] = 0;
+				cmdline[--len] = 0;
 				cprintf( "\b \b" );
 			}
 			else if (c == CTRL_U) {
@@ -732,13 +761,14 @@ char *read_line( int dotimeout, int doprompt )
 				else {
 					if (c == ASC_TAB)
 						c = ' ';
-					cprintf( "%c", c );
+					cprintf( "%c", EchoMode == ECHO_STARS ? '*' : c );
 					cmdline[len++] = c;
 					cmdline[len] = 0;
 				}
 			}
 		}
-		if (dotimeout && BootOptions->TimeOut && _hz_200 >= timeout) {
+		if (dotimeout && !timeout_canceled && BootOptions->TimeOut &&
+			_hz_200 >= timeout) {
 			/* timed out, use default OS by empty line */
 			*cmdline = 0;
 			AutoBoot = 1;
@@ -746,6 +776,7 @@ char *read_line( int dotimeout, int doprompt )
 		}
 	}
 
+	printf( "\033f" ); fflush(stdout); /* disable cursor */
 	return( cmdline );
 }
 
