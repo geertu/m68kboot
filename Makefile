@@ -7,10 +7,13 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.14 1998-03-04 09:08:47 rnhodek Exp $
+# $Id: Makefile,v 1.15 1998-03-16 10:33:39 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.14  1998-03-04 09:08:47  rnhodek
+# Revision 1.15  1998-03-16 10:33:39  rnhodek
+# Pass empty prefix by default.
+#
+# Revision 1.14  1998/03/04 09:08:47  rnhodek
 # Remove some more files on 'distclean'.
 #
 # Revision 1.13  1998/03/03 15:11:08  rnhodek
@@ -75,7 +78,7 @@ BOOTOPTS  = -DBOOTINFO_COMPAT_1_0 # -DAOUT_KERNEL
 USE_BOOTP = n
 
 # where to install
-PREFIX = /
+PREFIX =
 
 # define with path to Linux/68k kernel headers, if not in the standard
 # places /usr/local/m68k-linux/include/linux, /usr/m68k-linux/include/linux,
@@ -154,7 +157,7 @@ dep:
 	fi
 
 install:
-	./do_install $(PREFIX) $(MACH)
+	./do_install "$(PREFIX)" $(MACH)
 	$(MAKE) -C doc install PREFIX=$(PREFIX)
 
 binary:
