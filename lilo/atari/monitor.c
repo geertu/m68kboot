@@ -7,10 +7,13 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: monitor.c,v 1.8 1998-03-05 10:26:39 rnhodek Exp $
+ * $Id: monitor.c,v 1.9 1998-03-05 12:34:45 rnhodek Exp $
  * 
  * $Log: monitor.c,v $
- * Revision 1.8  1998-03-05 10:26:39  rnhodek
+ * Revision 1.9  1998-03-05 12:34:45  rnhodek
+ * boot command without arguments boots the current boot record.
+ *
+ * Revision 1.8  1998/03/05 10:26:39  rnhodek
  * Replace body of list_records() by call to new ListRecords() in
  * bootmain.c; the functionality is needed if the monitor is included or not.
  *
@@ -142,7 +145,7 @@ static const struct command commands[] = {
 	{ "exec", do_exec,
 	  " [-n] <path> [<workdir>]  Execute a TOS program" },
 	{ "boot", do_boot,
-	  " <partit> [<driver>]     Boot bootsector or TOS (with driver)" }
+	  " [<partit> [<driver>]]   Boot curr. record, bootsector or TOS (with driver)" }
 };
 
 
@@ -727,7 +730,28 @@ static void do_boot( int argc, const char *argv[] )
 	unsigned long sec, drv;
 	
 	if (!argc) {
-		cprintf( "Missing arguments\n" );
+		/* boot current boot record */
+		if (!CurrRec) {
+			cprintf( "No current boot record.\n" );
+			return;
+		}
+		if (!CurrRec->OSType) {
+			cprintf( "OS type not defined in current boot record!\n" );
+			return;
+		}
+		switch( *CurrRec->OSType ) {
+		  case BOS_TOS:
+			boot_tos( CurrRec );
+			break;
+		  case BOS_LINUX:
+			boot_linux( CurrRec, "" );
+			break;
+		  case BOS_BOOTB:
+			boot_bootsector( CurrRec );
+			break;
+		  default:
+			cprintf( "Undefined OS type %lu\n", CurrRec->OSType );
+		}
 		return;
 	}
 
