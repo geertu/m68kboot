@@ -7,10 +7,17 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: bootmain.c,v 1.9 1998-03-02 13:06:45 rnhodek Exp $
+ * $Id: bootmain.c,v 1.10 1998-03-04 09:14:47 rnhodek Exp $
  * 
  * $Log: bootmain.c,v $
- * Revision 1.9  1998-03-02 13:06:45  rnhodek
+ * Revision 1.10  1998-03-04 09:14:47  rnhodek
+ * New option 'use_cache' to exec_tos_program().
+ * New config var array ProgCache[].
+ * Remove strace_{on,off} calls.
+ * New function cache_invalidate().
+ * Call cache_invalidate() after reading sectors in ReadSectors().
+ *
+ * Revision 1.9  1998/03/02 13:06:45  rnhodek
  * Introduce #ifdefs for NO_GUI and NO_MONITOR compile time options.
  * NoGUI renamed to DontUseGUI.
  * Initialize serial port earlier (before autoboot).
@@ -111,6 +118,7 @@ const char *Prompt = NULL;
 unsigned int DontUseGUI = 0;
 #endif
 const struct BootRecord *dflt_os = NULL;
+int CacheOn = 0;
 
 u_char *MapData = NULL;
 u_long MapSize = 0, MapOffset = 0;
@@ -264,7 +272,9 @@ int main( int argc, char *argv[] )
 	for( i = 0; i < MAX_EXECPROG; ++i ) {
 		if (BootOptions->ExecProg[i])
 			exec_tos_program( BootOptions->ExecProg[i],
-							  BootOptions->WorkDir[i] );
+							  BootOptions->WorkDir[i],
+							  BootOptions->ProgCache[i] ?
+							  *BootOptions->ProgCache[i] : 1 );
 	}
 
 	/* now initialize the VDI, after we executed the TOS programs (which could
@@ -448,7 +458,8 @@ void boot_linux( const struct BootRecord *rec, const char *cmdline )
 	}
 	for( i = 0; i < MAX_EXECPROG; ++i ) {
 		if (rec->ExecProg[i])
-			exec_tos_program( rec->ExecProg[i], NULL );
+			exec_tos_program( rec->ExecProg[i], rec->WorkDir[i],
+							  rec->ProgCache[i] ? *(rec->ProgCache[i]) : 1 );
 	}
 	umount();
 
@@ -569,7 +580,7 @@ static void ReadMapData(void)
 /*
  * Execute a TOS program (from a mounted drive)
  */
-int exec_tos_program( const char *prog, const char *workdir )
+int exec_tos_program( const char *prog, const char *workdir, int use_cache )
 {
 	unsigned int cmdlen, arglen;
 	const char *p;
@@ -593,7 +604,9 @@ int exec_tos_program( const char *prog, const char *workdir )
 	args[0] = arglen;
 	args[arglen+1] = 0;
 
-	strace_on( TR_ALL );
+	if (!use_cache)
+		cache_ctrl( 0 );
+	
 	if (workdir) {
 		int drv = -1;
 		const char *path = workdir;
@@ -627,7 +640,9 @@ int exec_tos_program( const char *prog, const char *workdir )
 		Dsetdrv( _bootdev );
 		Dsetpath( "\\" );
 	}
-	strace_off();
+	
+	if (!use_cache)
+		cache_ctrl( 1 );
 	
 	if (err < 0) {
 		/* if negative as 32bit number, it was a GEMDOS error */
@@ -894,8 +909,39 @@ static void cache_ctrl( int on_flag )
 			  "d" (old_cacr)
 			: "d0", "a0", "a1", "a2" );
 	}
+
+	CacheOn = on_flag;
 }
 
+
+static void cache_invalidate( void )
+{
+	if (!CacheOn)
+		return;
+
+	__asm__ __volatile__ (
+		/* redirect line-F vector to catch wrong CPU case */
+		"	movel	sp,a1\n"
+		"	movel	0x2c,a0\n"
+		"	movel	#1f,0x2c\n"
+		/* '040 and '060: invalidate both caches, no push necessary, since
+		   data cache is operated write-through */
+		"	.chip	68040\n"
+		"	cinva	%%bc\n"
+		"	bra		2f\n"
+		/* '030: clear both caches */
+		"	.chip	68030\n"
+		"1:	movec	cacr,d0\n"
+		"	orw		#0x0808,d0\n"
+		"	movec	d0,cacr\n"
+		/* clean up */
+		"	.chip	68k\n"
+		"2:	movel	a0,0x2c\n"
+		"	movel	a1,sp"
+		: /* no outputs */
+		: /* no inputs */
+		: "d0", "a0", "a1" );
+}
 
 /*
  * Extract first word (whitespace-separated) from *str and return pointer to
@@ -956,16 +1002,23 @@ long ReadSectors( char *buf, unsigned int _device, unsigned int sector,
 				  unsigned int cnt )
 {
 	int device = _device;
+	long rv;
 	
 	bios_printf( "ReadSectors( dev=%d, sector=%u, cnt=%u, buf=%08lx )\n",
 				 device, sector, cnt, (unsigned long)buf );
 	if (device < 0) {
 		device = -device - 2;
 		if (device < 0) device = CurrentFloppy;
-		return( Rwabs( 2, buf, cnt, sector, device ) );
+		rv = Rwabs( 2, buf, cnt, sector, device );
 	}
 	else
-		return( DMAread( sector, cnt, buf, device ) );
+		rv = DMAread( sector, cnt, buf, device );
+
+	/* invalidate caches after reading something
+	 * (DMAread doesn't always use DMA, but it's safer to invalidate the cache
+	 * in all cases :-) */
+	cache_invalidate();
+	return( rv );
 }
 
 long WriteSectors( char *buf, int device, unsigned int sector,
@@ -980,6 +1033,7 @@ long WriteSectors( char *buf, int device, unsigned int sector,
 	}
 	else
 		return( DMAwrite( sector, cnt, buf, device ) );
+	/* no cache maintenance needed for writing, since no write-back cache */
 }
 
 #ifdef DEBUG_RW_SECTORS
