@@ -7,10 +7,13 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: monitor.c,v 1.11 1998-03-10 10:31:12 rnhodek Exp $
+ * $Id: monitor.c,v 1.12 1998-03-16 10:48:00 schwab Exp $
  * 
  * $Log: monitor.c,v $
- * Revision 1.11  1998-03-10 10:31:12  rnhodek
+ * Revision 1.12  1998-03-16 10:48:00  schwab
+ * Replace strange %lc format by %c and cast arg instead.
+ *
+ * Revision 1.11  1998/03/10 10:31:12  rnhodek
  * show_record_info(): also print password protection status.
  * do_boot(): Add missing * before CurrRec->OSType.
  *
@@ -411,7 +414,7 @@ static void show_record_info( int argc, const char *argv[] )
 				 rec->TOSDriver ? rec->TOSDriver : "(none)" );
 		cprintf( "Boot drive setting   : \n" );
 		if (rec->BootDrv)
-			cprintf( "%lc:\n", *rec->BootDrv + 'A' );
+			cprintf( "%c:\n", (int)*rec->BootDrv + 'A' );
 		else
 			cprintf( "(undefined)\n" );
 		goto tos_bootb_common;
