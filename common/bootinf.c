@@ -10,10 +10,14 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: bootinf.c,v 1.7 1998-04-06 01:40:51 dorchain Exp $
+ * $Id: bootinf.c,v 1.8 2000-06-04 17:14:54 dorchain Exp $
  * 
  * $Log: bootinf.c,v $
- * Revision 1.7  1998-04-06 01:40:51  dorchain
+ * Revision 1.8  2000-06-04 17:14:54  dorchain
+ * Fixed compile errors.
+ * it still doesn't work for me
+ *
+ * Revision 1.7  1998/04/06 01:40:51  dorchain
  * make loader linux-elf.
  * made amiga bootblock working again
  * compiled, but not tested bootstrap
@@ -59,7 +63,6 @@
 #endif
 
 #define _LINUX_TYPES_H		/* Hack to prevent including <linux/types.h> */
-#include <asm/setup.h>
 
 #include "bootstrap.h"
 #include "linuxboot.h"

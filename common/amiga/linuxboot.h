@@ -21,10 +21,14 @@
  *  License.  See the file COPYING in the main directory of this archive
  *  for more details.
  * 
- * $Id: linuxboot.h,v 1.8 1998-04-07 09:46:46 rnhodek Exp $
+ * $Id: linuxboot.h,v 1.9 2000-06-04 17:14:55 dorchain Exp $
  * 
  * $Log: linuxboot.h,v $
- * Revision 1.8  1998-04-07 09:46:46  rnhodek
+ * Revision 1.9  2000-06-04 17:14:55  dorchain
+ * Fixed compile errors.
+ * it still doesn't work for me
+ *
+ * Revision 1.8  1998/04/07 09:46:46  rnhodek
  * Add definition of __u32, which is used in 2.1.90+ zorro.h
  *
  * Revision 1.7  1997/09/19 09:06:42  geert
@@ -57,12 +61,18 @@
 #ifndef _linuxboot_h
 #define _linuxboot_h
 
+typedef __signed__ char __s8;
+typedef unsigned char __u8;
+
+typedef __signed__ short __s16;
+typedef unsigned short __u16;
 
 typedef unsigned int u32;
 typedef unsigned int __u32;
 
 #include <sys/types.h>
 #define _LINUX_TYPES_H		/* Hack to prevent including <linux/types.h> */
+#define __KERNEL__		/* To get NUM_MEMINFO in setup.h */
 #include <asm/bootinfo.h>
 #include <asm/setup.h>
 #include <linux/zorro.h>

@@ -13,10 +13,14 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo.l.c,v 1.7 1999-01-18 10:02:10 schwab Exp $
+ * $Id: lilo.l.c,v 1.8 2000-06-04 17:14:55 dorchain Exp $
  * 
  * $Log: lilo.l.c,v $
- * Revision 1.7  1999-01-18 10:02:10  schwab
+ * Revision 1.8  2000-06-04 17:14:55  dorchain
+ * Fixed compile errors.
+ * it still doesn't work for me
+ *
+ * Revision 1.7  1999/01/18 10:02:10  schwab
  * (CheckVectorDevice): Support new scsi disk major
  * numbering.
  *
@@ -533,8 +537,9 @@ int main(int argc, char *argv[])
 	}
 	DosTypeID = ID_BOOT_DISK;
     }
-    printf("%s, Boot block checksum is %s\n",
+    printf("%s, Boot block checksum is 0x%08lx (%s)\n",
 	   BootBlock.LiloID == LILO_ID ? " (created by Lilo)" : "",
+	   CalcChecksum(),
 	   CalcChecksum() ? "Incorrect" : "OK");
 
     if (SaveBootBlock) {
