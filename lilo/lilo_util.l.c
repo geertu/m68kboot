@@ -13,10 +13,16 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo_util.l.c,v 1.8 1998-04-02 12:18:39 rnhodek Exp $
+ * $Id: lilo_util.l.c,v 1.9 1998-04-06 01:40:55 dorchain Exp $
  * 
  * $Log: lilo_util.l.c,v $
- * Revision 1.8  1998-04-02 12:18:39  rnhodek
+ * Revision 1.9  1998-04-06 01:40:55  dorchain
+ * make loader linux-elf.
+ * made amiga bootblock working again
+ * compiled, but not tested bootstrap
+ * loader breaks with MapOffset problem. Stack overflow?
+ *
+ * Revision 1.8  1998/04/02 12:18:39  rnhodek
  * In CreateVector(), explicitly append an entry with start and length 0
  * to each vector as end marker. Some parts already depended on this, but
  * the final 0 was present only incidentally.
@@ -60,6 +66,7 @@
 #include <sys/fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <linux/elf.h>
 #include <linux/hdreg.h>
 #define _LINUX_STAT_H		/* Hack to prevent including <linux/stat.h> */
 struct inode;			/* to avoid warning */
@@ -99,7 +106,9 @@ u_long MaxHoleSectors;
 const struct vecent *MapVector;
 int MapNumBlocks;
 char *LoaderData;
+char *PatchedLoaderData;
 int LoaderSize;
+int PatchedLoaderSize;
 const struct vecent *LoaderVector;
 int LoaderNumBlocks;
 u_long MaxVectorSectorNumber = ULONG_MAX;
@@ -471,6 +480,7 @@ const struct vecent *CreateVector( const char *name, int *numblocks )
     sectors_per_block = blksize/HARD_SECTOR_SIZE;
     nblocks = (size+blksize-1)/blksize;
 
+
     for( blk = 0, i = 0; blk < nblocks; ++blk ) {
 	offset = blk;
 	if (ioctl(fh, FIBMAP, &offset) == -1)
@@ -642,10 +652,38 @@ void PatchLoader(void)
     };
     u_long *data = NULL;
     u_long maxsize;
+    Elf32_Ehdr *exec;
+    Elf32_Phdr *prog;
+    u_long minaddr, maxaddr;
 
-    for (i = 0; i < LoaderSize-sizeof(pattern)+1; i++)
-	if (!memcmp(&LoaderData[i], pattern, sizeof(pattern))) {
-	    data = (u_long *)&LoaderData[i];
+    exec = (Elf32_Ehdr *)&LoaderData[0];
+    if (memcmp(&exec->e_ident[EI_MAG0], ELFMAG, SELFMAG))
+        Die("Loader template is not an ELF file\n");
+    if ((exec->e_type != ET_EXEC) || (exec->e_machine != EM_68K) ||
+         (exec->e_version != EV_CURRENT))
+        Die("Loader template is not an ELF/m68k file\n");
+    prog = (Elf32_Phdr *)&LoaderData[exec->e_phoff];
+
+    minaddr = prog[0].p_vaddr;
+    maxaddr = prog[0].p_vaddr + prog[0].p_memsz;
+    for (i = 1; i < exec->e_phnum; i++) {
+        if (minaddr > prog[i].p_vaddr)
+            minaddr = prog[i].p_vaddr;
+        if (maxaddr < prog[i].p_vaddr + prog[i].p_memsz)
+            maxaddr = prog[i].p_vaddr + prog[i].p_memsz;
+    }
+    PatchedLoaderSize = maxaddr - minaddr;
+    if (!(PatchedLoaderData = malloc(PatchedLoaderSize)))
+        Error_NoMemory();
+    
+    for (i = 0; i < exec->e_phnum; i++) {
+        memcpy(&PatchedLoaderData[prog[i].p_vaddr - minaddr],
+               &LoaderData[prog[i].p_offset], prog[i].p_filesz);
+    }
+
+    for (i = 0; i < PatchedLoaderSize-sizeof(pattern)+1; i++)
+	if (!memcmp(&PatchedLoaderData[i], pattern, sizeof(pattern))) {
+	    data = (u_long *)&PatchedLoaderData[i];
 	    break;
 	}
     if (!data)
@@ -660,6 +698,23 @@ void PatchLoader(void)
     memcpy(&data[3], MapVector, (MapNumBlocks+1)*sizeof(struct vecent));
 }
 
+    /*
+     *  Write the Loader
+     */
+
+void WriteLoader(void)
+{
+    int fh;
+
+    if (Verbose)
+	printf("Writing loader to file `%s'\n", LoaderFile);
+
+    if ((fh = open(LoaderFile, O_CREAT|O_RDWR|O_TRUNC, S_IRUSR|S_IWUSR)) == -1)
+	Error_Open(LoaderFile);
+    if (write(fh, PatchedLoaderData, PatchedLoaderSize) != PatchedLoaderSize)
+	Error_Write(LoaderFile);
+    close(fh);
+}
 
 	
 /* Local Variables: */

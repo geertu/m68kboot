@@ -7,10 +7,16 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: monitor.c,v 1.2 1997-09-19 09:06:54 geert Exp $
+ * $Id: monitor.c,v 1.3 1998-04-06 01:40:58 dorchain Exp $
  * 
  * $Log: monitor.c,v $
- * Revision 1.2  1997-09-19 09:06:54  geert
+ * Revision 1.3  1998-04-06 01:40:58  dorchain
+ * make loader linux-elf.
+ * made amiga bootblock working again
+ * compiled, but not tested bootstrap
+ * loader breaks with MapOffset problem. Stack overflow?
+ *
+ * Revision 1.2  1997/09/19 09:06:54  geert
  * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
  *
  * Revision 1.1  1997/08/12 15:27:05  rnhodek
@@ -22,10 +28,10 @@
 
 
 #include <stddef.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/types.h>
 #include <asm/amigahw.h>
+
+#include "strlib.h"
 
 #include "bootstrap.h"
 #include "linuxboot.h"

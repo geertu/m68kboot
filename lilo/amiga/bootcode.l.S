@@ -11,10 +11,16 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: bootcode.l.S,v 1.2 1997-09-19 09:06:50 geert Exp $
+ * $Id: bootcode.l.S,v 1.3 1998-04-06 01:40:56 dorchain Exp $
  * 
  * $Log: bootcode.l.S,v $
- * Revision 1.2  1997-09-19 09:06:50  geert
+ * Revision 1.3  1998-04-06 01:40:56  dorchain
+ * make loader linux-elf.
+ * made amiga bootblock working again
+ * compiled, but not tested bootstrap
+ * loader breaks with MapOffset problem. Stack overflow?
+ *
+ * Revision 1.2  1997/09/19 09:06:50  geert
  * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
  *
  * Revision 1.1  1997/08/12 15:27:00  rnhodek
@@ -174,13 +180,18 @@ Load:		moveml	%d2-%d3/%a2-%a3,%sp@-
 		movel	%d0,%a2
 		movel	%d0,%d3
 ReadLoop:	tstl	%d2
-		jeq	ReadEnd
-		movel	%a3@+,%a5@(IO_OFFSET)
-		moveq	#0,%d0
-		movew	%a3@+,%d1
+		jle	ReadEnd
 		moveq	#HARD_SECTOR_SIZE_SHIFT,%d0
+		movel	%a3@+,%d1
 		asll	%d0,%d1
-		movel	%d1,%a5@(IO_LENGTH)
+		movel	%d1,%a5@(IO_OFFSET)
+		clrl	%d1
+		movew	%a3@+,%d1
+		asll	%d0,%d1
+		cmpl	%d2,%d1
+		jle	1f
+		movel	%d2,%d1
+1:		movel	%d1,%a5@(IO_LENGTH)
 		movel	%a2,%a5@(IO_DATA)
 		addl	%d1,%a2
 		subl	%d1,%d2
@@ -191,6 +202,7 @@ ReadLoop:	tstl	%d2
 		tstl	%d0
 		jeq	ReadLoop
 		movel	#AN_LILO+AG_IOError,%d7
+		or.w	%d0,%d7
 		jra	Alert
 ReadEnd:	movew	#TD_MOTOR,%a5@(IO_COMMAND)
 		moveb	#IOF_QUICK,%a5@(IO_FLAGS)
@@ -198,7 +210,7 @@ ReadEnd:	movew	#TD_MOTOR,%a5@(IO_COMMAND)
 		movel	%a5,%a1
 		jsr	%a6@(LVODoIO)
 		movel	%d3,%d0
-		moveml	%sp@+,%d2-%d4/%a2-%a3
+		moveml	%sp@+,%d2-%d3/%a2-%a3
 		rts
 
 
@@ -256,6 +268,7 @@ DOSName:	.asciz	"dos.library"
 
 ENTRY(_LoaderVectorStart)
 		.long	0			| File Size
+		.short	0			| pad
 		.fill	68,6			| Max. 68 Data Blocks
 ENTRY(_LoaderVectorEnd)
 

@@ -6,10 +6,16 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo_util.h,v 1.4 1998-03-17 12:32:20 rnhodek Exp $
+ * $Id: lilo_util.h,v 1.5 1998-04-06 01:40:55 dorchain Exp $
  * 
  * $Log: lilo_util.h,v $
- * Revision 1.4  1998-03-17 12:32:20  rnhodek
+ * Revision 1.5  1998-04-06 01:40:55  dorchain
+ * make loader linux-elf.
+ * made amiga bootblock working again
+ * compiled, but not tested bootstrap
+ * loader breaks with MapOffset problem. Stack overflow?
+ *
+ * Revision 1.4  1998/03/17 12:32:20  rnhodek
  * New global vars MaxVectorSector{Number,Count}.
  *
  * Revision 1.3  1997/09/19 09:06:48  geert
@@ -93,6 +99,7 @@ void FindFileDevice( const char *name, char *devname, dev_t *device );
 void GeometryFile( const char *name, dev_t *device, u_long *start);
 void GeometryDevice( const char *devname, u_long *start);
 void PatchLoader( void);
+void WriteLoader( void);
 
 /************************* End of Prototypes **************************/
 
@@ -105,5 +112,8 @@ void PatchLoader( void);
 
 #define HARD_SECTOR_SIZE	512
 #define HARD_SECTOR_SIZE_SHIFT	9
+
+#define BLOCK_SIZE		1024
+#define BLOCK_SIZE_SHIFT	10
 
 #endif  /* _lilo_util_h */

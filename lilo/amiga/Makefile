@@ -8,10 +8,16 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.2 1997-09-19 09:06:50 geert Exp $
+# $Id: Makefile,v 1.3 1998-04-06 01:40:56 dorchain Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.2  1997-09-19 09:06:50  geert
+# Revision 1.3  1998-04-06 01:40:56  dorchain
+# make loader linux-elf.
+# made amiga bootblock working again
+# compiled, but not tested bootstrap
+# loader breaks with MapOffset problem. Stack overflow?
+#
+# Revision 1.2  1997/09/19 09:06:50  geert
 # Big bunch of changes by Geert: make things work on Amiga; cosmetic things
 #
 # Revision 1.1  1997/08/12 15:26:59  rnhodek
@@ -20,10 +26,17 @@
 #
 #
 
+amiga/%.o: %.c
+	$(LINUX_COMPILE) -c $< -o $@ -fpic
+
+LD = ld
+LLDFLAGS = -Ttext 0
+
+
 LOADER_OBJS = $(addprefix amiga/,loader.o linuxboot.o monitor.o \
-                                 con_intui.o con_paula.o \
+                                 con_intui.o con_paula.o strlib.o\
                                  $(LOADER_COBJS))
 
 amiga/loader: $(LOADER_OBJS) $(AMIGA_COBJS)
-	$(AMIGA_COMPILE) -noixemul -nostartfiles -s -o $@ $^
+	$(LD) $(LLDFLAGS) -o $@ $^
 

@@ -7,10 +7,16 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.17 1998-03-16 11:06:35 rnhodek Exp $
+# $Id: Makefile,v 1.18 1998-04-06 01:40:50 dorchain Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.17  1998-03-16 11:06:35  rnhodek
+# Revision 1.18  1998-04-06 01:40:50  dorchain
+# make loader linux-elf.
+# made amiga bootblock working again
+# compiled, but not tested bootstrap
+# loader breaks with MapOffset problem. Stack overflow?
+#
+# Revision 1.17  1998/03/16 11:06:35  rnhodek
 # *** empty log message ***
 #
 # Revision 1.16  1998/03/16 10:49:34  rnhodek
@@ -100,7 +106,7 @@ TOPDIR	:= $(shell if [ "$$PWD" != "" ]; then echo $$PWD; else pwd; fi)
 
 # it doesn't make sense to build a cross-lilo, so hardwire the target arch
 CC              = m68k-linux-gcc
-CFLAGS          = -O2 -fomit-frame-pointer -Wall
+CFLAGS          = -m68060 -O2 -fomit-frame-pointer -Wall
 
 AMIGA_HOSTCC    = m68k-cbm-amigados-gcc
 AMIGA_HOSTINC   = 

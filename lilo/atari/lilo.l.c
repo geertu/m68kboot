@@ -7,10 +7,16 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: lilo.l.c,v 1.11 1998-03-17 12:31:42 rnhodek Exp $
+ * $Id: lilo.l.c,v 1.12 1998-04-06 01:40:59 dorchain Exp $
  * 
  * $Log: lilo.l.c,v $
- * Revision 1.11  1998-03-17 12:31:42  rnhodek
+ * Revision 1.12  1998-04-06 01:40:59  dorchain
+ * make loader linux-elf.
+ * made amiga bootblock working again
+ * compiled, but not tested bootstrap
+ * loader breaks with MapOffset problem. Stack overflow?
+ *
+ * Revision 1.11  1998/03/17 12:31:42  rnhodek
  * Set MaxVectorSector{Number,Count} to limits of DMAread().
  *
  * Revision 1.10  1998/03/10 10:26:01  rnhodek
@@ -553,25 +559,6 @@ static void recalc_checksum( void *buf )
     for( sum = 0; p < pend; ++p )
 		sum += *p;
     *pend = ROOTSEC_CHECKSUM - sum;
-}
-
-
-    /*
-     *  Write the Loader (incl. Header Code)
-     */
-
-static void WriteLoader(void)
-{
-    int fh;
-
-    if (Verbose)
-		printf( "Writing loader to file `%s'\n", LoaderFile );
-
-    if ((fh = open(LoaderFile, O_CREAT|O_RDWR|O_TRUNC, S_IRUSR|S_IWUSR)) == -1)
-		Error_Open(LoaderFile);
-    if (write( fh, LoaderData, LoaderSize ) != LoaderSize)
-		Error_Write(LoaderFile);
-    close(fh);
 }
 
 

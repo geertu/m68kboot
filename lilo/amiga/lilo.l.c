@@ -13,10 +13,16 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo.l.c,v 1.5 1998-03-31 11:40:46 rnhodek Exp $
+ * $Id: lilo.l.c,v 1.6 1998-04-06 01:40:57 dorchain Exp $
  * 
  * $Log: lilo.l.c,v $
- * Revision 1.5  1998-03-31 11:40:46  rnhodek
+ * Revision 1.6  1998-04-06 01:40:57  dorchain
+ * make loader linux-elf.
+ * made amiga bootblock working again
+ * compiled, but not tested bootstrap
+ * loader breaks with MapOffset problem. Stack overflow?
+ *
+ * Revision 1.5  1998/03/31 11:40:46  rnhodek
  * Replaced sizeof(u_long) by sizeof(struct vecent) in calculations based
  * on LoaderNumBlocks.
  *
@@ -49,6 +55,7 @@
 #include <sys/fcntl.h>
 #include <sys/file.h>
 #include <sys/stat.h>
+#include <linux/elf.h>
 #include <linux/major.h>
 #include <linux/hdreg.h>
 
@@ -80,14 +87,6 @@ extern u_char _LoaderVectorStart[];
 extern u_char _LoaderVectorEnd[];
 extern u_char _AltDeviceName[];
 extern u_char _AltDeviceUnit[];
-
-
-    /*
-     *  Header for an AmigaOS Load Module
-     */
-
-extern u_char _HeadStart[];
-extern u_char _HeadEnd[];
 
 
     /*
@@ -146,7 +145,6 @@ static void SetDosType(void);
 static void FixChecksum(void);
 static u_long CalcChecksum(void);
 static void CreateMapFile(void);
-static void WriteLoader(void);
 static void Usage(void) __attribute__ ((noreturn));
 
 
@@ -370,28 +368,6 @@ void CheckVectorDevice( const char *name, dev_t device, struct vecent *vector )
 	}
     }
 }
-
-    /*
-     *  Write the Loader (incl. Header Code)
-     */
-
-static void WriteLoader(void)
-{
-    int fh;
-    u_long headsize = _HeadEnd-_HeadStart;
-
-    if (Verbose)
-	printf("Writing loader to file `%s'\n", LoaderFile);
-
-    if ((fh = open(LoaderFile, O_CREAT|O_RDWR|O_TRUNC, S_IRUSR|S_IWUSR)) == -1)
-	Error_Open(LoaderFile);
-    if (write(fh, _HeadStart, headsize) != headsize)
-	Error_Write(LoaderFile);
-    if (write(fh, LoaderData, LoaderSize) != LoaderSize)
-	Error_Write(LoaderFile);
-    close(fh);
-}
-
 
     /*
      *	Print the Usage Template and Exit

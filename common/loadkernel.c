@@ -11,10 +11,16 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: loadkernel.c,v 1.5 1997-07-18 12:10:33 rnhodek Exp $
+ * $Id: loadkernel.c,v 1.6 1998-04-06 01:40:52 dorchain Exp $
  * 
  * $Log: loadkernel.c,v $
- * Revision 1.5  1997-07-18 12:10:33  rnhodek
+ * Revision 1.6  1998-04-06 01:40:52  dorchain
+ * make loader linux-elf.
+ * made amiga bootblock working again
+ * compiled, but not tested bootstrap
+ * loader breaks with MapOffset problem. Stack overflow?
+ *
+ * Revision 1.5  1997/07/18 12:10:33  rnhodek
  * Call open_ramdisk only if ramdisk_name set; 0 return value means error.
  * Rename load_ramdisk/move_ramdisk to open_ramdisk/load_ramdisk, in parallel
  * to the *_kernel functions.
@@ -39,11 +45,17 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include <stddef.h>
+#ifdef IN_BOOTSTRAP
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#else
+#ifdef IN_LILO
+#include "strlib.h"
+#endif
+#endif
 #include <sys/types.h>
 
 /* linux specific include files */

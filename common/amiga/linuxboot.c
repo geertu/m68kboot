@@ -44,10 +44,16 @@
  *	31 May 1994 Memory thrash problem solved (Geert)
  *	11 May 1994 A3640 MapROM check (Geert)
  * 
- * $Id: linuxboot.c,v 1.9 1998-02-26 10:04:52 rnhodek Exp $
+ * $Id: linuxboot.c,v 1.10 1998-04-06 01:40:54 dorchain Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.9  1998-02-26 10:04:52  rnhodek
+ * Revision 1.10  1998-04-06 01:40:54  dorchain
+ * make loader linux-elf.
+ * made amiga bootblock working again
+ * compiled, but not tested bootstrap
+ * loader breaks with MapOffset problem. Stack overflow?
+ *
+ * Revision 1.9  1998/02/26 10:04:52  rnhodek
  * Also set BOOT_IMAGE= command line option on Amiga.
  *
  * Revision 1.8  1997/09/19 09:06:40  geert
@@ -90,7 +96,16 @@
 
 
 #include <stddef.h>
+#ifdef IN_BOOTSTRAP
 #include <string.h>
+#undef SYMBOL_NAME_STR
+#define SYMBOL_NAME_STR(X) "_"#X
+#else
+#ifdef IN_LILO
+#include "strlib.h"
+#include <linux/linkage.h>
+#endif
+#endif
 #include <errno.h>
 #include <sys/types.h>
 
@@ -99,18 +114,14 @@
 #include <asm/page.h>
 
 #include "linuxboot.h"
-#include "inline-funcs.h"
 #include "bootstrap.h"
 #include "loadkernel.h"
 #include "bootinf.h"
+#include "inline-funcs.h"
 
 
 #undef custom
 #define custom ((*(volatile struct CUSTOM *)(CUSTOM_PHYSADDR)))
-
-/* a.out linkage conventions */
-#undef SYMBOL_NAME_STR
-#define SYMBOL_NAME_STR(X) "_"#X
 
 /* temporary stack size */
 #define TEMP_STACKSIZE	(256)
@@ -146,7 +157,6 @@ struct compat_bootinfo compat_bootinfo;
 
 static u_long get_chipset(void);
 static void get_processor(u_long *cpu, u_long *fpu, u_long *mmu);
-u_long ckcpu346(void);
 static u_long get_model(u_long chipset);
 static int probe_resident(const char *name);
 static int probe_resource(const char *name);
@@ -668,12 +678,146 @@ static u_long get_chipset(void)
 }
 
 
-    /*
-     *	Determine the CPU Type
-     */
+
+
+/*
+ *	Determine the CPU Type
+ * Thanks to Roman Hodek and Andreas Schwab for the necessary hints to
+ * get this going
+ */
+
+
+/*
+ * Distinguish between 68030, 68040 and 68060 CPU
+ */
+
+/*
+ * CPU type are no longer hardwired in this function
+ *
+ * STRINGIFY macros shamlessly stolen from module.h
+ */
+
+#define STRINGIFY(x) #x
+#define STRINGIFY_CONTENT(x) STRINGIFY(x)
+
+static __inline__ unsigned long ckcpu346( void)
+{
+register void *systack;
+register unsigned long rv;
+unsigned long temp1, temp2, temp3;
+
+systack=SuperState();
+__asm__ __volatile__ ("
+| Register Usage:
+| %0	return value (cpu type)
+| %1	saved VBR
+| %2	saved stack pointer
+| %3	temporary copy of VBR
+
+	.chip 68060
+	movec	%%vbr,%1	| get vbr
+	movew	%%sr,%-		| save IPL
+	movel	%1@(11*4),%-	| save old trap vector (Line F)
+	orw	#0x700,%%sr	| disable ints
+	movel	#1f,%1@(11*4)	| set L1 as new vector
+	movel	%%sp,%2		| save stack pointer
+	moveql	%4,%0		| value with exception (030)
+	movel	%1,%3		| we move the vbr to itself
+	nop			| clear instruction pipeline
+	move16	%3@+,%3@+	| the 030 test instruction
+	nop			| clear instruction pipeline
+	moveql	%5,%0		| value with exception (040)
+	nop			| clear instruction pipeline
+	plpar	%1@		| the 040 test instruction
+	nop			| clear instruction pipeline
+	moveql	%6,%0		| value if we come here (060)
+1:	movel	%2,%%sp		| restore stack pointer
+	movel	%+,%1@(11*4)	| restore trap vector
+	movew	%+,%%sr		| restore IPL
+	.chip 68k
+" : "=d" (rv), "=a" (temp1), "=r" (temp2), "=a" (temp3)
+  : "i" (CPU_68030), "i" (CPU_68040), "i" (CPU_68060));
+if (systack)
+	UserState(systack);
+return rv;
+}
+
+/* Tests the presence of an FPU */
+
+static __inline__ unsigned long ckfpu()
+{
+register void *systack;
+register unsigned long rv;
+unsigned long temp1, temp2;
+
+systack=SuperState();
+__asm__ __volatile__ ("
+| register usage:
+| %0 return value (0 no fpu, 1 fpu present)
+| %1 saved VBR
+| %2 saved stack pointer
+
+	.chip 68060
+	movec	%%vbr,%1	| get vbr
+	movew	%%sr,%-		| save IPL
+	movel	%1@(11*4),%-	| save old trap vector (Line F)
+	orw	#0x700,%%sr	| diable ints
+	movel	#1f,%1@(11*4)	| set L1 as new vector
+	movel	%%sp,%2		| save stack pointer
+	moveql	#0,%0		| value with exeption
+	nop
+	fnop			| is an FPU present ?
+	nop
+	moveql	#1,%0		| value if we come here
+1:	movel	%2,%%sp		| restore stack pointer
+	movel	%+,%1@(11*4)	| restore trap vector
+	movew	%+,%%sr		| restore IPL
+	.chip 68k
+" : "=d" (rv), "=a" (temp1), "=r" (temp2) : /* no input */);
+
+if (systack)
+	UserState(systack);
+return rv;
+}
+
+/*
+ * get/set the PCR
+ *
+ * WARNING: Works only for 68060 and up
+ *
+ */
+
+static unsigned long get_pcr()
+{
+register void *systack;
+register unsigned long rv __asm__("d2");
+
+systack=SuperState();
+__asm__ __volatile__ ("
+	.long 0x4e7a2808	| movec pcr,d2
+	" : "=d" (rv) : /* no input */ );
+if (systack)
+	UserState(systack);
+return rv;
+}
+
+static void set_pcr(unsigned long val)
+{
+register void *systack;
+register u_long pcr __asm__("d2") = val;
+
+systack=SuperState();
+__asm__ __volatile__ ("
+	.long 0x4e7b2808	| movec d2,pcr
+	" : /* no output */ : "d" (pcr) );
+if (systack)
+	UserState(systack);
+}
 
 static void get_processor(u_long *cpu, u_long *fpu, u_long *mmu)
 {
+    unsigned long pcr;
+
     *cpu = *fpu = 0;
 
     if (SysBase->AttnFlags & AFF_68060)
@@ -686,65 +830,36 @@ static void get_processor(u_long *cpu, u_long *fpu, u_long *mmu)
 	*cpu = CPU_68020;
 
     if (*cpu == CPU_68030 || *cpu == CPU_68040 || *cpu == CPU_68060)
-	*cpu = Supervisor(ckcpu346);
+        *cpu = ckcpu346();
+    
+    if (*cpu == CPU_68060) {
+        pcr = get_pcr();
+	/* Value for CS MK II '060 at this point: 0x0430102 */
+	if ((pcr & 0xffff0000) != 0x04300000) {
+	    /* has a pcr and is not an 68060 -> unknown cpu */
+	    Printf("CPU not know -- Please report type and this value: pcr = 0x%08lx\n", pcr);
+	    *cpu = *fpu = *mmu = 0;
+	    return;
+	}
+ 
+	/* enable fpu if it's not */
+	pcr &= ~2L;
+	set_pcr(pcr);
+    }
 
-    if (*cpu == CPU_68040 || *cpu == CPU_68060) {
-	if (SysBase->AttnFlags & AFF_FPU40)
-	    *fpu = *cpu;
-    } else if (SysBase->AttnFlags & AFF_68882)
-	*fpu = FPU_68882;
-    else if (SysBase->AttnFlags & AFF_68881)
-	*fpu = FPU_68881;
+    if ((*fpu = ckfpu()) != 0) { /* We have an FPU */
+    	if (SysBase->AttnFlags & AFF_68882)
+    		*fpu = FPU_68882;
+    	else if (SysBase->AttnFlags & AFF_68881)
+    		*fpu = FPU_68881;
+    	else if ((*cpu == CPU_68040) || (*cpu == CPU_68060))
+    		*fpu = *cpu;
+    	/* should be all cases */
+    }
 
     *mmu = *cpu;
+
 }
-
-/*
- * Distinguish between 68030, 68040 and 68060 CPU
- */
-
-/*
- * WARNING: CPU type are hardwired in this function!
- * (Does anyone know how to stringize the contents of a CPP macro?)
- */
-
-asm(".text
-	.align 4\n"
-SYMBOL_NAME_STR(ckcpu346) ":
-| Register Usage:
-| %d0	return value (cpu type)
-| %d2   saved status register
-| %a2   saved VBR
-| %a3	saved line F trap vector
-| %a4	saved stack pointer
-| %a5	temporary copy of VBR
-
-	.chip 68060
-	moveml	%d2/%a2-%a5,%sp@-	| save registers
-	movec	%vbr,%a2		| get vbr
-	movew	%sr,%d2			| save IPL
-	orw	#0x700,%sr		| disable ints
-	movel	%a2@(11*4),%a3		| save old trap vector (Line F)
-	movel	#1f,%a2@(11*4)		| set L1 as new vector
-	movel	%sp,%a4			| save stack pointer
-	moveql	#2,%d0			| value with exception (030)
-	move	%a2,%a5			| we move the vbr to itself
-	nop				| clear instruction pipeline
-	move16	%a5@+,%a5@+		| the 030 test instruction
-	nop				| clear instruction pipeline
-	movel	%a4,%sp			| restore stack pointer
-	moveql	#4,%d0			| value with exception (040)
-	nop				| clear instruction pipeline
-	plpar	%a2@			| the 040 test instruction
-	nop				| clear instruction pipeline
-	moveql	#8,%d0			| value if we come here
-1:	movel	%a4,%sp			| restore stack pointer
-	movel	%a3,%a2@(11*4)		| restore trap vector
-	movew	%d2,%sr			| restore IPL
-	moveml	%sp@+,%d2/%a2-%a5	| restore registers
-	rte
-	.chip 68030
-");
 
     /*
      *	Determine the Amiga Model
@@ -930,8 +1045,8 @@ static void start_kernel(void (*startfunc)(), char *stackp, char *memptr,
     register u_long d2 __asm("d2") = kernel_size;
     register u_long d3 __asm("d3") = bi_size;
 
-    __asm __volatile ("movel a2,sp;"
-		      "jmp a0@"
+    __asm __volatile ("movel %%a2,%%sp;"
+		      "jmp %%a0@"
 		      : /* no outputs */
 		      : "r" (a0), "r" (a2), "r" (a3), "r" (a4), "r" (d0),
 			"r" (d1), "r" (d2), "r" (d3)
@@ -959,38 +1074,38 @@ asm(".text
 	.align 4\n"
 SYMBOL_NAME_STR(copyall) ":
 				| /* copy kernel text and data */
-	movel	a3,a0		| src = (u_long *)memptr;
-	movel	a0,a2		| limit = (u_long *)(memptr+kernel_size);
-	addl	d2,a2
-	movel	a4,a1		| dest = (u_long *)start_mem;
-1:	cmpl	a0,a2
+	movel	%a3,%a0		| src = (u_long *)memptr;
+	movel	%a0,%a2		| limit = (u_long *)(memptr+kernel_size);
+	addl	%d2,%a2
+	movel	%a4,%a1		| dest = (u_long *)start_mem;
+1:	cmpl	%a0,%a2
 	jeq	2f		| while (src < limit)
-	moveb	a0@+,a1@+	|  *dest++ = *src++;
+	moveb	%a0@+,%a1@+	|  *dest++ = *src++;
 	jra	1b
 2:
 				| /* copy bootinfo to end of bss */
-	movel	a3,a0		| src = (u_long *)(memptr+kernel_size);
-	addl	d2,a0		| dest = end of bss (already in a1)
-	movel	d3,d7		| count = bi_size
-	subql	#1,d7
-1:	moveb	a0@+,a1@+	| while (--count > -1)
-	dbra	d7,1b		|     *dest++ = *src++
+	movel	%a3,%a0		| src = (u_long *)(memptr+kernel_size);
+	addl	%d2,%a0		| dest = end of bss (already in a1)
+	movel	%d3,%d7		| count = bi_size
+	subql	#1,%d7
+1:	moveb	%a0@+,%a1@+	| while (--count > -1)
+	dbra	%d7,1b		|     *dest++ = *src++
 
 				| /* copy the ramdisk to the top of memory */
-	movel	a3,a0		| src = (u_long *)(memptr+kernel_size+bi_size);
-	addl	d2,a0
-	addl	d3,a0
-	movel	d0,a1		| dest = (u_long *)rd_dest;
-	movel	a0,a2		| limit = (u_long *)(memptr+kernel_size+
-	addl	d1,a2		|		     bi_size+rd_size);
-1:	cmpl	a0,a2
+	movel	%a3,%a0		| src = (u_long *)(memptr+kernel_size+bi_size);
+	addl	%d2,%a0
+	addl	%d3,%a0
+	movel	%d0,%a1		| dest = (u_long *)rd_dest;
+	movel	%a0,%a2		| limit = (u_long *)(memptr+kernel_size+
+	addl	%d1,%a2		|		     bi_size+rd_size);
+1:	cmpl	%a0,%a2
 	jeq	2f		| while (src > limit)
-	moveb	a0@+,a1@+	|     *dest++ = *src++;
+	moveb	%a0@+,%a1@+	|     *dest++ = *src++;
 	jra	1b
 2:
 				| /* jump to start of kernel */
-	movel	a4,a0		| jump_to (start_mem);
-	jmp	a0@
+	movel	%a4,%a0		| jump_to (start_mem);
+	jmp	%a0@
 "
 SYMBOL_NAME_STR(copyallend) ":
 ");
@@ -1003,8 +1118,8 @@ SYMBOL_NAME_STR(copyallend) ":
 asm(".text
 	.align 4\n"
 SYMBOL_NAME_STR(maprommed) ":
-	oriw	#0x0700,sr
-	moveml	#0x3f20,sp@-
+	oriw	#0x0700,%sr
+	moveml	#0x3f20,%sp@-
 				| /* Save cache settings */
 	.long	0x4e7a1002	| movec cacr,d1 */
 				| /* Save MMU settings */
@@ -1013,8 +1128,8 @@ SYMBOL_NAME_STR(maprommed) ":
 	.long	0x4e7a4005	| movec itt1,d4
 	.long	0x4e7a5006	| movec dtt0,d5
 	.long	0x4e7a6007	| movec dtt1,d6
-	moveq	#0,d0
-	movel	d0,a2
+	moveq	#0,%d0
+	movel	%d0,%a2
 				| /* Disable caches */
 	.long	0x4e7b0002	| movec d0,cacr
 				| /* Disable MMU */
@@ -1023,20 +1138,20 @@ SYMBOL_NAME_STR(maprommed) ":
 	.long	0x4e7b0005	| movec d0,itt1
 	.long	0x4e7b0006	| movec d0,dtt0
 	.long	0x4e7b0007	| movec d0,dtt1
-	lea	0x07f80000,a0
-	lea	0x00f80000,a1
-	movel	a0@,d7
-	cmpl	a1@,d7
+	lea	0x07f80000,%a0
+	lea	0x00f80000,%a1
+	movel	%a0@,%d7
+	cmpl	%a1@,%d7
 	jne	1f
-	movel	d7,d0
-	notl	d0
-	movel	d0,a0@
+	movel	%d7,%d0
+	notl	%d0
+	movel	%d0,%a0@
 	nop			| /* Thanks to Jörg Mayer! */
-	cmpl	a1@,d0
+	cmpl	%a1@,%d0
 	jne	1f
-	moveq	#-1,d0		| /* MapROMmed A3640 present */
-	movel	d0,a2
-1:	movel	d7,a0@
+	moveq	#-1,%d0		| /* MapROMmed A3640 present */
+	movel	%d0,%a2
+1:	movel	%d7,%a0@
 				| /* Restore MMU settings */
 	.long	0x4e7b2003	| movec d2,tc
 	.long	0x4e7b3004	| movec d3,itt0
@@ -1045,8 +1160,8 @@ SYMBOL_NAME_STR(maprommed) ":
 	.long	0x4e7b6007	| movec d6,dtt1
 				| /* Restore cache settings */
 	.long	0x4e7b1002	| movec d1,cacr
-	movel	a2,d0
-	moveml	sp@+,#0x04fc
+	movel	%a2,%d0
+	moveml	%sp@+,#0x04fc
 	rte
 ");
 

@@ -7,10 +7,16 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.9 1998-03-16 10:44:27 schwab Exp $
+# $Id: Makefile,v 1.10 1998-04-06 01:40:54 dorchain Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.9  1998-03-16 10:44:27  schwab
+# Revision 1.10  1998-04-06 01:40:54  dorchain
+# make loader linux-elf.
+# made amiga bootblock working again
+# compiled, but not tested bootstrap
+# loader breaks with MapOffset problem. Stack overflow?
+#
+# Revision 1.9  1998/03/16 10:44:27  schwab
 # Make sure to build $(MACH)/tag* files first.
 # Clean up clean target (replace {amiga,atari}/ by simple */.
 #
@@ -56,7 +62,7 @@ ATARI_OBJS = $(ATARI_COBJS)
 LOADER_COBJS = parsetags.o
 LILO_COBJS   = lilo.o lilo_util.o writetags.o conf.tab.o lex.conf.o
 
-AMIGA_LINUX_OBJS = $(addprefix amiga/,$(LILO_COBJS) bootcode.o head.o reset.o)
+AMIGA_LINUX_OBJS = $(addprefix amiga/,$(LILO_COBJS) bootcode.o reset.o)
 ATARI_LINUX_OBJS = $(addprefix atari/,$(LILO_COBJS))
 
 SUBDEF = -DIN_LILO

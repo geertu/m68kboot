@@ -7,10 +7,16 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: stream.h,v 1.2 1997-07-18 11:07:09 rnhodek Exp $
+ * $Id: stream.h,v 1.3 1998-04-06 01:40:53 dorchain Exp $
  * 
  * $Log: stream.h,v $
- * Revision 1.2  1997-07-18 11:07:09  rnhodek
+ * Revision 1.3  1998-04-06 01:40:53  dorchain
+ * make loader linux-elf.
+ * made amiga bootblock working again
+ * compiled, but not tested bootstrap
+ * loader breaks with MapOffset problem. Stack overflow?
+ *
+ * Revision 1.2  1997/07/18 11:07:09  rnhodek
  * Added sfilesize() call & Co. to streams
  *
  * Revision 1.1.1.1  1997/07/15 09:45:37  rnhodek
@@ -49,7 +55,7 @@ typedef struct _module {
 /* initializer for fields in MODULE not supplied by module */
 #define MOD_REST_INIT								\
 	NULL, NULL, 0, 0, 0, 0,	/* buffer data */		\
-	NULL, NULL				/* down, up pointers */
+	NULL, NULL				/* down, up pointers */	\
 
 MODULE *currmod;		/* currently active module */
 

@@ -7,10 +7,16 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: loader.c,v 1.4 1998-03-17 12:31:15 rnhodek Exp $
+ * $Id: loader.c,v 1.5 1998-04-06 01:40:57 dorchain Exp $
  * 
  * $Log: loader.c,v $
- * Revision 1.4  1998-03-17 12:31:15  rnhodek
+ * Revision 1.5  1998-04-06 01:40:57  dorchain
+ * make loader linux-elf.
+ * made amiga bootblock working again
+ * compiled, but not tested bootstrap
+ * loader breaks with MapOffset problem. Stack overflow?
+ *
+ * Revision 1.4  1998/03/17 12:31:15  rnhodek
  * Change Puts with arg to Printf.
  *
  * Revision 1.3  1998/03/10 10:23:11  rnhodek
@@ -30,8 +36,8 @@
 #include <stddef.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <string.h>
 #include <sys/types.h>
+#include "strlib.h"
 
 #include <asm/amigahw.h>
 
@@ -48,18 +54,43 @@
      *  Program Entry
      *
      *  Pass the Pointer to the IOStdReq for the Boot Device (in d0) to Main
+     *  and fix offset table
      */
 
 asm(".text
 	.align 4\n"
 ".globl " SYMBOL_NAME_STR(_start) ";\n"
 SYMBOL_NAME_STR(_start) ":
-	movel	d0,sp@-
-	jbsr	(" SYMBOL_NAME_STR(Main) ")
-	addql	#4,sp
+	movel	%d0,%sp@-	
+	lea	%pc@("SYMBOL_NAME_STR(_start)"),%a0
+	movel	%a0,%d0
+	lea	%pc@(_GLOBAL_OFFSET_TABLE_),%a0
+	lea	%pc@("SYMBOL_NAME_STR(_edata)"),%a1
+1:	addl	%d0,%a0@+
+	cmpl	%a1,%a0
+	bcs	1b
+	jbsr	%pc@(" SYMBOL_NAME_STR(Main) ")
+	addql	#4,%sp
 	rts
+.globl " SYMBOL_NAME_STR(ptr_fkt_offset_jmp) ";\n"
+SYMBOL_NAME_STR(ptr_fkt_offset_jmp) ":
+.globl " SYMBOL_NAME_STR(int_fkt_offset_jmp) ";\n"
+SYMBOL_NAME_STR(int_fkt_offset_jmp) ":
+	lea	%pc@("SYMBOL_NAME_STR(saved_return_address)"),%a0
+	movel	%sp@+,%a0@
+	movel	%sp@+,%d0
+	lea	%pc@("SYMBOL_NAME_STR(_start)"),%a0
+	addl	%d0,%a0
+	jsr	%a0@
+	subql	#4,%sp
+	lea     %pc@("SYMBOL_NAME_STR(saved_return_address)"),%a1
+	movel	%a1@,%a1
+	jmp	%a1@	|return
 ");
-
+/* gcc returns pointers in %a0, data values in %d0, so... */
+void *ptr_fkt_offset_jmp(void *,...);
+u_long int_fkt_offset_jmp(void *,...);
+static u_long saved_return_address;
 
 const char LiloVersion[] = VERSION;
 
@@ -397,7 +428,7 @@ static struct Console *FindConsole(const struct ConsoleDesc *consoles,
 
     for (i = 0; i < numconsoles; i++)
 	if ((!strncmp(name, consoles[i].Name, strlen(consoles[i].Name)) ||
-	     i == numconsoles-1) && (console = consoles[i].Probe(args)))
+	     i == numconsoles-1) && (console = ptr_fkt_offset_jmp(consoles[i].Probe, args)))
 	    break;
     return(console);
 }
@@ -409,9 +440,9 @@ static struct Console *FindConsole(const struct ConsoleDesc *consoles,
 
 static int Interactive(void)
 {
-    if (VideoConsole && VideoConsole->Interactive())
+    if (VideoConsole && int_fkt_offset_jmp(VideoConsole->Interactive))
 	return(1);
-    if (SerialConsole && SerialConsole->Interactive())
+    if (SerialConsole && int_fkt_offset_jmp(SerialConsole->Interactive))
 	return(1);
     return(0);
 }
@@ -424,9 +455,9 @@ static int Interactive(void)
 static void OpenConsole(void)
 {
     if (VideoConsole)
-	VideoConsole->Open();
+	int_fkt_offset_jmp(VideoConsole->Open);
     if (SerialConsole)
-	SerialConsole->Open();
+	int_fkt_offset_jmp(SerialConsole->Open);
 }
 
 
@@ -437,9 +468,9 @@ static void OpenConsole(void)
 static void CloseConsole()
 {
     if (VideoConsole)
-	VideoConsole->Close();
+	int_fkt_offset_jmp(VideoConsole->Close);
     if (SerialConsole)
-	SerialConsole->Close();
+	int_fkt_offset_jmp(SerialConsole->Close);
 }
 
 
@@ -450,9 +481,9 @@ static void CloseConsole()
 void Puts(const char *str)
 {
     if (VideoConsole)
-	VideoConsole->Puts(str);
+	int_fkt_offset_jmp(VideoConsole->Puts, str);
     if (SerialConsole)
-	SerialConsole->Puts(str);
+	int_fkt_offset_jmp(SerialConsole->Puts, str);
 }
 
 
@@ -463,9 +494,9 @@ void Puts(const char *str)
 void PutChar(int c)
 {
     if (VideoConsole)
-	VideoConsole->PutChar(c);
+	int_fkt_offset_jmp(VideoConsole->PutChar,c);
     if (SerialConsole)
-	SerialConsole->PutChar(c);
+	int_fkt_offset_jmp(SerialConsole->PutChar,c);
 }
 
 
@@ -479,19 +510,19 @@ int GetChar(void)
 
     if (VideoConsole || SerialConsole) {
 	if (VideoConsole)
-	    VideoConsole->PreGetChar();
+	    int_fkt_offset_jmp(VideoConsole->PreGetChar);
 	if (SerialConsole)
-	    SerialConsole->PreGetChar();
+	    int_fkt_offset_jmp(SerialConsole->PreGetChar);
 	do {
-	    if (VideoConsole && (res = VideoConsole->GetChar()) != -1)
+	    if (VideoConsole && (res = int_fkt_offset_jmp(VideoConsole->GetChar)) != -1)
 		break;
-	    if (SerialConsole && (res = SerialConsole->GetChar()) != -1)
+	    if (SerialConsole && (res = int_fkt_offset_jmp(SerialConsole->GetChar)) != -1)
 		break;
 	} while (MasterMode || Debug || !TimedOut());
 	if (VideoConsole)
-	    VideoConsole->PostGetChar();
+	    int_fkt_offset_jmp(VideoConsole->PostGetChar);
 	if (SerialConsole)
-	    SerialConsole->PostGetChar();
+	    int_fkt_offset_jmp(SerialConsole->PostGetChar);
     }
     return(res);
 }
@@ -504,14 +535,14 @@ int GetChar(void)
 asm(".text
 	.align 4\n"
 SYMBOL_NAME_STR(PutCharInBuf) ":
-	movel	a0,sp@-
-	lea	pc@(" SYMBOL_NAME_STR(FmtBuffer) "+255),a0
-	cmpl	a0,a3
+	movel	%a0,%sp@-
+	lea	%pc@(" SYMBOL_NAME_STR(FmtBuffer) "+255),%a0
+	cmpl	%a0,%a3
 	jne	1f
-	clrb	a3@
+	clrb	%a3@
 	jra	2f
-1:	moveb	d0,a3@+
-2:	movel	sp@+,a0
+1:	moveb	%d0,%a3@+
+2:	movel	%sp@+,%a0
 	rts
 ");
 
@@ -989,69 +1020,69 @@ asm("
 
 | D0.L = D0.L % D1.L unsigned
 
-___umodsi3:	moveml	sp@(4:w),d0/d1
+___umodsi3:	moveml	%sp@(4:w),%d0/%d1
 		jbsr	___udivsi4
-		movel	d1,d0
+		movel	%d1,%d0
 		rts
 
 | D0.L = D0.L / D1.L unsigned
 
-___udivsi3:	moveml	sp@(4:w),d0/d1
-___udivsi4:	movel	d3,sp@-
-		movel	d2,sp@-
-		movel	d1,d3
-		swap	d1
-		tstw	d1
+___udivsi3:	moveml	%sp@(4:w),%d0/%d1
+___udivsi4:	movel	%d3,%sp@-
+		movel	%d2,%sp@-
+		movel	%d1,%d3
+		swap	%d1
+		tstw	%d1
 		jne	1f
-		movew	d0,d2
-		clrw	d0
-		swap	d0
-		divu	d3,d0
-		movel	d0,d1
-		swap	d0
-		movew	d2,d1
-		divu	d3,d1
-		movew	d1,d0
-		clrw	d1
-		swap	d1
+		movew	%d0,%d2
+		clrw	%d0
+		swap	%d0
+		divu	%d3,%d0
+		movel	%d0,%d1
+		swap	%d0
+		movew	%d2,%d1
+		divu	%d3,%d1
+		movew	%d1,%d0
+		clrw	%d1
+		swap	%d1
 		jra	4f
-1:		movel	d0,d1
-		swap	d0
-		clrw	d0
-		clrw	d1
-		swap	d1
-		moveq	#16-1,d2
-2:		addl	d0,d0
-		addxl	d1,d1
-		cmpl	d1,d3
+1:		movel	%d0,%d1
+		swap	%d0
+		clrw	%d0
+		clrw	%d1
+		swap	%d1
+		moveq	#16-1,%d2
+2:		addl	%d0,%d0
+		addxl	%d1,%d1
+		cmpl	%d1,%d3
 		jhi	3f
-		subl	d3,d1
-		addqw	#1,d0
-3:		dbra	d2,2b
-4:		movel	sp@+,d2
-		movel	sp@+,d3
+		subl	%d3,%d1
+		addqw	#1,%d0
+3:		dbra	%d2,2b
+4:		movel	%sp@+,%d2
+		movel	%sp@+,%d3
 		rts
 
 | D0 = D0 * D1
 
-___mulsi3:	moveml	sp@(4:w),d0/d1
-		movel	d3,sp@-
-		movel	d2,sp@-
-		movew	d1,d2
-		mulu	d0,d2
-		movel	d1,d3
-		swap	d3
-		mulu	d0,d3
-		swap	d3
-		clrw	d3
-		addl	d3,d2
-		swap	d0
-		mulu	d1,d0
-		swap	d0
-		clrw	d0
-		addl	d2,d0
-		movel	sp@+,d2
-		movel	sp@+,d3
+___mulsi3:	moveml	%sp@(4:w),%d0/%d1
+		movel	%d3,%sp@-
+		movel	%d2,%sp@-
+		movew	%d1,%d2
+		mulu	%d0,%d2
+		movel	%d1,%d3
+		swap	%d3
+		mulu	%d0,%d3
+		swap	%d3
+		clrw	%d3
+		addl	%d3,%d2
+		swap	%d0
+		mulu	%d1,%d0
+		swap	%d0
+		clrw	%d0
+		addl	%d2,%d0
+		movel	%sp@+,%d2
+		movel	%sp@+,%d3
 		rts
 ");
 

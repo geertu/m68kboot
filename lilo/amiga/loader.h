@@ -7,10 +7,16 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: loader.h,v 1.2 1997-09-19 09:06:54 geert Exp $
+ * $Id: loader.h,v 1.3 1998-04-06 01:40:58 dorchain Exp $
  * 
  * $Log: loader.h,v $
- * Revision 1.2  1997-09-19 09:06:54  geert
+ * Revision 1.3  1998-04-06 01:40:58  dorchain
+ * make loader linux-elf.
+ * made amiga bootblock working again
+ * compiled, but not tested bootstrap
+ * loader breaks with MapOffset problem. Stack overflow?
+ *
+ * Revision 1.2  1997/09/19 09:06:54  geert
  * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
  *
  * Revision 1.1  1997/08/12 15:27:05  rnhodek
@@ -23,17 +29,11 @@
 #ifndef _loader_h
 #define _loader_h
 
+#include <linux/linkage.h>
 #include "loader_common.h"
 #include <asm/amigahw.h>
 #include "amigaos.h"
 
-
-    /*
-     *  m68k-cbm-amigados-gcc uses a.out Linkage Conventions
-     */
-
-#undef SYMBOL_NAME_STR
-#define SYMBOL_NAME_STR(X) "_"#X
 
 
     /*

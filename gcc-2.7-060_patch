@@ -1,0 +1,248 @@
+From jes@valhall.cern.ch  Sat Sep 20 01:19:43 1997
+Received: from nerdone.nerdnet.nl (root@ns.nerdnet.nl [194.183.110.129])
+	by superluminal.usn.nl (8.8.5/8.8.5) with SMTP id BAA17447
+	for <arno@usn.nl>; Sat, 20 Sep 1997 01:19:40 +0200
+Received: from server2.ipn.nl ([194.183.110.1]) by nerdone.nerdnet.nl (8.6.11/8.6.11) with ESMTP id BAA01141 for <arno@nerdnet.nl>; Sat, 20 Sep 1997 01:20:39 +0200
+Received: from listbox2.cern.ch (listbox2.cern.ch [137.138.24.200]) by server2.ipn.nl (8.6.11/8.6.11) with ESMTP id BAA04005 for <arno@ixe.net>; Sat, 20 Sep 1997 01:21:55 +0200
+Received: from valhall.cern.ch (valhall.cern.ch [137.138.32.161])
+	by listbox2.cern.ch (8.8.7/8.8.7) with SMTP id BAA21269
+	for <arno@ixe.net>; Sat, 20 Sep 1997 01:19:13 +0200 (MET DST)
+Received: by valhall.cern.ch (SMI-8.6/SMI-4.0)
+	id BAA05639; Sat, 20 Sep 1997 01:19:13 +0200
+Date: Sat, 20 Sep 1997 01:19:13 +0200
+From: jes@valhall.cern.ch (Jes Sorensen)
+Message-Id: <199709192319.BAA05639@valhall.cern.ch>
+To: arno@ixe.net
+Status: RO
+
+diff -urN orig/gcc-2.7.2.2/config/m68k/linux.h gcc-2.7.2.2/config/m68k/linux.h
+--- orig/gcc-2.7.2.2/config/m68k/linux.h	Sat Jul 29 13:51:09 1995
++++ gcc-2.7.2.2/config/m68k/linux.h	Thu Feb 20 18:20:15 1997
+@@ -96,7 +96,7 @@
+ #define WCHAR_TYPE_SIZE BITS_PER_WORD
+ 
+ #undef ASM_SPEC
+-#define ASM_SPEC "%{m68030} %{m68040} %{fpic:-k} %{fPIC:-k}"
++#define ASM_SPEC "%{m68030} %{m68040} %{m68060} %{fpic:-k} %{fPIC:-k}"
+ 
+ #define CPP_PREDEFINES \
+   "-D__ELF__ -Dunix -Dmc68000 -Dmc68020 -Dlinux -Asystem(unix) -Asystem(posix) -Acpu(m68k) -Amachine(m68k)"
+diff -urN orig/gcc-2.7.2.2/config/m68k/m68k.h gcc-2.7.2.2/config/m68k/m68k.h
+--- orig/gcc-2.7.2.2/config/m68k/m68k.h	Fri Oct 20 23:10:26 1995
++++ gcc-2.7.2.2/config/m68k/m68k.h	Fri Feb 21 09:36:50 1997
+@@ -90,9 +90,17 @@
+    run on a 68030 and 68881/2. */
+ #define TARGET_68040 (target_flags & 01400)
+ 
+-/* Use the 68040-only fp instructions (-m68040).  */
++/* Use the 68040-only fp instructions (-m68040 or -m68060).  */
+ #define TARGET_68040_ONLY (target_flags & 01000)
+ 
++/* Optimize for 68060, but still allow execution on 68020
++   (-m68060).
++   The 68060 will execute all 68030 and 68881/2 instructions, but some
++   of them must be emulated in software by the OS.  When TARGET_68060 is
++   turned on, these instructions won't be used.  This code will still
++   run on a 68030 and 68881/2. */
++#define TARGET_68060 (target_flags & 02000)
++
+ /* Macro to define tables used to set the flags.
+    This is a list in braces of pairs in braces,
+    each pair being { "NAME", VALUE }
+@@ -100,14 +108,14 @@
+    An empty string NAME is used to identify the default VALUE.  */
+ 
+ #define TARGET_SWITCHES  \
+-  { { "68020", -01400},				\
+-    { "c68020", -01400},			\
++  { { "68020", -03400},				\
++    { "c68020", -03400},			\
+     { "68020", 5},				\
+     { "c68020", 5},				\
+     { "68881", 2},				\
+     { "bitfield", 4},				\
+-    { "68000", -01405},				\
+-    { "c68000", -01405},			\
++    { "68000", -03405},				\
++    { "c68000", -03405},			\
+     { "soft-float", -01102},			\
+     { "nobitfield", -4},			\
+     { "rtd", 8},				\
+@@ -119,9 +127,11 @@
+     { "sky", 0200},				\
+     { "nosky", -0200},				\
+     { "68020-40", 0407},			\
+-    { "68030", -01400},				\
++    { "68030", -03400},				\
+     { "68030", 5},				\
+     { "68040", 01007},				\
++    { "68060", 03007},				\
++    { "68020-60", 02407},				\
+     { "68851", 0},	/* Affects *_SPEC and/or GAS.  */	\
+     { "no-68851", 0},	/* Affects *_SPEC and/or GAS.  */	\
+     { "68302", 0},	/* Affects *_SPEC and/or GAS.  */	\
+diff -urN orig/gcc-2.7.2.2/config/m68k/m68k.md gcc-2.7.2.2/config/m68k/m68k.md
+--- orig/gcc-2.7.2.2/config/m68k/m68k.md	Tue Nov  7 15:57:30 1995
++++ gcc-2.7.2.2/config/m68k/m68k.md	Fri Feb 21 09:36:42 1997
+@@ -92,6 +92,16 @@
+ ;;- into play by defining "%$" and "%&" to expand to "s" and "d" rather
+ ;;- than "".
+ 
++;;- Information about 68060 port.
++
++;;- The 68060 executes all 68030 and 68881/2 instructions, but some must
++;;- be emulated in software by the OS.  It is faster to avoid these 
++;;- instructions and issue a library call rather than trapping into 
++;;- the kernel.  The affected instructions are: divs.l <ea>,Dr:Dq;
++;;- divu.l <ea>,Dr:Dq; muls.l <ea>,Dr:Dq; mulu.l <ea>,Dr:Dq, fintrz;
++;;- and fscale.  The TARGET_68060 flag turns the use of the opcodes 
++;;- off.
++
+ 
+ ;;- 		FPA port explanation:
+ 
+@@ -1662,7 +1672,7 @@
+ ;; result of the SI tree to be in the lower register of the DI target
+ 
+ (define_insn "extendplussidi"
+-  [(set (match_operand:DI 0 "register_operand" "=d")
++  [(set (match_operand:DI 0 "register_operand" "=&d")
+     (sign_extend:DI (plus:SI (match_operand:SI 1 "general_operand" "%rmn")
+             (match_operand:SI 2 "general_operand" "rmn"))))]
+   ""
+@@ -1906,7 +1916,7 @@
+ (define_insn "ftruncdf2"
+   [(set (match_operand:DF 0 "general_operand" "=f")
+ 	(fix:DF (match_operand:DF 1 "general_operand" "fFm")))]
+-  "TARGET_68881 && !TARGET_68040"
++  "TARGET_68881 && !TARGET_68040 && !TARGET_68060"
+   "*
+ {
+   if (FP_REG_P (operands[1]))
+@@ -1917,7 +1927,7 @@
+ (define_insn "ftruncsf2"
+   [(set (match_operand:SF 0 "general_operand" "=f")
+ 	(fix:SF (match_operand:SF 1 "general_operand" "dfFm")))]
+-  "TARGET_68881 && !TARGET_68040"
++  "TARGET_68881 && !TARGET_68040 && !TARGET_68060"
+   "*
+ {
+   if (FP_REG_P (operands[1]))
+@@ -2939,7 +2949,7 @@
+ 	  (truncate:SI (lshiftrt:DI (mult:DI (zero_extend:DI (match_dup 1))
+ 					     (zero_extend:DI (match_dup 2)))
+ 				    (const_int 32))))])]
+-  "TARGET_68020"
++  "TARGET_68020 && !TARGET_68060"
+   "")
+ 
+ (define_insn ""
+@@ -2950,7 +2960,7 @@
+ 	(truncate:SI (lshiftrt:DI (mult:DI (zero_extend:DI (match_dup 1))
+ 					   (zero_extend:DI (match_dup 2)))
+ 				  (const_int 32))))]
+-  "TARGET_68020"
++  "TARGET_68020 && !TARGET_68060"
+   "mulu%.l %2,%3:%0")
+ 
+ ; Match immediate case.  For 2.4 only match things < 2^31.
+@@ -2965,7 +2975,7 @@
+ 	(truncate:SI (lshiftrt:DI (mult:DI (zero_extend:DI (match_dup 1))
+ 					   (match_dup 2))
+ 				  (const_int 32))))]
+-  "TARGET_68020
++  "TARGET_68020 && !TARGET_68060
+    && (unsigned) INTVAL (operands[2]) <= 0x7fffffff"
+   "mulu%.l %2,%3:%0")
+ 
+@@ -2978,7 +2988,7 @@
+ 	  (truncate:SI (lshiftrt:DI (mult:DI (sign_extend:DI (match_dup 1))
+ 					     (sign_extend:DI (match_dup 2)))
+ 				    (const_int 32))))])]
+-  "TARGET_68020"
++  "TARGET_68020 && !TARGET_68060"
+   "")
+ 
+ (define_insn ""
+@@ -2989,7 +2999,7 @@
+ 	(truncate:SI (lshiftrt:DI (mult:DI (sign_extend:DI (match_dup 1))
+ 					   (sign_extend:DI (match_dup 2)))
+ 				  (const_int 32))))]
+-  "TARGET_68020"
++  "TARGET_68020 && !TARGET_68060"
+   "muls%.l %2,%3:%0")
+ 
+ (define_insn ""
+@@ -3000,7 +3010,7 @@
+ 	(truncate:SI (lshiftrt:DI (mult:DI (sign_extend:DI (match_dup 1))
+ 					   (match_dup 2))
+ 				  (const_int 32))))]
+-  "TARGET_68020
++  "TARGET_68020 && !TARGET_68060
+    /* This test is a noop on 32 bit machines,
+       but important for a cross-compiler hosted on 64-bit machines.  */
+    && INTVAL (operands[2]) <= 0x7fffffff
+@@ -3016,7 +3026,7 @@
+ 		     (zero_extend:DI (match_operand:SI 2 "general_operand" "")))
+ 	    (const_int 32))))
+      (clobber (match_dup 3))])]
+-  "TARGET_68020"
++  "TARGET_68020 && !TARGET_68060"
+   "
+ {
+   operands[3] = gen_reg_rtx (SImode);
+@@ -3040,7 +3050,7 @@
+ 		   (zero_extend:DI (match_operand:SI 3 "nonimmediate_operand" "dm")))
+ 	  (const_int 32))))
+    (clobber (match_operand:SI 1 "register_operand" "=d"))]
+-  "TARGET_68020"
++  "TARGET_68020 && !TARGET_68060"
+   "mulu%.l %3,%0:%1")
+ 
+ (define_insn "const_umulsi3_highpart"
+@@ -3051,7 +3061,7 @@
+ 		   (match_operand 3 "const_uint32_operand" ""))
+ 	  (const_int 32))))
+    (clobber (match_operand:SI 1 "register_operand" "=d"))]
+-  "TARGET_68020"
++  "TARGET_68020 && !TARGET_68060"
+   "mulu%.l %3,%0:%1")
+ 
+ (define_expand "smulsi3_highpart"
+@@ -3063,7 +3073,7 @@
+ 		     (sign_extend:DI (match_operand:SI 2 "general_operand" "")))
+ 	    (const_int 32))))
+      (clobber (match_dup 3))])]
+-  "TARGET_68020"
++  "TARGET_68020 && !TARGET_68060"
+   "
+ {
+   operands[3] = gen_reg_rtx (SImode);
+@@ -3087,7 +3097,7 @@
+ 		   (sign_extend:DI (match_operand:SI 3 "nonimmediate_operand" "dm")))
+ 	  (const_int 32))))
+    (clobber (match_operand:SI 1 "register_operand" "=d"))]
+-  "TARGET_68020"
++  "TARGET_68020 && !TARGET_68060"
+   "muls%.l %3,%0:%1")
+ 
+ (define_insn "const_smulsi3_highpart"
+@@ -3098,7 +3108,7 @@
+ 		   (match_operand 3 "const_sint32_operand" ""))
+ 	  (const_int 32))))
+    (clobber (match_operand:SI 1 "register_operand" "=d"))]
+-  "TARGET_68020"
++  "TARGET_68020 && !TARGET_68060"
+   "muls%.l %3,%0:%1")
+ 
+ (define_expand "muldf3"
+@@ -3155,7 +3165,7 @@
+   "*
+ {
+   if (GET_CODE (operands[2]) == CONST_DOUBLE
+-      && floating_exact_log2 (operands[2]) && !TARGET_68040)
++      && floating_exact_log2 (operands[2]) && !TARGET_68040 && !TARGET_68060)
+     {
+       int i = floating_exact_log2 (operands[2]);
+       operands[2] = gen_rtx (CONST_INT, VOIDmode, i);
+

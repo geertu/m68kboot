@@ -10,10 +10,16 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: bootinf.c,v 1.6 1997-09-19 09:06:24 geert Exp $
+ * $Id: bootinf.c,v 1.7 1998-04-06 01:40:51 dorchain Exp $
  * 
  * $Log: bootinf.c,v $
- * Revision 1.6  1997-09-19 09:06:24  geert
+ * Revision 1.7  1998-04-06 01:40:51  dorchain
+ * make loader linux-elf.
+ * made amiga bootblock working again
+ * compiled, but not tested bootstrap
+ * loader breaks with MapOffset problem. Stack overflow?
+ *
+ * Revision 1.6  1997/09/19 09:06:24  geert
  * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
  *
  * Revision 1.5  1997/07/17 14:22:24  geert
@@ -35,9 +41,15 @@
  */
 
 #include <stdio.h>
+#ifdef IN_BOOTSTRAP
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#else
+#ifdef IN_LILO
+#include "strlib.h"
+#endif
+#endif
 #include <sys/types.h>
 
 /* Check that kernel headers are sufficiently new */

@@ -7,10 +7,16 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  *
- * $Id: stream.c,v 1.6 1998-02-26 10:04:10 rnhodek Exp $
+ * $Id: stream.c,v 1.7 1998-04-06 01:40:52 dorchain Exp $
  * 
  * $Log: stream.c,v $
- * Revision 1.6  1998-02-26 10:04:10  rnhodek
+ * Revision 1.7  1998-04-06 01:40:52  dorchain
+ * make loader linux-elf.
+ * made amiga bootblock working again
+ * compiled, but not tested bootstrap
+ * loader breaks with MapOffset problem. Stack overflow?
+ *
+ * Revision 1.6  1998/02/26 10:04:10  rnhodek
  * Reset fpos and last_shown on stream_push(), so that their counts don't
  * show up during later opens.
  *
@@ -120,6 +126,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <minmax.h>
+#include <linux/linkage.h>
 
 #include "bootstrap.h"
 #include "stream.h"
@@ -128,7 +135,7 @@
 MODULE head_mod = {
 	"head",						/* name */
 	0,							/* maxbuf (unused) */
-	NULL, NULL, NULL, NULL,		/* methods */
+	NULL, NULL, NULL, NULL, NULL,		/* methods */
 	MOD_REST_INIT
 };
 
@@ -189,11 +196,23 @@ void stream_push( MODULE *mod )
 		}														\
     } while(0)
 
+#ifndef IN_LILO
 /* macros for accessing the methods of current module */
 #define MOD_OPEN(name)		((*currmod->open)( (name) ))
 #define MOD_FILLBUF(buf)	((*currmod->fillbuf)( (buf) ))
 #define MOD_SKIP(off)		((*currmod->skip)( (off) ))
 #define MOD_CLOSE()			((*currmod->close)())
+#define	MOD_FILESIZE()		((*currmod->filesize)())
+
+#else /* jump with adjusted offset */
+extern u_long int_fkt_offset_jmp(void *,...);
+#define MOD_OPEN(name)		(int_fkt_offset_jmp(currmod->open, (name)))
+#define MOD_FILLBUF(buf)	(int_fkt_offset_jmp(currmod->fillbuf, (buf) ))
+#define MOD_SKIP(off)		(int_fkt_offset_jmp(currmod->skip, (off) ))
+#define MOD_CLOSE()		(int_fkt_offset_jmp(currmod->close))
+#define	MOD_FILESIZE()		(int_fkt_offset_jmp(currmod->filesize))
+
+#endif /* IN_LILO */
 
 #define ADJUST_USERBUF(len)						\
 	do {										\
@@ -257,7 +276,7 @@ long sfilesize( void )
 	long rv;
 	
 	DOWN_MOD();
-	rv = currmod->filesize ? currmod->filesize() : -1;
+	rv = currmod->filesize ? MOD_FILESIZE() : -1;
 	UP_MOD();
 	return( rv );
 }

@@ -7,10 +7,16 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: amigaos.h,v 1.3 1998-02-19 20:40:13 rnhodek Exp $
+ * $Id: amigaos.h,v 1.4 1998-04-06 01:40:56 dorchain Exp $
  * 
  * $Log: amigaos.h,v $
- * Revision 1.3  1998-02-19 20:40:13  rnhodek
+ * Revision 1.4  1998-04-06 01:40:56  dorchain
+ * make loader linux-elf.
+ * made amiga bootblock working again
+ * compiled, but not tested bootstrap
+ * loader breaks with MapOffset problem. Stack overflow?
+ *
+ * Revision 1.3  1998/02/19 20:40:13  rnhodek
  * Make things compile again
  *
  * Revision 1.2  1997/09/19 09:06:50  geert
@@ -264,7 +270,7 @@ static __inline char AbortIO(struct IORequest *ioRequest)
     register const struct ExecBase *a6 __asm("a6") = SysBase;
     register struct IORequest *a1 __asm("a1") = ioRequest;
 
-    __asm __volatile ("jsr a6@(-0x1e0);"
+    __asm __volatile ("jsr %%a6@(-0x1e0);"
 		      : "=r" (_res)
 		      : "r" (a6), "r" (a1)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -276,7 +282,7 @@ static __inline void Alert(u_long alertNum)
     register const struct ExecBase *a6 __asm("a6") = SysBase;
     register u_long d7 __asm("d7") = alertNum;
 
-    __asm __volatile ("jsr a6@(-0x6c);"
+    __asm __volatile ("jsr %%a6@(-0x6c);"
 		      : /* no output */
 		      : "r" (a6), "r" (d7)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -288,7 +294,7 @@ static __inline u_short CheckIO(struct IORequest *ioRequest)
     register const struct ExecBase *a6 __asm("a6") = SysBase;
     register struct IORequest *a1 __asm("a1") = ioRequest;
 
-    __asm __volatile ("jsr a6@(-0x1d4);"
+    __asm __volatile ("jsr %%a6@(-0x1d4);"
 		      : "=r" (_res)
 		      : "r" (a6), "r" (a1)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -300,7 +306,7 @@ static __inline void CloseDevice(struct IORequest *ioRequest)
     register const struct ExecBase *a6 __asm("a6") = SysBase;
     register struct IORequest *a1 __asm("a1") = ioRequest;
 
-    __asm __volatile ("jsr a6@(-0x1c2);"
+    __asm __volatile ("jsr %%a6@(-0x1c2);"
 		      : /* no output */
 		      : "r" (a6), "r" (a1)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -311,7 +317,7 @@ static __inline void CloseLibrary(struct Library *library)
     register const struct ExecBase *a6 __asm("a6") = SysBase;
     register struct Library *a1 __asm("a1") = library;
 
-    __asm __volatile ("jsr a6@(-0x19e);"
+    __asm __volatile ("jsr %%a6@(-0x19e);"
 		      : /* no output */
 		      : "r" (a6), "r" (a1)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -324,7 +330,7 @@ static __inline void *CreateIORequest(struct MsgPort *port, u_long size)
     register struct MsgPort *a0 __asm("a0") = port;
     register u_long d0 __asm("d0") = size;
 
-    __asm __volatile ("jsr a6@(-0x28e);"
+    __asm __volatile ("jsr %%a6@(-0x28e);"
 		      : "=r" (_res)
 		      : "r" (a6), "r" (a0), "r" (d0)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -336,7 +342,7 @@ static __inline struct MsgPort *CreateMsgPort(void)
     register struct MsgPort *_res __asm("d0");
     register const struct ExecBase *a6 __asm("a6") = SysBase;
 
-    __asm __volatile ("jsr a6@(-0x29a);"
+    __asm __volatile ("jsr %%a6@(-0x29a);"
 		      : "=r" (_res)
 		      : "r" (a6)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -348,7 +354,7 @@ static __inline void DeleteIORequest(void *ioRequest)
     register const struct ExecBase *a6 __asm("a6") = SysBase;
     register void *a0 __asm("a0") = ioRequest;
 
-    __asm __volatile ("jsr a6@(-0x294);"
+    __asm __volatile ("jsr %%a6@(-0x294);"
 		      : /* no output */
 		      : "r" (a6), "r" (a0)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -359,7 +365,7 @@ static __inline void DeleteMsgPort(struct MsgPort *port)
     register const struct ExecBase *a6 __asm("a6") = SysBase;
     register struct MsgPort *a0 __asm("a0") = port;
 
-    __asm __volatile ("jsr a6@(-0x2a0);"
+    __asm __volatile ("jsr %%a6@(-0x2a0);"
 		      : /* no output */
 		      : "r" (a6), "r" (a0)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -371,7 +377,7 @@ static __inline char DoIO(struct IORequest *ioRequest)
     register const struct ExecBase *a6 __asm("a6") = SysBase;
     register struct IORequest *a1 __asm("a1") = ioRequest;
 
-    __asm __volatile ("jsr a6@(-0x1c8);"
+    __asm __volatile ("jsr %%a6@(-0x1c8);"
 		      : "=r" (_res)
 		      : "r" (a6), "r" (a1)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -388,7 +394,7 @@ static __inline char OpenDevice(const u_char *devName, u_long unit,
     register struct IORequest *a1 __asm("a1") = ioRequest;
     register u_long d1 __asm("d1") = flags;
 
-    __asm __volatile ("jsr a6@(-0x1bc);"
+    __asm __volatile ("jsr %%a6@(-0x1bc);"
 		      : "=r" (_res)
 		      : "r" (a6), "r" (a0), "r" (a1), "r" (d0), "r" (d1)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -403,7 +409,7 @@ static __inline struct Library *OpenLibrary(const u_char *libName,
     register const u_char *a1 __asm("a1") = libName;
     register u_long d0 __asm("d0") = version;
 
-    __asm __volatile ("jsr a6@(-0x228);"
+    __asm __volatile ("jsr %%a6@(-0x228);"
 		      : "=r" (_res)
 		      : "r" (a6), "r" (a1), "r" (d0)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -420,7 +426,7 @@ static __inline void *RawDoFmt(const u_char *formatString, void *dataStream,
     register void (*a2)() __asm("a2") = putChProc;
     register void *a3 __asm("a3") = putChData;
 
-    __asm __volatile ("jsr a6@(-0x20a);"
+    __asm __volatile ("jsr %%a6@(-0x20a);"
 		      : "=r" (_res)
 		      : "r" (a6), "r" (a0), "r" (a1), "r" (a2), "r" (a3)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -432,7 +438,7 @@ static __inline long RawMayGetChar(void)
     register long _res __asm("d0");
     register const struct ExecBase *a6 __asm("a6") = SysBase;
 
-    __asm __volatile ("jsr a6@(-0x1fe);"
+    __asm __volatile ("jsr %%a6@(-0x1fe);"
 		      : "=r" (_res)
 		      : "r" (a6)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -444,7 +450,7 @@ static __inline void RawPutChar(char c)
     register const struct ExecBase *a6 __asm("a6") = SysBase;
     register char d0 __asm("d0") = c;
 
-    __asm __volatile ("jsr a6@(-0x204);"
+    __asm __volatile ("jsr %%a6@(-0x204);"
 		      : /* no output */
 		      : "r" (a6), "r" (d0)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -455,7 +461,7 @@ static __inline void SendIO(struct IORequest *ioRequest)
     register const struct ExecBase *a6 __asm("a6") = SysBase;
     register struct IORequest *a1 __asm("a1") = ioRequest;
 
-    __asm __volatile ("jsr a6@(-0x1ce);"
+    __asm __volatile ("jsr %%a6@(-0x1ce);"
 		      : /* no output */
 		      : "r" (a6), "r" (a1)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -470,7 +476,7 @@ static __inline void *SetFunction(struct Library *library, long funcOffset,
     register long a0 __asm("a0") = funcOffset;
     register void *d0 __asm("d0") = funcEntry;
 
-    __asm __volatile ("jsr a6@(-0x1a4);"
+    __asm __volatile ("jsr %%a6@(-0x1a4);"
 		      : "=r" (_res)
 		      : "r" (a6), "r" (a1), "r" (a0), "r" (d0)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -483,7 +489,7 @@ static __inline char WaitIO(struct IORequest *ioRequest)
     register const struct ExecBase *a6 __asm("a6") = SysBase;
     register struct IORequest *a1 __asm("a1") = ioRequest;
 
-    __asm __volatile ("jsr a6@(-0x1da);"
+    __asm __volatile ("jsr %%a6@(-0x1da);"
 		      : "=r" (_res)
 		      : "r" (a6), "r" (a1)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -498,7 +504,7 @@ static __inline u_short PeekQualifier(void)
     register u_short _res __asm("d0");
     register const struct InputBase *a6 __asm("a6") = InputBase;
 
-    __asm __volatile ("jsr a6@(-0x2a);"
+    __asm __volatile ("jsr %%a6@(-0x2a);"
 		      : "=r" (_res)
 		      : "r" (a6)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -512,7 +518,7 @@ static __inline void DisOwnBlitter(void)
 {
     register const struct GfxBase *a6 __asm("a6") = GfxBase;
 
-    __asm __volatile ("jsr a6@(-0x1ce);"
+    __asm __volatile ("jsr %%a6@(-0x1ce);"
 		      : /* no output */
 		      : "r" (a6)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -522,7 +528,7 @@ static __inline void OwnBlitter(void)
 {
     register const struct GfxBase *a6 __asm("a6") = GfxBase;
 
-    __asm __volatile ("jsr a6@(-0x1c8);"
+    __asm __volatile ("jsr %%a6@(-0x1c8);"
 		      : /* no output */
 		      : "r" (a6)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -537,7 +543,7 @@ static __inline u_short CloseScreen(struct Screen *screen)
     register const struct IntuitionBase *a6 __asm("a6") = IntuitionBase;
     register struct Screen *a0 __asm("a0") = screen;
 
-    __asm __volatile ("jsr a6@(-0x42);"
+    __asm __volatile ("jsr %%a6@(-0x42);"
 		      : "=r" (_res)
 		      : "r" (a6), "r" (a0)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -549,7 +555,7 @@ static __inline void CloseWindow(struct Window *window)
     register const struct IntuitionBase *a6 __asm("a6") = IntuitionBase;
     register struct Window *a0 __asm("a0") = window;
 
-    __asm __volatile ("jsr a6@(-0x48);"
+    __asm __volatile ("jsr %%a6@(-0x48);"
 		      : /* no output */
 		      : "r" (a6), "r" (a0)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -561,7 +567,7 @@ static __inline struct Screen *OpenScreen(struct NewScreen *newScreen)
     register const struct IntuitionBase *a6 __asm("a6") = IntuitionBase;
     register struct NewScreen *a0 __asm("a0") = newScreen;
 
-    __asm __volatile ("jsr a6@(-0xc6);"
+    __asm __volatile ("jsr %%a6@(-0xc6);"
 		      : "=r" (_res)
 		      : "r" (a6), "r" (a0)
 		      : "a0", "a1", "d0", "d1", "memory");
@@ -574,7 +580,7 @@ static __inline struct Window *OpenWindow(struct NewWindow *newWindow)
     register const struct IntuitionBase *a6 __asm("a6") = IntuitionBase;
     register struct NewWindow *a0 __asm("a0") = newWindow;
 
-    __asm __volatile ("jsr a6@(-0xcc);"
+    __asm __volatile ("jsr %%a6@(-0xcc);"
 		      : "=r" (_res)
 		      : "r" (a6), "r" (a0)
 		      : "a0", "a1", "d0", "d1", "memory");

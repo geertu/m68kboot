@@ -6,10 +6,16 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: parsetags.c,v 1.3 1998-02-26 11:16:13 rnhodek Exp $
+ * $Id: parsetags.c,v 1.4 1998-04-06 01:40:56 dorchain Exp $
  * 
  * $Log: parsetags.c,v $
- * Revision 1.3  1998-02-26 11:16:13  rnhodek
+ * Revision 1.4  1998-04-06 01:40:56  dorchain
+ * make loader linux-elf.
+ * made amiga bootblock working again
+ * compiled, but not tested bootstrap
+ * loader breaks with MapOffset problem. Stack overflow?
+ *
+ * Revision 1.3  1998/02/26 11:16:13  rnhodek
  * Print notice that map file is to be readed now, so that the stream's
  * progress report doesn't look so misplaced :-)
  *
@@ -27,10 +33,9 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/types.h>
 
+#include "strlib.h"
 #include "bootstrap.h"
 #include "linuxboot.h"
 #include "loader.h"

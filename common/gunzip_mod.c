@@ -7,10 +7,16 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: gunzip_mod.c,v 1.4 1997-09-19 09:06:38 geert Exp $
+ * $Id: gunzip_mod.c,v 1.5 1998-04-06 01:40:51 dorchain Exp $
  * 
  * $Log: gunzip_mod.c,v $
- * Revision 1.4  1997-09-19 09:06:38  geert
+ * Revision 1.5  1998-04-06 01:40:51  dorchain
+ * make loader linux-elf.
+ * made amiga bootblock working again
+ * compiled, but not tested bootstrap
+ * loader breaks with MapOffset problem. Stack overflow?
+ *
+ * Revision 1.4  1997/09/19 09:06:38  geert
  * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
  *
  * Revision 1.3  1997/07/18 11:07:08  rnhodek
@@ -28,8 +34,17 @@
  */
 
 #include <stdio.h>
+#ifdef IN_BOOTSTRAP
 #include <stdlib.h>
 #include <string.h>
+#undef SYMBOL_NAME_STR
+#define SYMBOL_NAME_STR(X) "_"#X
+#else
+#ifdef IN_LILO
+#include "strlib.h"
+#include <linux/linkage.h>
+#endif
+#endif
 #include <unistd.h>
 
 #include "bootstrap.h"
@@ -229,13 +244,13 @@ static int call_gunzip( void )
 		 * function */
 		makecrc();
 		__asm__ __volatile__ (
-			"movl	%/sp,_main_sp\n\t"	/* save current sp */
-			"movl	%/a6,_main_fp\n\t"	/* and fp */
+			"movl	%/sp,"SYMBOL_NAME_STR(main_sp)"\n\t"	/* save current sp */
+			"movl	%/a6,"SYMBOL_NAME_STR(main_fp)"\n\t"	/* and fp */
 			"movl	%1,%/sp\n\t"		/* move to new stack */
-			"jbsr	_gunzip\n\t"		/* call the function */
-		"_return_from_flush:\n\t" 		/* point of coming back */
-			"movl	_main_sp,%/sp\n\t"	/* restore main sp */
-			"movl	_main_fp,%/a6" 		/* and fp */
+			"jbsr	"SYMBOL_NAME_STR(gunzip)"\n\t"		/* call the function */
+		SYMBOL_NAME_STR(return_from_flush)":\n\t" 		/* point of coming back */
+			"movl	"SYMBOL_NAME_STR(main_sp)",%/sp\n\t"	/* restore main sp */
+			"movl	"SYMBOL_NAME_STR(main_fp)",%/a6" 		/* and fp */
 			: "=d" (asm_rv)
 			: "g" (gunzip_stack+GUNZIP_STACK_SIZE-sizeof(int))
 			: "d1", "d2", "d3", "d4", "d5", "d6", "d7", "a0", "a1", "a2", "a3",
@@ -246,9 +261,9 @@ static int call_gunzip( void )
 	else {
 		/* gunzip() is already active, jump to where it left off */
 		__asm__ __volatile__ (
-			"movl	%/sp,_main_sp\n\t"	/* save current sp */
-			"movl	%/a6,_main_fp\n\t"	/* and fp */
-			"movl	_gunzip_jumpback,%/a0\n\t"
+			"movl	%/sp,"SYMBOL_NAME_STR(main_sp)"\n\t"	/* save current sp */
+			"movl	%/a6,"SYMBOL_NAME_STR(main_fp)"\n\t"	/* and fp */
+			"movl	"SYMBOL_NAME_STR(gunzip_jumpback)",%/a0\n\t"
 			"jmp	%/a0@"
 			: /* no outputs */
 			: /* no inputs */
@@ -262,11 +277,11 @@ static int call_gunzip( void )
 #define RETURN_TO_MAIN_STACK()												\
 	__asm__ __volatile__ (													\
 		"movml	%/d2-%/d7/%/a2-%/a6,%/sp@-\n\t"	/* save call-saved regs */	\
-		"movl	%/sp,_gunzip_sp\n\t" 			/* save current sp */		\
-		"movl	#1f,_gunzip_jumpback\n\t" 		/* save return address */	\
-		"movl	_outcnt,%/d0\n\t"				/* return value */			\
-		"jmp	_return_from_flush\n" 			/* and return... */			\
-	"1:\tmovl	_gunzip_sp,%/sp\n\t" 			/* restore sp */			\
+		"movl	%/sp,"SYMBOL_NAME_STR(gunzip_sp)"\n\t" 			/* save current sp */		\
+		"movl	#1f,"SYMBOL_NAME_STR(gunzip_jumpback)"\n\t" 		/* save return address */	\
+		"movl	"SYMBOL_NAME_STR(outcnt)",%/d0\n\t"				/* return value */			\
+		"jmp	"SYMBOL_NAME_STR(return_from_flush)"\n" 			/* and return... */			\
+	"1:\tmovl	"SYMBOL_NAME_STR(gunzip_sp)",%/sp\n\t" 			/* restore sp */			\
 		"movml	%/sp@+,%/d2-%/d7/%/a2-%/a6"		/* restore registers */		\
 		: /* no outputs */													\
 		: /* no inputs */													\
