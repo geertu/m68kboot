@@ -7,10 +7,16 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: crt0.S,v 1.5 1998-02-26 10:19:03 rnhodek Exp $
+ * $Id: crt0.S,v 1.6 1998-02-27 10:20:33 rnhodek Exp $
  * 
  * $Log: crt0.S,v $
- * Revision 1.5  1998-02-26 10:19:03  rnhodek
+ * Revision 1.6  1998-02-27 10:20:33  rnhodek
+ * Save system stack contents (before call of root sector) and restore
+ * them before returning to ROM, because GEMDOS uses the same memory as
+ * default supervisor stack for new programs.
+ * Don't keep our exception debugging after the loader exited (was for debugging).
+ *
+ * Revision 1.5  1998/02/26 10:19:03  rnhodek
  * Don't trap Line-A vector with exc_general, it's used by the VDI :-)
  * Let BP_ENV point to space after the basepage; removed dummy_env.
  * For now, don't restore the vector table so that we can debug errors
@@ -115,7 +121,10 @@ _CurrentFloppy:
 halt_text:
 	.ascii	"LILO loader exited -- system halted."
 	.byte	13,10,0
-	
+
+	.bss
+	.comm	stack_save_area,76
+		
 /*
  * used globals
  */
@@ -271,7 +280,19 @@ end_reloc:
 	movl	a5,__base
 	movl	d7,__PgmSize
 	movl	#STACK_SIZE,__stksize
-	
+
+	/* Save our current stack contents, because Pexec() uses the same area
+	 * as default supervisor stack for new programs. We need to save:
+	 * 15 registers (d0-d7/a0-a6), the return addr to the disk boot
+	 * routine, 2 local variables there, and the return addr to the main
+	 * booting function. All in all 19 longs.
+	 */
+	movq	#18,d0
+	movl	sp,a0
+	lea	pc@(stack_save_area),a1
+1:	movl	a0@+,a1@+
+	dbra	d0,1b
+		
 /* Output another 'o' to indicate that the Mshrink is done and the basepage
  * has been set up */
 	moveq	#'o',d0
@@ -293,7 +314,7 @@ end_reloc:
 	trap	#1        /* Mfree(_base), free the loader's TPA */
 	addql	#6,sp
 
-#ifdef DEBUG_EXCEPTIONS_NOTDEF
+#ifdef DEBUG_EXCEPTIONS
 	/* restore old vectors */
 	lea	0x8,a1
 	lea	save_vecs,a0
@@ -301,6 +322,13 @@ end_reloc:
 1:	movl	a0@+,a1@+
 	dbra	d0,1b
 #endif
+
+	/* restore our stack that was probably trashed by Pexec() */
+	movq	#18,d0
+	movl	sp,a0
+	lea	pc@(stack_save_area),a1
+1:	movl	a1@+,a0@+
+	dbra	d0,1b
 	
 	movl	_ExitAction,d0
 	cmpl	#1,d0
