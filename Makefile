@@ -7,10 +7,14 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.15 1998-03-16 10:33:39 rnhodek Exp $
+# $Id: Makefile,v 1.16 1998-03-16 10:49:34 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.15  1998-03-16 10:33:39  rnhodek
+# Revision 1.16  1998-03-16 10:49:34  rnhodek
+# 1.15 has been done by Andreas Schwab, I just commited the version
+# under the wrong login...
+#
+# Revision 1.15  1998/03/16 10:33:39  schwab
 # Pass empty prefix by default.
 #
 # Revision 1.14  1998/03/04 09:08:47  rnhodek
