@@ -1,4 +1,13 @@
 <!doctype linuxdoc system>
+<!--
+$Id: lilo.sgml,v 1.5 1998-03-16 15:50:51 rnhodek Exp $
+
+$Log: lilo.sgml,v $
+Revision 1.5  1998-03-16 15:50:51  rnhodek
+Added cvs headers.
+
+
+-->
 
 <article>
 
