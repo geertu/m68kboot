@@ -21,10 +21,13 @@
  *  License.  See the file COPYING in the main directory of this archive
  *  for more details.
  * 
- * $Id: linuxboot.h,v 1.7 1997-09-19 09:06:42 geert Exp $
+ * $Id: linuxboot.h,v 1.8 1998-04-07 09:46:46 rnhodek Exp $
  * 
  * $Log: linuxboot.h,v $
- * Revision 1.7  1997-09-19 09:06:42  geert
+ * Revision 1.8  1998-04-07 09:46:46  rnhodek
+ * Add definition of __u32, which is used in 2.1.90+ zorro.h
+ *
+ * Revision 1.7  1997/09/19 09:06:42  geert
  * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
  *
  * Revision 1.6  1997/08/12 15:26:55  rnhodek
@@ -56,6 +59,7 @@
 
 
 typedef unsigned int u32;
+typedef unsigned int __u32;
 
 #include <sys/types.h>
 #define _LINUX_TYPES_H		/* Hack to prevent including <linux/types.h> */
