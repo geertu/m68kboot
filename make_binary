@@ -4,26 +4,42 @@ set -e
 version=`awk '/VERSION/ {print $3}' version.h | tr -d '"'`
 
 if [ -f bootstrap/amiga/amiboot ]; then
+	echo "Creating amiboot-$version.gz"
 	install -m644 bootstrap/amiga/amiboot ../amiboot-$version
 	gzip -9f ../amiboot-$version
 fi
 
 if [ -f bootstrap/atari/ataboot.ttp ]; then
+	echo "Creating ataboot-$version.gz"
 	install -m644 bootstrap/atari/ataboot.ttp ../ataboot-$version
 	gzip -9f ../ataboot-$version
 fi
 
 for mach in amiga atari; do
 	if [ -f lilo/$mach/lilo ]; then
+		echo "Creating $mach-lilo-$version.tar.gz"
 		rm -rf tmp
-		mkdir -p tmp/{etc,sbin,boot,man/man8}
+		mkdir -p tmp/{etc,sbin,boot}
+		mkdir -p tmp/usr/{man/man8,doc/m68kboot,lib/m68kboot,info}
 		install -m755 lilo/$mach/lilo tmp/sbin
-		install -m644 lilo/$mach/loader tmp/boot
+		install -m644 lilo/$mach/loader tmp/boot/loader.$mach
 		install -m644 lilo/$mach/lilo.conf.example tmp/etc
-		install -m644 doc/lilo.8 tmp/man/man8
-		(cd tmp; tar cvf ../../$mach-lilo-$version.tar *)
+		install -m644 doc/lilo.8 tmp/usr/man/man8
+		for docfile in lilo.txt lilo.dvi lilo.ps; do
+			if [ -f doc/$docfile ]; then
+				install -m644 doc/$docfile tmp/usr/doc/m68kboot
+			fi
+		done
+		if [ -f doc/lilo.info ]; then
+			install -m644 doc/lilo.info tmp/usr/info
+		fi
+		if [ "$mach" = atari ]; then
+			install -m755 lilo/atari/bootos tmp/sbin
+			install -m644 lilo/atari/bootflags.cpx/bootflag.cpx tmp/usr/lib/m68kboot
+		fi
+		(cd tmp; tar cf ../../$mach-lilo-$version.tar *)
 		gzip -9f ../$mach-lilo-$version.tar
-		mrm -rf tmp
+		rm -rf tmp
 	fi
 done
 
