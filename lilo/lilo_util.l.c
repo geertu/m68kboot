@@ -13,10 +13,14 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo_util.l.c,v 1.2 1997-08-12 21:51:02 rnhodek Exp $
+ * $Id: lilo_util.l.c,v 1.3 1997-08-23 23:10:41 rnhodek Exp $
  * 
  * $Log: lilo_util.l.c,v $
- * Revision 1.2  1997-08-12 21:51:02  rnhodek
+ * Revision 1.3  1997-08-23 23:10:41  rnhodek
+ * Add sector number in printout of {Read,Write}BootBlock
+ * Fix bug in map calculation
+ *
+ * Revision 1.2  1997/08/12 21:51:02  rnhodek
  * Written last missing parts of Atari lilo and made everything compile
  *
  * Revision 1.1  1997/08/12 15:26:57  rnhodek
@@ -195,7 +199,7 @@ void ReadBootBlock(const char *name, u_long sector)
     int fh;
 
     if (Verbose)
-	printf("Reading boot block from `%s'\n", name);
+	printf("Reading boot block from `%s' (sector %lu)\n", name, sector);
 
     if ((fh = open(name, O_RDONLY)) == -1)
 	Error_Open(name);
@@ -216,7 +220,8 @@ void WriteBootBlock(const char *name, u_long sector)
     int fh;
 
     if (Verbose)
-	printf("Writing boot block to device `%s'\n", name);
+	printf("Writing boot block to device `%s' (sector %lu)\n",
+	       name, sector);
 
     if ((fh = open(name, O_RDWR)) == -1)
 	Error_Open(name);
@@ -436,8 +441,7 @@ const struct vecent *CreateVector( const char *name, int *numblocks )
     sectors_per_block = blksize/HARD_SECTOR_SIZE;
     nblocks = (size+blksize-1)/blksize;
 
-    vector[1].start = vector[1].length = 0;
-    for( blk = 0, i = 1; blk < nblocks; ++blk ) {
+    for( blk = 0, i = 0; blk < nblocks; ++blk ) {
 	offset = blk;
 	if (ioctl(fh, FIBMAP, &offset) == -1)
 	    Error_Ioctl(name, "FIBMAP");
@@ -445,7 +449,8 @@ const struct vecent *CreateVector( const char *name, int *numblocks )
 	if (offset == 0) {
 	    /* hole in file */
 	    for( j = sectors_per_block; j > 0; j -= n ) {
-		if (vector[i].start != HoleSector ||
+		if (i == 0 ||
+		    vector[i].start != HoleSector ||
 		    vector[i].length >= MaxHoleSectors) {
 		    ++i;
 		    vector[i].start  = HoleSector;
@@ -458,7 +463,7 @@ const struct vecent *CreateVector( const char *name, int *numblocks )
 	else {
 	    /* not a hole */
 	    thisstart = start + offset*sectors_per_block;
-	    if (vector[i].start + vector[i].length == thisstart)
+	    if (i != 0 && vector[i].start + vector[i].length == thisstart)
 		vector[i].length += sectors_per_block;
 	    else {
 		++i;
