@@ -1,3 +1,6 @@
+#ifndef _strlib_h
+#define _strlib_h
+
 extern size_t strlen(const char * s);
 extern int strcmp(const char * cs,const char * ct);
 extern int strncmp(const char * cs,const char * ct,size_t count);
@@ -39,3 +42,6 @@ static inline unsigned char toupper(unsigned char c)
 		c -= 'a'-'A';
 	return c;
 }
+
+#endif  /* _strlib_h */
+
