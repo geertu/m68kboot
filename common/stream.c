@@ -7,10 +7,14 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  *
- * $Id: stream.c,v 1.5 1998-02-24 11:11:41 rnhodek Exp $
+ * $Id: stream.c,v 1.6 1998-02-26 10:04:10 rnhodek Exp $
  * 
  * $Log: stream.c,v $
- * Revision 1.5  1998-02-24 11:11:41  rnhodek
+ * Revision 1.6  1998-02-26 10:04:10  rnhodek
+ * Reset fpos and last_shown on stream_push(), so that their counts don't
+ * show up during later opens.
+ *
+ * Revision 1.5  1998/02/24 11:11:41  rnhodek
  * In stream_push(), set mod->down->up only if downstream module exists
  *
  * Revision 1.4  1997/07/18 11:07:08  rnhodek
@@ -160,6 +164,7 @@ void stream_push( MODULE *mod )
 	head_mod.down = mod;
 	if (mod->down)
 		mod->down->up = mod;
+	mod->fpos = mod->last_shown = 0;
 }
 
 /* ------------------------------------------------------------------------ */
