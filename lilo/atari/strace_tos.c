@@ -7,10 +7,15 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: strace_tos.c,v 1.2 1998-03-02 13:57:58 rnhodek Exp $
+ * $Id: strace_tos.c,v 1.3 1998-03-03 11:33:49 rnhodek Exp $
  * 
  * $Log: strace_tos.c,v $
- * Revision 1.2  1998-03-02 13:57:58  rnhodek
+ * Revision 1.3  1998-03-03 11:33:49  rnhodek
+ * Added "unused" attrib to TraceStack, it's only referenced in asm code.
+ * Make also *table global.
+ * Also check TraceWhat in do_retval[_se]().
+ *
+ * Revision 1.2  1998/03/02 13:57:58  rnhodek
  * Several fixes to really make it work, and many additions.
  *
  * Revision 1.1  1998/02/27 10:25:25  rnhodek
@@ -35,7 +40,7 @@ static int TraceWhat = 0;
 static int InTrace = 0;
 static int InhibitBIOS = 0;
 static char PrtBuf[256];
-static char TraceStack[4096];
+static char TraceStack[4096] __attribute__ ((unused));
 #define TRACE_STACK_END	"_TraceStack+4096-4"
 
 /* max. bytes to print of Fread/Frwite buffers */
@@ -444,13 +449,13 @@ _my_trap14:
 /* global so that do_retval can use them, too */
 static int funcnr;
 static long args[7];
+static TABENT *table = NULL;
 
 
 static void do_trace( int trapno, char *_argp )
 {
 	char *argp = _argp; /* make a copy to leave arg untouched */
 	int i;
-	TABENT *table = NULL;
 	char *p;
 	int skip_std_fmt = 0;
 	
@@ -587,6 +592,9 @@ static void do_retval( long val )
 {
 	int skip_std_fmt = 0;
 	
+	if (!(table->flags & TraceWhat))
+		return;
+
 	/* catch some special cases */
 	if (funcnr == 10) {
 		/* Cconrs */
@@ -645,6 +653,9 @@ static void do_retval( long val )
 /* Special version for return from Supexec() */
 static void do_retval_se( long val )
 {	
+	if (!(table->flags & TraceWhat))
+		return;
+
 	bputs( "Supexec(...) = " );
 	do_retval( val );
 }
