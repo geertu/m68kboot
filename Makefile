@@ -7,10 +7,13 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.12 1998-02-26 11:37:09 rnhodek Exp $
+# $Id: Makefile,v 1.13 1998-03-03 15:11:08 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.12  1998-02-26 11:37:09  rnhodek
+# Revision 1.13  1998-03-03 15:11:08  rnhodek
+# Remove TAGS only on distclean, not clean.
+#
+# Revision 1.12  1998/02/26 11:37:09  rnhodek
 # Added commands for doc subdir.
 #
 # Revision 1.11  1998/02/23 10:12:48  rnhodek
@@ -125,12 +128,12 @@ doc:
 	$(MAKE) -C doc
 
 clean:
-	rm -f TAGS
 	$(MAKE) -C bootstrap clean
 	$(MAKE) -C lilo clean
 	$(MAKE) -C doc clean
 
 distclean:
+	rm -f TAGS
 	$(MAKE) -C bootstrap distclean
 	$(MAKE) -C lilo distclean
 	$(MAKE) -C doc distclean
