@@ -12,14 +12,18 @@ if [ $# -eq 2 ]; then
 else
 	# get machine type
 	machtype=`awk '/^Model:/ {print $2}' /proc/hardware | tr A-Z a-z`
-	if [ -z "$machtype" ]; then
+	case $machtype in
+	'')
 		echo "Could not determine machine type!" 1>&2
 		exit 1
-	fi
-	if [ "$machtype" -ne "atari" -a "$machtype" -ne "amiga" ]; then
+		;;
+	atari|amiga)
+		;;
+	*)
 		echo "Unsupported machine type: $machtype" 1>&2
 		exit 1
-	fi
+		;;
+	esac
 fi
 
 set -v
