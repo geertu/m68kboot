@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: parser.h,v 1.4 1998-03-06 09:50:39 rnhodek Exp $
+ * $Id: parser.h,v 1.5 1998-03-10 10:31:53 rnhodek Exp $
  * 
  * $Log: parser.h,v $
- * Revision 1.4  1998-03-06 09:50:39  rnhodek
+ * Revision 1.5  1998-03-10 10:31:53  rnhodek
+ * New option "message".
+ *
+ * Revision 1.4  1998/03/06 09:50:39  rnhodek
  * New option skip-on-keys.
  *
  * Revision 1.3  1998/03/04 09:19:03  rnhodek
@@ -41,9 +44,9 @@ struct Config {
 
 #define MACH_CONFIG_INIT													\
     NULL, NULL,	NULL,														\
-    { NULL, NULL, NULL, NULL, NULL, NULL, { NULL, }, { NULL, }, { NULL, },	\
-	  { NULL, },  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 	\
-	  NULL, NULL, NULL, { NULL } },											\
+    { NULL, NULL, NULL, NULL, NULL, NULL, NULL, { NULL, }, { NULL, },		\
+	  { NULL, }, { NULL, },  NULL, NULL, NULL, NULL, NULL, NULL, NULL,		\
+	  NULL, NULL, NULL, NULL, NULL, { NULL } },								\
     NULL, NULL
 
 
