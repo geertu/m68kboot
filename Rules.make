@@ -1,10 +1,13 @@
 #
 # common definitions and rules for Makefiles
 #
-# $Id: Rules.make,v 1.3 1997-07-16 10:32:48 rnhodek Exp $
+# $Id: Rules.make,v 1.4 1997-07-16 13:29:10 rnhodek Exp $
 #
 # $Log: Rules.make,v $
-# Revision 1.3  1997-07-16 10:32:48  rnhodek
+# Revision 1.4  1997-07-16 13:29:10  rnhodek
+# Add targets to make .i and .s files; remove those files on make clean
+#
+# Revision 1.3  1997/07/16 10:32:48  rnhodek
 # Implemented dep target; more minor Makefile changes
 #
 # Revision 1.2  1997/07/16 09:29:09  rnhodek
@@ -36,6 +39,18 @@ amiga/%.o: %.c
 
 atari/%.o: %.c
 	$(ATARI_COMPILE) -c $< -o $@
+
+amiga/%.i: %.c
+	$(AMIGA_COMPILE) -E -dD $< -o $@
+
+atari/%.i: %.c
+	$(ATARI_COMPILE) -E -dD $< -o $@
+
+amiga/%.s: %.c
+	$(AMIGA_COMPILE) -S $< -o $@
+
+atari/%.s: %.c
+	$(ATARI_COMPILE) -S $< -o $@
 
 depend-amiga/%.o: %.c
 	$(AMIGA_COMPILE) -MM $< >>amiga/.depend

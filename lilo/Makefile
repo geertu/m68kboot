@@ -7,10 +7,13 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.3 1997-07-16 10:32:54 rnhodek Exp $
+# $Id: Makefile,v 1.4 1997-07-16 13:29:11 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.3  1997-07-16 10:32:54  rnhodek
+# Revision 1.4  1997-07-16 13:29:11  rnhodek
+# Add targets to make .i and .s files; remove those files on make clean
+#
+# Revision 1.3  1997/07/16 10:32:54  rnhodek
 # Implemented dep target; more minor Makefile changes
 #
 # Revision 1.2  1997/07/16 09:29:26  rnhodek
@@ -48,7 +51,8 @@ atari/lilo: $(ATARI_OBJS)
 	$(ATARI_COMPILE) -o $@ $^
 
 clean:
-	rm -f $(AMIGA_OBJS) $(ATARI_OBJS) {.,amiga,atari}/#*# {.,amiga,atari}/core
+	rm -f $(AMIGA_OBJS) $(ATARI_OBJS) {amiga,atari}/*.[is] \
+          {.,amiga,atari}/#*# {.,amiga,atari}/core
 
 distclean: clean
 	rm -f {amiga,atari}/.depend

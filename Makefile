@@ -7,10 +7,13 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.3 1997-07-16 10:32:48 rnhodek Exp $
+# $Id: Makefile,v 1.4 1997-07-16 13:29:09 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.3  1997-07-16 10:32:48  rnhodek
+# Revision 1.4  1997-07-16 13:29:09  rnhodek
+# Add targets to make .i and .s files; remove those files on make clean
+#
+# Revision 1.3  1997/07/16 10:32:48  rnhodek
 # Implemented dep target; more minor Makefile changes
 #
 # Revision 1.2  1997/07/16 09:29:08  rnhodek
@@ -79,6 +82,7 @@ atari-lilo:
 	$(MAKE) -C lilo MACH=atari
 
 clean:
+	rm -f TAGS
 	$(MAKE) -C bootstrap clean
 	$(MAKE) -C lilo clean
 
@@ -95,6 +99,12 @@ dep:
 		$(MAKE) -C bootstrap dep MACH=atari; \
 		$(MAKE) -C lilo dep MACH=atari; \
 	fi
+
+bootstrap/%.i bootstrap/%.s:
+	$(MAKE) -C bootstrap MACH=$(dir $(subst bootstrap/,,$@)) $(subst bootstrap/,,$@)
+
+lilo/%.i lilo/%.s:
+	$(MAKE) -C lilo MACH=$(dir $(subst lilo/,,$@)) $(subst lilo/,,$@)
 
 TAGS: etags `find . -name '*.[ch]'`
 
