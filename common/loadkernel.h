@@ -6,8 +6,8 @@
 unsigned long open_kernel( const char *kernel_name );
 int load_kernel( void *memptr );
 void kernel_debug_infos( unsigned long base );
-unsigned long load_ramdisk( const char *ramdisk_name );
-void move_ramdisk( void *dst, unsigned long rd_size );
+unsigned long open_ramdisk( const char *ramdisk_name );
+int load_ramdisk( const char *ramdisk_name, void *dst, unsigned long rd_size );
 
 /************************* End of Prototypes **************************/
 

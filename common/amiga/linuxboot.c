@@ -44,10 +44,17 @@
  *	31 May 1994 Memory thrash problem solved (Geert)
  *	11 May 1994 A3640 MapROM check (Geert)
  * 
- * $Id: linuxboot.c,v 1.4 1997-07-17 14:18:54 geert Exp $
+ * $Id: linuxboot.c,v 1.5 1997-07-18 12:10:37 rnhodek Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.4  1997-07-17 14:18:54  geert
+ * Revision 1.5  1997-07-18 12:10:37  rnhodek
+ * Call open_ramdisk only if ramdisk_name set; 0 return value means error.
+ * Rename load_ramdisk/move_ramdisk to open_ramdisk/load_ramdisk, in parallel
+ * to the *_kernel functions.
+ * Rewrite open/load_ramdisk so that the temp storage and additional memcpy
+ * are avoided if file size known after sopen().
+ *
+ * Revision 1.4  1997/07/17 14:18:54  geert
  * Integrate amiboot 5.6 changes (compr. ramdisk and 2.0 kernel)
  *
  * Revision 1.3  1997/07/16 14:05:06  rnhodek
@@ -76,7 +83,6 @@
 
 #include <linux/version.h>
 #include <linux/linkage.h>
-/*#include <asm/bootinfo.h>*/
 #include <asm/amigahw.h>
 #include <asm/page.h>
 
@@ -476,9 +482,13 @@ u_long linuxboot(const struct linuxboot_args *args)
     }
 
     /* load the ramdisk */
-    bi.ramdisk.size = rd_size = load_ramdisk( ramdiskname );
-    if (!rd_size)
-	goto Fail;
+    if (ramdiskname) {
+	if (!(rd_size = open_ramdisk( ramdiskname )))
+	    goto Fail;
+    }
+    else
+	rd_size = 0;
+    bi.ramdisk.size = rd_size;
     bi.ramdisk.addr = (u_long)start_mem+mem_size-rd_size;
 
     /* create the bootinfo structure */
@@ -532,7 +542,8 @@ u_long linuxboot(const struct linuxboot_args *args)
     memcpy((void *)(memptr+kernel_size), bi_ptr, bi_size);
 
     /* move ramdisk image to its final resting place */
-    move_ramdisk( memptr+kernel_size+bi_size, rd_size );
+    if (!load_ramdisk( ramdiskname, memptr+kernel_size+bi_size, rd_size ))
+	goto Fail;
 
     /* allocate temporary chip ram stack */
     if (!(stack = (u_long *)AllocMem(TEMP_STACKSIZE, MEMF_CHIP | MEMF_CLEAR))) {

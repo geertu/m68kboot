@@ -11,10 +11,17 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.h,v 1.2 1997-07-16 09:10:37 rnhodek Exp $
+ * $Id: linuxboot.h,v 1.3 1997-07-18 12:10:38 rnhodek Exp $
  * 
  * $Log: linuxboot.h,v $
- * Revision 1.2  1997-07-16 09:10:37  rnhodek
+ * Revision 1.3  1997-07-18 12:10:38  rnhodek
+ * Call open_ramdisk only if ramdisk_name set; 0 return value means error.
+ * Rename load_ramdisk/move_ramdisk to open_ramdisk/load_ramdisk, in parallel
+ * to the *_kernel functions.
+ * Rewrite open/load_ramdisk so that the temp storage and additional memcpy
+ * are avoided if file size known after sopen().
+ *
+ * Revision 1.2  1997/07/16 09:10:37  rnhodek
  * Made compat_create_machspec_bootinfo return void
  *
  * Revision 1.1.1.1  1997/07/15 09:45:38  rnhodek
@@ -28,6 +35,7 @@
 
 #include <sys/types.h>
 #define _LINUX_TYPES_H		/* Hack to prevent including <linux/types.h> */
+typedef unsigned int u32;	/* for <linux/zorro.h> */
 #include <asm/bootinfo.h>
 #include <asm/setup.h>
 

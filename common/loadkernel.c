@@ -11,10 +11,17 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: loadkernel.c,v 1.4 1997-07-16 17:31:16 rnhodek Exp $
+ * $Id: loadkernel.c,v 1.5 1997-07-18 12:10:33 rnhodek Exp $
  * 
  * $Log: loadkernel.c,v $
- * Revision 1.4  1997-07-16 17:31:16  rnhodek
+ * Revision 1.5  1997-07-18 12:10:33  rnhodek
+ * Call open_ramdisk only if ramdisk_name set; 0 return value means error.
+ * Rename load_ramdisk/move_ramdisk to open_ramdisk/load_ramdisk, in parallel
+ * to the *_kernel functions.
+ * Rewrite open/load_ramdisk so that the temp storage and additional memcpy
+ * are avoided if file size known after sopen().
+ *
+ * Revision 1.4  1997/07/16 17:31:16  rnhodek
  * Replaced SERROR with ERROR, sclose() now done in cleanup()
  *
  * Revision 1.3  1997/07/16 15:06:23  rnhodek
@@ -246,26 +253,30 @@ void kernel_debug_infos( unsigned long base )
 }
 
 
-unsigned long load_ramdisk( const char *ramdisk_name )
+/*
+ * open and init the ramdisk
+ *
+ * This must be done before creating the bootinfo, because for that the
+ * ramdisk size is needed. Unfortunately, that size can't be determined in all
+ * cases (if it goes through gunzip_mod or bootp_mod). Therefore
+ * open_ramdisk() has two strategies: If the file size can be determined with
+ * sfilesize(), it just opens the rd and returns its size. load_ramdisk() will
+ * physically load the data.
+ *
+ * On the other hand, if we have no file size, we have to load the ramdisk
+ * completely already here to a temp storage. We can't reuse that loading
+ * area, because the rd image must be *after* the kernel image, the mover code
+ * relies on this fact to avoid overwriting data. So load_ramdisk() will copy
+ * the ramdisk data from the temp area to its final place. (For allocation
+ * that, the size is needed...) I can't see a really nice solution for this
+ * :-( I've choosen the scheme below because it is faster than using realloc()
+ * to dynamically extend the load area (avoids potentially many copy
+ * actions).
+ */
+unsigned long open_ramdisk( const char *ramdisk_name )
 {
     int n;
-    unsigned long rd_size = 0;
-
-    /*
-     * load the ramdisk
-     *
-     * This must be done before creating the bootinfo (there the ramdisk size
-     * is needed). But the ramdisk image must also reside physically *after*
-     * the kernel image. (This condition is needed by the mover to avoid
-     * overwriting data.) This is ensured by using only one malloc() for
-     * kernel+ramdisk, but the size for that malloc() is known only after the
-     * ramdisk is loaded... I can't see a really nice solution for this :-(
-     * I've choosen the scheme below because it is faster than using realloc()
-     * to dynamically extend the ramdisk block (avoids potentially many copy
-     * actions). 
-     */
-    if (!ramdisk_name)
-	return( 0 );
+    unsigned long rd_size;
 
     /* init a new stream stack, and omit gunzip_mod, the kernel can
      * decompress the ramdisk itself */
@@ -278,7 +289,18 @@ unsigned long load_ramdisk( const char *ramdisk_name )
     if (sopen( ramdisk_name ) < 0)
 	ERROR( "Unable to open ramdisk file %s\n", ramdisk_name );
     stream_open = 1;
-	
+
+    if ((rd_size = sfilesize()) != -1) {
+	/* have file size, return immediately; must close stream, only one at
+	 * one time possible */
+	sclose();
+	stream_open = 0;
+	return( rd_size );
+    }
+
+    /* alternative strategy if file size unknown: load to temp area */
+
+    rd_size = 0;
     do {
 	rdptr = ReAlloc( rdptr, n_rdptrs*sizeof(char *),
 			        (n_rdptrs+1)*sizeof(char *) );
@@ -302,16 +324,39 @@ unsigned long load_ramdisk( const char *ramdisk_name )
 }
 
 
-void move_ramdisk( void *dst, unsigned long rd_size )
+int load_ramdisk( const char *ramdisk_name, void *dst, unsigned long rd_size )
 {
     char **srcp = rdptr;
     unsigned long left = rd_size;
-    
-    /* if we have a ramdisk, move it above the kernel code; the moving scheme
-     * at boot time requires the ramdisk to be physically above the kernel! */
+
+    /* return if no ramdisk used */
     if (!rd_size)
-	return;
+	return( 1 );
     
+    if (!rdptr) {
+	/* ramdisk not yet loaded, open_ramdisk just determined size */
+
+	/* init a new stream stack, and omit gunzip_mod, the kernel can
+	 * decompress the ramdisk itself */
+	stream_init();
+	stream_push( &file_mod );
+#ifdef USE_BOOTP
+	stream_push( &bootp_mod );
+#endif
+	if (sopen( ramdisk_name ) < 0)
+	    ERROR( "Unable to open ramdisk file %s\n", ramdisk_name );
+	stream_open = 1;
+	if (sread( dst, rd_size ) != rd_size)
+	    ERROR( "Error while reading ramdisk image\n" );
+	sclose();
+	stream_open = 0;
+	return( 1 );
+    }
+    
+    /* if we already have loaded the ramdisk, move it from the temp area to
+     * above the kernel code; the moving scheme at boot time requires the
+     * ramdisk to be physically above the kernel! */
+
     /* keep the non-constant-length part out of this loop, the memcpy can
      * be better optimized then */
     for( ; left > RD_CHUNK_SIZE;
@@ -325,6 +370,8 @@ void move_ramdisk( void *dst, unsigned long rd_size )
     }
     Free( rdptr );
     rdptr = NULL;
+
+    return( 1 );
 }
 
 

@@ -11,10 +11,17 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.c,v 1.5 1997-07-16 17:32:02 rnhodek Exp $
+ * $Id: linuxboot.c,v 1.6 1997-07-18 12:10:38 rnhodek Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.5  1997-07-16 17:32:02  rnhodek
+ * Revision 1.6  1997-07-18 12:10:38  rnhodek
+ * Call open_ramdisk only if ramdisk_name set; 0 return value means error.
+ * Rename load_ramdisk/move_ramdisk to open_ramdisk/load_ramdisk, in parallel
+ * to the *_kernel functions.
+ * Rewrite open/load_ramdisk so that the temp storage and additional memcpy
+ * are avoided if file size known after sopen().
+ *
+ * Revision 1.5  1997/07/16 17:32:02  rnhodek
  * Removed SERROR macro -- unnecessary here. Calls it were wrong.
  *
  * Revision 1.4  1997/07/16 14:05:08  rnhodek
@@ -176,9 +183,13 @@ void linux_boot( void )
 #endif /* TEST */
 
     /* load the ramdisk */
-    bi.ramdisk.size = rd_size = load_ramdisk( ramdisk_name );
-    if (!rd_size)
-	boot_exit( EXIT_FAILURE );
+    if (ramdisk_name) {
+	if (!(rd_size = open_ramdisk( ramdisk_name )))
+	    boot_exit( EXIT_FAILURE );
+    }
+    else
+	rd_size = 0;
+    bi.ramdisk.size = rd_size;
     
     /* open the kernel image and analyze it */
     if (!(kernel_size = open_kernel( kernel_name )))
@@ -215,10 +226,11 @@ void linux_boot( void )
      * types of bugs... */
     memset(memptr, 0, memreq - rd_size);
 
-    /* move ramdisk image to its final resting place */
-    move_ramdisk( memptr+memreq-rd_size, rd_size );
     /* read the text and data segments from the kernel image */
     if (!load_kernel( memptr ))
+	boot_exit( EXIT_FAILURE );
+    /* load or move ramdisk image to its final resting place */
+    if (!load_ramdisk( ramdisk_name, memptr+memreq-rd_size, rd_size ))
 	boot_exit( EXIT_FAILURE );
 
     /* Check kernel's bootinfo version */
