@@ -7,10 +7,16 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: lilo.l.c,v 1.5 1998-02-19 20:40:14 rnhodek Exp $
+ * $Id: lilo.l.c,v 1.6 1998-02-23 10:24:48 rnhodek Exp $
  * 
  * $Log: lilo.l.c,v $
- * Revision 1.5  1998-02-19 20:40:14  rnhodek
+ * Revision 1.6  1998-02-23 10:24:48  rnhodek
+ * Include bootparam.h for N_MAPENTRIES
+ * New function WriteLoaderMap() that patches the map vector of
+ * loader.patched into the second (map) sector.
+ * Fix pend calculation in {check,recalc}_checksum()
+ *
+ * Revision 1.5  1998/02/19 20:40:14  rnhodek
  * Make things compile again
  *
  * Revision 1.4  1997/09/19 09:06:56  geert
@@ -48,6 +54,7 @@
 #include "lilo_util.h"
 #include "parser.h"
 #include "writetags.h"
+#include "bootparam.h"
 
 
 /***************************** Prototypes *****************************/
@@ -63,6 +70,7 @@ static void get_partition_start( const char *device, int is_xgm, unsigned
 static int get_SCSI_id( const char *device, unsigned int major );
 static void get_XGM_sector( const char *device, unsigned long *start );
 static void CreateBootBlock( void );
+static void WriteLoaderMap( void );
 static void CreateMapFile( void);
 static int check_checksum( void *buf );
 static void recalc_checksum( void *buf );
@@ -432,6 +440,35 @@ static void CreateBootBlock( void )
 }
 
 
+static void WriteLoaderMap( void )
+{
+    int fh;
+
+	if (LoaderNumBlocks+1 > N_MAPENTRIES)
+		Die("Loader vector is too large for one sector (%d entries too "
+			"much)\n", LoaderNumBlocks+1-N_MAPENTRIES);
+	if (Verbose)
+	    printf("%d entries for loader vector blocks, %u entries free\n",
+			   LoaderNumBlocks, N_MAPENTRIES-1-LoaderNumBlocks);
+	memcpy( LoaderData+HARD_SECTOR_SIZE,
+			LoaderVector,
+			(LoaderNumBlocks+1)*sizeof(struct vecent) );
+
+	/* We must assume here that writing to an existing file (without extending
+	 * it) doesn't change which blocks are allocated for it... */
+	if (Verbose)
+		printf( "Patching loader vector into %s\n", LoaderFile );
+    if ((fh = open(LoaderFile, O_RDWR)) == -1)
+		Error_Open(LoaderFile);
+	if (lseek( fh, HARD_SECTOR_SIZE, SEEK_SET ) != HARD_SECTOR_SIZE)
+		Error_Seek(LoaderFile);
+    if (write( fh, LoaderData+HARD_SECTOR_SIZE, HARD_SECTOR_SIZE ) !=
+		HARD_SECTOR_SIZE)
+		Error_Write(LoaderFile);
+    close(fh);
+}
+
+
 static void CreateMapFile(void)
 {
     const struct BootRecord *record;
@@ -467,7 +504,7 @@ void CheckVectorDevice( const char *name, dev_t device, struct vecent *vector )
 static int check_checksum( void *buf )
 {
     signed short *p = (signed short *)buf;
-    signed short *pend = buf + (HARD_SECTOR_SIZE/sizeof(short));
+    signed short *pend = (signed short *)(buf + HARD_SECTOR_SIZE);
 	signed short sum;
     
     for( sum = 0; p < pend; ++p )
@@ -479,7 +516,7 @@ static int check_checksum( void *buf )
 static void recalc_checksum( void *buf )
 {
     signed short *p = (signed short *)buf;
-    signed short *pend = buf + (HARD_SECTOR_SIZE/sizeof(short) - 1);
+    signed short *pend = (signed short *)(buf + HARD_SECTOR_SIZE) - 1;
 	signed short sum;
     
     for( sum = 0; p < pend; ++p )
@@ -656,6 +693,7 @@ int main( int argc, char *argv[] )
 		WriteLoader();
 		if (!(LoaderVector = CreateVector( LoaderFile, &LoaderNumBlocks )))
 			Error_Open(LoaderFile);
+		WriteLoaderMap();
 		CreateBootBlock();
     }
 	
