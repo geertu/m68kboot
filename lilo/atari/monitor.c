@@ -7,10 +7,13 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: monitor.c,v 1.3 1998-02-24 11:21:18 rnhodek Exp $
+ * $Id: monitor.c,v 1.4 1998-02-25 10:38:02 rnhodek Exp $
  * 
  * $Log: monitor.c,v $
- * Revision 1.3  1998-02-24 11:21:18  rnhodek
+ * Revision 1.4  1998-02-25 10:38:02  rnhodek
+ * New argument 'doprompt' to read_line().
+ *
+ * Revision 1.3  1998/02/24 11:21:18  rnhodek
  * Fix typo.
  *
  * Revision 1.2  1997/09/19 09:07:00  geert
@@ -139,7 +142,7 @@ static int monitor_command( void )
     const char **argv;
 
 	cprintf( "lilo> " );
-	p = read_line( 0 );
+	p = read_line( 0, 0 );
 	parse_line( p, &argc, &argv );
 	if (argc) {
 		if (strcmp( argv[0], "exit" ) == 0)

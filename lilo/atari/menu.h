@@ -7,10 +7,13 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: menu.h,v 1.1 1997-08-12 15:27:11 rnhodek Exp $
+ * $Id: menu.h,v 1.2 1998-02-25 10:37:46 rnhodek Exp $
  * 
  * $Log: menu.h,v $
- * Revision 1.1  1997-08-12 15:27:11  rnhodek
+ * Revision 1.2  1998-02-25 10:37:46  rnhodek
+ * New argument 'doprompt' to read_line().
+ *
+ * Revision 1.1  1997/08/12 15:27:11  rnhodek
  * Import of Amiga and newly written Atari lilo sources, with many mods
  * to separate out common parts.
  *
@@ -27,7 +30,7 @@ void menu_error( const char *str );
 char *get_password( void );
 void graf_init( const unsigned long *video_res );
 void graf_deinit( void );
-char *read_line( int dotimeout );
+char *read_line( int dotimeout, int doprompt );
 void cprintf( const char *format, ... )
 	__attribute__((format(printf,1,2)));
 int v_gtext( int h, int x, int y, char *s );
