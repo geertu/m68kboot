@@ -13,10 +13,15 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo_util.l.c,v 1.7 1998-03-17 12:30:51 rnhodek Exp $
+ * $Id: lilo_util.l.c,v 1.8 1998-04-02 12:18:39 rnhodek Exp $
  * 
  * $Log: lilo_util.l.c,v $
- * Revision 1.7  1998-03-17 12:30:51  rnhodek
+ * Revision 1.8  1998-04-02 12:18:39  rnhodek
+ * In CreateVector(), explicitly append an entry with start and length 0
+ * to each vector as end marker. Some parts already depended on this, but
+ * the final 0 was present only incidentally.
+ *
+ * Revision 1.7  1998/03/17 12:30:51  rnhodek
  * Introduce MaxVectorSector{Number,Count}, if the loader has limits on
  * which numbers can be used.
  *
@@ -510,6 +515,10 @@ const struct vecent *CreateVector( const char *name, int *numblocks )
 	    }
 	}
     }
+    /* append entry with start==length==0 as end marker */
+    ++i;
+    vector[i].start = vector[i].length = 0;
+    
     *numblocks = i;
     /* shrink vector's memory to what is really needed */
     if (!(vector = realloc( vector, (i+1)*sizeof(struct vecent) )))
