@@ -44,10 +44,13 @@
  *	31 May 1994 Memory thrash problem solved (Geert)
  *	11 May 1994 A3640 MapROM check (Geert)
  * 
- * $Id: linuxboot.c,v 1.10 1998-04-06 01:40:54 dorchain Exp $
+ * $Id: linuxboot.c,v 1.11 2004-08-15 12:35:12 geert Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.10  1998-04-06 01:40:54  dorchain
+ * Revision 1.11  2004-08-15 12:35:12  geert
+ * Add curly braces to keep new gcc happy
+ *
+ * Revision 1.10  1998/04/06 01:40:54  dorchain
  * make loader linux-elf.
  * made amiga bootblock working again
  * compiled, but not tested bootstrap
@@ -281,7 +284,7 @@ u_long linuxboot(const struct linuxboot_args *args)
     /* Memory & AutoConfig based on 'unix_boot.c' by C= */
 
     /* find all of the autoconfig boards in the system */
-    if (!bi.num_autocon)
+    if (!bi.num_autocon) {
 	for (i = 0; (cdp = (struct ConfigDev *)FindConfigDev(cdp, -1, -1)); i++)
 	    if (bi.num_autocon < ZORRO_NUM_AUTO)
 		/* copy the contents of each structure into our boot info and
@@ -291,6 +294,7 @@ u_long linuxboot(const struct linuxboot_args *args)
 	    else
 		Printf("Warning: too many AutoConfig devices. Ignoring device at "
 		       "0x%08lx\n", (u_long)cdp->cd_BoardAddr);
+    }
 
     do_fast = bi.num_memory ? 0 : 1;
     do_chip = bi.chip_size ? 0 : 1;
@@ -312,13 +316,14 @@ u_long linuxboot(const struct linuxboot_args *args)
 	   Check first for a MapROMmed A3640 board: overwriting the
 	   Kickstart image causes an infinite lock-up on reboot! */
 	if ((mh.mh_Upper == (void *)0x07f80000) &&
-	    (model_mask & (CLASS_A3000 | CLASS_A4000)))
+	    (model_mask & (CLASS_A3000 | CLASS_A4000))) {
 	    if ((bi.cputype & CPU_68040) && Supervisor(maprommed))
 		Puts("A3640 MapROM detected.\n");
 	    else if (model_mask & CLASS_A3000) {
 		mh.mh_Upper = (void *)0x08000000;
 		Puts("A3000 shadowed Kickstart detected.\n");
 	    }
+	}
 
 	/* if we suspect that Kickstart is zkicked,
 	   modify the entry to show 512K more at the botton of RAM */
@@ -337,7 +342,7 @@ u_long linuxboot(const struct linuxboot_args *args)
 	    /* set the size value to the size of this block and mask off to a
 	       256K increment */
 	    u_long size = ((u_long)mh.mh_Upper-(u_long)mh.mh_Lower)&0xfffc0000;
-	    if (size > 0)
+	    if (size > 0) {
 		if (bi.num_memory < NUM_MEMINFO) {
 		    /* record the start and size */
 		    bi.memory[bi.num_memory].addr = (u_long)mh.mh_Lower;
@@ -348,6 +353,7 @@ u_long linuxboot(const struct linuxboot_args *args)
 		    Printf("Warning: too many memory blocks. Ignoring block "
 		    	   "of %ldK at 0x%08lx\n", size>>10,
 			   (u_long)mh.mh_Lower);
+	    }
 	} else if (do_chip && mh.mh_Attributes & MEMF_CHIP)
 	    /* if CHIP memory, record the size */
 	    bi.chip_size = (u_long)mh.mh_Upper;
@@ -945,11 +951,12 @@ static int probe_resident(const char *name)
     if (debugflag)
 	Printf("    Module `%s': ", name);
     res = FindResident(name);
-    if (debugflag)
+    if (debugflag) {
 	if (res)
 	    Printf("0x%08lx\n", (u_long)res);
 	else
 	    Puts("not present\n");
+    }
     return(res ? TRUE : FALSE);
 }
 
@@ -965,11 +972,12 @@ static int probe_resource(const char *name)
     if (debugflag)
 	Printf("    Resource `%s': ", name);
     res = OpenResource(name);
-    if (debugflag)
+    if (debugflag) {
 	if (res)
 	    Printf("0x%08lx\n", (u_long)res);
 	else
 	    Puts("not present\n");
+    }
     return(res ? TRUE : FALSE);
 }
 
