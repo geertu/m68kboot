@@ -7,10 +7,14 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: menu.c,v 1.5 1998-02-26 10:23:27 rnhodek Exp $
+ * $Id: menu.c,v 1.6 1998-02-26 11:20:32 rnhodek Exp $
  * 
  * $Log: menu.c,v $
- * Revision 1.5  1998-02-26 10:23:27  rnhodek
+ * Revision 1.6  1998-02-26 11:20:32  rnhodek
+ * If v_opnwk fails, don't exit but switch to NoGUI mode.
+ * Replace some more printf's by cprintf.
+ *
+ * Revision 1.5  1998/02/26 10:23:27  rnhodek
  * New 'timeout_canceled' that is set after the first keypress, mouse
  * move, or receive from the serial. The timeout should fire only if
  * there wasn't any user action at all.
@@ -378,7 +382,7 @@ void graf_init( const unsigned long *video_res )
 	if (NoGUI)
 		return;
 	if (Debug)
-		printf( "Initializing VDI workstation\n" );
+		cprintf( "Initializing VDI workstation\n" );
 
 #ifdef AES
 	appl_init();
@@ -398,8 +402,10 @@ void graf_init( const unsigned long *video_res )
 	v_opnwk( work_in, &grh, work_out );
 #endif
 	if (!grh) {
-    	printf( "v_opnwk failed\n" );
-		exit( 1 );
+    	cprintf( "Error: Cannot open VDI workstation (v_opnwk failed)\n"
+			     "NoGUI mode enabled.\n" );
+		NoGUI = 1;
+		return;
 	}
 	workstation_open = 1;
 	/* number of pixels on the screen */
@@ -436,7 +442,7 @@ void graf_deinit( void )
 		sprintf( buf, "\033Y%c \n", scr_h/lineht+32 );
 		Cconws( buf );
 		if (Debug)
-			printf( "Closed VDI workstation\n" );
+			cprintf( "Closed VDI workstation\n" );
 	}
 }
 
