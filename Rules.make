@@ -1,10 +1,14 @@
 #
 # common definitions and rules for Makefiles
 #
-# $Id: Rules.make,v 1.6 1997-07-30 21:40:52 rnhodek Exp $
+# $Id: Rules.make,v 1.7 1997-08-10 19:24:20 rnhodek Exp $
 #
 # $Log: Rules.make,v $
-# Revision 1.6  1997-07-30 21:40:52  rnhodek
+# Revision 1.7  1997-08-10 19:24:20  rnhodek
+# In depend- rules, write directory prefix in rules.
+# Added depend- rules for .S Linux files.
+#
+# Revision 1.6  1997/07/30 21:40:52  rnhodek
 # Added rules for assembler and Linux sources
 #
 # Revision 1.5  1997/07/16 13:39:36  rnhodek
@@ -79,14 +83,26 @@ amiga/%.o atari/%.o: %.l.S
 
 # special targets for building dependencies
 depend-amiga/%.o: %.c
+	@echo -n "amiga/" >>amiga/.depend
 	$(AMIGA_COMPILE) -MM $< >>amiga/.depend
 
 depend-amiga/%.o: %.l.c
+	@echo -n "amiga/" >>amiga/.depend
+	$(LINUX_COMPILE) -MM $< >>amiga/.depend
+
+depend-amiga/%.o: %.S
+	@echo -n "amiga/" >>amiga/.depend
 	$(LINUX_COMPILE) -MM $< >>amiga/.depend
 
 depend-atari/%.o: %.c
+	@echo -n "atari/" >>atari/.depend
 	$(ATARI_COMPILE) -MM $< >>atari/.depend
 
 depend-atari/%.o: %.l.c
+	@echo -n "atari/" >>atari/.depend
+	$(LINUX_COMPILE) -MM $< >>atari/.depend
+
+depend-atari/%.o: %.S
+	@echo -n "atari/" >>atari/.depend
 	$(LINUX_COMPILE) -MM $< >>atari/.depend
 
