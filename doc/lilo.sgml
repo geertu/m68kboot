@@ -1,11 +1,31 @@
 <!doctype linuxdoc system>
 <!--
-$Id: lilo.sgml,v 1.5 1998-03-16 15:50:51 rnhodek Exp $
+$Id: lilo.sgml,v 1.6 1998-03-16 15:55:27 rnhodek Exp $
 
 $Log: lilo.sgml,v $
-Revision 1.5  1998-03-16 15:50:51  rnhodek
+Revision 1.6  1998-03-16 15:55:27  rnhodek
+Added old (< 1.5) log entries.
+
+Revision 1.5  1998/03/16 15:50:51  rnhodek
 Added cvs headers.
 
+Revision 1.4  1998/03/16 15:50:19  rnhodek
+Added note about Atari HD drivers that ignore boot preference.
+New chapter about DMAread limits and the 1 GB border.
+
+Revision 1.3  1998/03/10 10:49:00  rnhodek
+Documented new options "message" and "restricted".
+
+Revision 1.2  1998/03/09 15:58:39  rnhodek
+Added Atari specifics.
+Separated out common, Amiga-specific, and Atari-specific parts where needed.
+Fix typos etc.
+Remove <em// around lots of names, they make the text hard to read.
+No docs in here for the bootstraps, this is just for Lilo.
+
+Revision 1.1  1998/02/26 11:22:52  rnhodek
+Copied from Geert's amiboot-3.0. Needs to be rewritten to cover also Atari and
+bootstrap.
 
 -->
 
