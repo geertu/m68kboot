@@ -565,6 +565,20 @@ The default prompt is `<tt/Boot image: /' on Amiga, and `<tt/LILO
 boot: /' on Atari. On Atari, don't use control characters if you use
 the graphical boot menu, since the prompt is used there, too.
 
+<tag/<tt>message "</tt><em>text</em><tt/"</tt>/
+
+Specify a message that will be shown before the boot prompt. This also
+means it will not be shown if waiting for an auto boot. If on Atari
+the graphical boot menu is enabled, the loader prompts for a key press
+after displaying the message, because the boot menu will clear the
+screen. <em/text/ can include the same special character sequences as
+<tt/prompt/ (see above). If <em/text/ starts with a `<tt>/</tt>', it
+will be interpreted as a file name. From that file, the actual message
+text will be read. (Note: You don't have to reinstall Lilo if that
+file is changed or moved, as you have to do with PC-Lilo. Lilo doesn't
+store the disk blocks of the file, but reads it and only stores its
+contents.)
+
 </descrip>
 
 <sect3>Amiga Header Options
@@ -929,6 +943,14 @@ which works in most cases except very exotic ones. If an <tt/image/
 option is present, the type is assumed to be <tt/linux/. Otherwise, if
 a <tt/boot-drive/ is specified, the presence of a <tt/driver/
 option distincts between <tt/tos/ and <tt/bootsector/. 
+
+<tag/<tt>restricted </tt><em>flag</em>/
+If this option is set, a <tt/password/ option is also required. It
+relaxes the password protection so that you have to enter the password
+only if command line arguments are entered at the boot prompt, which
+would change the default kernel arguments defined in the boot record.
+This is useful, for example, to avoid that an unauthorized person uses
+"<tt/linux single/" to boot into single user mode.
 
 <tag/<tt>ignore-tt-ram</tt> <em>flag</em>/
 Tell Linux to ignore any TT-RAM if <em/flag/ is <tt/true/. Default is
