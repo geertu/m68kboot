@@ -7,10 +7,14 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: strace_tos.h,v 1.1 1998-02-27 10:23:28 rnhodek Exp $
+ * $Id: strace_tos.h,v 1.2 1998-03-03 11:34:28 rnhodek Exp $
  * 
  * $Log: strace_tos.h,v $
- * Revision 1.1  1998-02-27 10:23:28  rnhodek
+ * Revision 1.2  1998-03-03 11:34:28  rnhodek
+ * Include loader_config.h instead of loader.h.
+ * Definitions should also be done if STRACE_TOS is not defined.
+ *
+ * Revision 1.1  1998/02/27 10:23:28  rnhodek
  * New header file for GEMDOS system call tracer (experimental).
  *
  *
@@ -19,8 +23,7 @@
 #ifndef _strace_tos_h
 #define _strace_tos_h
 
-#include "loader.h"
-#ifdef STRACE_TOS
+#include "loader_config.h"
 
 /* call classes to trace */
 #define TR_BIOS		(1 << 0)	/* BIOS functions */
@@ -37,6 +40,7 @@
 #define TR_ALL		(-1)		/* all calls */
 #define TR_ALLGEMDOS (TR_ALL & ~(TR_BIOS|TR_XBIOS))	/* only all GEMDOS calls */
 
+#ifdef STRACE_TOS
 
 /***************************** Prototypes *****************************/
 
