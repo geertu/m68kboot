@@ -7,10 +7,13 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: loader.h,v 1.5 1998-03-02 13:09:41 rnhodek Exp $
+ * $Id: loader.h,v 1.6 1998-03-04 09:17:17 rnhodek Exp $
  * 
  * $Log: loader.h,v $
- * Revision 1.5  1998-03-02 13:09:41  rnhodek
+ * Revision 1.6  1998-03-04 09:17:17  rnhodek
+ * New option 'use_cache' to exec_tos_program().
+ *
+ * Revision 1.5  1998/03/02 13:09:41  rnhodek
  * Moved compile-time options to loader_config.h.
  * Rename NoGUI to DontUseGUI, and #define it to 1 if NO_GUI set.
  *
@@ -61,7 +64,7 @@ int is_available( const struct BootRecord *rec );
 void boot_tos( const struct BootRecord *rec );
 void boot_linux( const struct BootRecord *rec, const char *cmdline );
 void boot_bootsector( const struct BootRecord *rec );
-int exec_tos_program( const char *prog, const char *workdir );
+int exec_tos_program( const char *prog, const char *workdir, int use_cache );
 const char *tos_perror( long err );
 void MachInitDebug( void );
 void Alert( enum AlertCodes code );
