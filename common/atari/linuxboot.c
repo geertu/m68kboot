@@ -11,11 +11,14 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.c,v 1.1 1997-07-15 09:45:38 rnhodek Exp $
+ * $Id: linuxboot.c,v 1.2 1997-07-16 09:10:37 rnhodek Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.1  1997-07-15 09:45:38  rnhodek
- * Initial revision
+ * Revision 1.2  1997-07-16 09:10:37  rnhodek
+ * Made compat_create_machspec_bootinfo return void
+ *
+ * Revision 1.1.1.1  1997/07/15 09:45:38  rnhodek
+ * Import sources into CVS
  *
  * 
  */
@@ -554,7 +557,7 @@ int create_machspec_bootinfo(void)
     return(1);
 }
 
-int compat_create_machspec_bootinfo(void)
+void compat_create_machspec_bootinfo(void)
 {
     compat_bootinfo.bi_atari.hw_present = 0;
     compat_bootinfo.bi_atari.mch_cookie = bi.mch_cookie;

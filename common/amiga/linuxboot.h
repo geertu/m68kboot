@@ -21,11 +21,14 @@
  *  License.  See the file COPYING in the main directory of this archive
  *  for more details.
  * 
- * $Id: linuxboot.h,v 1.1 1997-07-15 09:45:38 rnhodek Exp $
+ * $Id: linuxboot.h,v 1.2 1997-07-16 09:11:01 rnhodek Exp $
  * 
  * $Log: linuxboot.h,v $
- * Revision 1.1  1997-07-15 09:45:38  rnhodek
- * Initial revision
+ * Revision 1.2  1997-07-16 09:11:01  rnhodek
+ * Made compat_create_machspec_bootinfo return void
+ *
+ * Revision 1.1.1.1  1997/07/15 09:45:38  rnhodek
+ * Import sources into CVS
  *
  * 
  */
@@ -71,7 +74,7 @@ struct amiga_bootinfo {
 
 int create_machspec_bootinfo(void);
 #ifdef BOOTINFO_COMPAT_1_0
-int compat_create_machspec_bootinfo(void);
+void compat_create_machspec_bootinfo(void);
 #endif
 
 /* Bootinfo */

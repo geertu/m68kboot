@@ -11,11 +11,14 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: linuxboot.h,v 1.1 1997-07-15 09:45:38 rnhodek Exp $
+ * $Id: linuxboot.h,v 1.2 1997-07-16 09:10:37 rnhodek Exp $
  * 
  * $Log: linuxboot.h,v $
- * Revision 1.1  1997-07-15 09:45:38  rnhodek
- * Initial revision
+ * Revision 1.2  1997-07-16 09:10:37  rnhodek
+ * Made compat_create_machspec_bootinfo return void
+ *
+ * Revision 1.1.1.1  1997/07/15 09:45:38  rnhodek
+ * Import sources into CVS
  *
  * 
  */
@@ -85,7 +88,7 @@ extern struct compat_bootinfo compat_bootinfo;
 void linux_boot( void ) __attribute__ ((noreturn));
 int create_machspec_bootinfo( void);
 #ifdef BOOTINFO_COMPAT_1_0
-int compat_create_machspec_bootinfo( void);
+void compat_create_machspec_bootinfo( void);
 #endif /* BOOTINFO_COMPAT_1_0 */
 
 /************************* End of Prototypes **************************/

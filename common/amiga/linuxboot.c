@@ -41,11 +41,14 @@
  *	31 May 1994 Memory thrash problem solved (Geert)
  *	11 May 1994 A3640 MapROM check (Geert)
  * 
- * $Id: linuxboot.c,v 1.1 1997-07-15 09:45:38 rnhodek Exp $
+ * $Id: linuxboot.c,v 1.2 1997-07-16 09:11:00 rnhodek Exp $
  * 
  * $Log: linuxboot.c,v $
- * Revision 1.1  1997-07-15 09:45:38  rnhodek
- * Initial revision
+ * Revision 1.2  1997-07-16 09:11:00  rnhodek
+ * Made compat_create_machspec_bootinfo return void
+ *
+ * Revision 1.1.1.1  1997/07/15 09:45:38  rnhodek
+ * Import sources into CVS
  *
  * 
  */
@@ -799,7 +802,7 @@ int create_machspec_bootinfo(void)
 }
 
 #ifdef BOOTINFO_COMPAT_1_0
-int compat_create_machspec_bootinfo(void)
+void compat_create_machspec_bootinfo(void)
 {
     int i;
 
