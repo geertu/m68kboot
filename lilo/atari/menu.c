@@ -7,10 +7,21 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: menu.c,v 1.8 1998-03-04 09:20:16 rnhodek Exp $
+ * $Id: menu.c,v 1.9 1998-03-10 10:29:43 rnhodek Exp $
  * 
  * $Log: menu.c,v $
- * Revision 1.8  1998-03-04 09:20:16  rnhodek
+ * Revision 1.9  1998-03-10 10:29:43  rnhodek
+ * Make serial_instat and serial_getc global functions.
+ * dokey(): Backspace: print backspace only if deleting actually done;
+ * ^U: test for len > 0, remove buggy ';' after while.
+ * read_line(): ^U: test for len > 0.
+ * waitkey(): New function.
+ * serial_getc(): Backspace also returns scancode part; also allow ctrl
+ * chars CR and LF.
+ * serial_putc(): Remove special handling of \b, it's not only necessary
+ * on the serial console.
+ *
+ * Revision 1.8  1998/03/04 09:20:16  rnhodek
  * goto_last_line: Must use VDI function as long as workstation is open,
  * VT52 escapes don't work.
  *
@@ -170,8 +181,6 @@ static int previous_word( void );
 static void delete( int dst, int src, int len );
 static void show_cmdline( int start, int end, int newc );
 #endif /* NO_GUI */
-static int serial_instat( void );
-static int serial_getc( void );
 static void serial_putc( char c );
 static void serial_puts( const char *p );
 #ifndef NO_GUI
@@ -525,9 +534,10 @@ static int dokey( int key, int shift )
 	}
 	else if (scan == SCAN_BS) {
 		/* delete char before cursor */
-		if (cursor > 0)
+		if (cursor > 0) {
 			delete( cursor-1, cursor, len );
-		serial_putc( '\b' );
+			serial_puts( "\b \b" );
+		}
 	}
 	else if ((scan == SCAN_DEL && (IS_ALT || IS_CTRL)) ||
 			 (scan == SCAN_D && IS_ALT)) {             
@@ -550,10 +560,12 @@ static int dokey( int key, int shift )
 	}
 	else if (scan == SCAN_ESC || asc == CTRL_U || asc == CTRL_X) {
 		/* delete whole line */
-		cmdline[0] = 0;
-		show_cmdline( 0, len, 0 );
-		while( len-- );
-			serial_putc( '\b' );
+		if (len > 0) {
+			cmdline[0] = 0;
+			show_cmdline( 0, len, 0 );
+			while( len-- )
+				serial_puts( "\b \b" );
+		}
 	}
 	else if ((scan == SCAN_HOME && !IS_SHIFT) ||
 			 (scan == SCAN_LEFT && IS_SHIFT) ||
@@ -810,7 +822,7 @@ char *read_line( int dotimeout, int doprompt )
 				cmdline[--len] = 0;
 				cprintf( "\b \b" );
 			}
-			else if (c == CTRL_U) {
+			else if (c == CTRL_U && len > 0) {
 				while( len-- )
 					cprintf( "\b \b" );
 				*cmdline = 0;
@@ -846,6 +858,19 @@ char *read_line( int dotimeout, int doprompt )
 
 
 /*
+ * Wait for a key
+ */
+int waitkey( void )
+{
+	for(;;) {
+		if (Cconis())
+			return( Crawcin() & 0xff );
+		if (serial_instat())
+			return( serial_getc() );
+	}
+}
+
+/*
  * Print a string both on the console and the serial terminal
  */
 void cprintf( const char *format, ... )
@@ -860,12 +885,12 @@ void cprintf( const char *format, ... )
 /* ------------------------------------------------------------------------- */
 /*							Serial Port Functions							 */
 
-static int serial_instat( void )
+int serial_instat( void )
 {
 	return( SerialPort ? Bconstat( SerialPort ) : 0 );
 }
 
-static int serial_getc( void )
+int serial_getc( void )
 {
 	char c;
 
@@ -877,10 +902,8 @@ static int serial_getc( void )
 	/* do some conversions to allow basic editing over serial line (BACKSPACE
 	 * and DELETE delete backwards, ^U deletes whole line) */
 	if (c == ASC_BS || c == ASC_DEL) 
-		return( SCAN_BS );
-	else if (c == CTRL_U)
-		return( CTRL_U );
-	else if (c < ' ')
+		return( (SCAN_BS << 16) | ASC_BS );
+	else if (c < ' ' && (c != CTRL_U && c != ASC_CR && c != ASC_LF))
 		/* don't allow other ctrl or meta characters */
 		return( 0 );
 	else
@@ -896,12 +919,6 @@ static void serial_putc( char c )
 		/* translate NL to CR-LF */
 		Bconout( SerialPort, '\r' );
 	Bconout( SerialPort, c );
-	if (c == ASC_BS) {
-		/* for backspace, do "\b \b" for terminal with non-overwriting
-		 * backsapce */
-		Bconout( SerialPort, ' ' );
-		Bconout( SerialPort, c );
-	}
 }
 
 
