@@ -1,10 +1,13 @@
 #
 # tags.awk -- Convert tags.def files to C headers and tables
 #
-# $Id: tags.awk,v 1.1 1997-08-12 15:26:58 rnhodek Exp $
+# $Id: tags.awk,v 1.2 1998-02-26 10:09:06 rnhodek Exp $
 #
 # $Log: tags.awk,v $
-# Revision 1.1  1997-08-12 15:26:58  rnhodek
+# Revision 1.2  1998-02-26 10:09:06  rnhodek
+# New TAGTYPE_CARRAY; plain ARRAY didn't work correctly for string arrays.
+#
+# Revision 1.1  1997/08/12 15:26:58  rnhodek
 # Import of Amiga and newly written Atari lilo sources, with many mods
 # to separate out common parts.
 #
@@ -97,8 +100,16 @@ $2 ~ /^section$/ {
 	if (ttype != "") {
 	  if (size == "-")
 		size = 0;
-	  else
-		ttype = "ARRAY";
+	  else {
+		if (ttype == "INT")
+		  ttype = "ARRAY";
+		else if (ttype == "STR")
+		  ttype = "CARRAY";
+		else {
+		  print FILENAME, ":", NR, ": Bad type ", type, "\n";
+		  ttype = "BADTYPE";
+		}
+	  }
 	  table[$1] = table[$1] "    { TAG_" tag_name ", TAGTYPE_" ttype \
 							", offsetof(struct " struct_name[$1] "," \
 							varname "), " size " },\n";

@@ -7,10 +7,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: config_common.h,v 1.3 1998-02-24 11:12:17 rnhodek Exp $
+ * $Id: config_common.h,v 1.4 1998-02-26 10:06:27 rnhodek Exp $
  * 
  * $Log: config_common.h,v $
- * Revision 1.3  1998-02-24 11:12:17  rnhodek
+ * Revision 1.4  1998-02-26 10:06:27  rnhodek
+ * New TAGTYPE_CARRAY; plain ARRAY didn't work correctly for string arrays.
+ *
+ * Revision 1.3  1998/02/24 11:12:17  rnhodek
  * Rename loader template to contain machine name, so that more templates
  * can be installed at once.
  *
@@ -49,6 +52,7 @@ struct TagRecord {
 #define TAGTYPE_INT	0
 #define TAGTYPE_STR	1
 #define TAGTYPE_ARRAY	2
+#define TAGTYPE_CARRAY	3
 
 typedef struct {
     u_long Tag;
