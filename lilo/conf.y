@@ -7,10 +7,14 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: conf.y,v 1.2 1998-03-10 10:22:13 rnhodek Exp $
+ * $Id: conf.y,v 1.3 2004-10-01 10:06:21 geert Exp $
  * 
  * $Log: conf.y,v $
- * Revision 1.2  1998-03-10 10:22:13  rnhodek
+ * Revision 1.3  2004-10-01 10:06:21  geert
+ * Recent versions of bison need YYERROR_VERBOSE and YYPRINT to be defined to make
+ * yytname and yytoknum visible
+ *
+ * Revision 1.2  1998/03/10 10:22:13  rnhodek
  * New option "message".
  *
  * Revision 1.1  1997/08/12 15:26:56  rnhodek
@@ -33,6 +37,8 @@
 @include "config.h"
 @include "parser.h"
 
+@define YYERROR_VERBOSE
+@define YYPRINT
 
 extern int conflex(void);
 extern void conferror(const char *s) __attribute__ ((noreturn));
