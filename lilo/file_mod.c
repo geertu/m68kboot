@@ -7,10 +7,14 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: file_mod.c,v 1.2 1997-09-19 09:06:46 geert Exp $
+ * $Id: file_mod.c,v 1.3 1998-02-26 10:07:14 rnhodek Exp $
  * 
  * $Log: file_mod.c,v $
- * Revision 1.2  1997-09-19 09:06:46  geert
+ * Revision 1.3  1998-02-26 10:07:14  rnhodek
+ * Raise MAXBUF to 16k, for better performance.
+ * "local:" prefix not used inside Lilo, remove test for it.
+ *
+ * Revision 1.2  1997/09/19 09:06:46  geert
  * Big bunch of changes by Geert: make things work on Amiga; cosmetic things
  *
  * Revision 1.1  1997/08/12 15:26:56  rnhodek
@@ -44,7 +48,7 @@ static long file_filesize( void );
 
 /************************* End of Prototypes **************************/
 
-#define MAXBUF	(16*512)
+#define MAXBUF	(32*512)
 
 /* definition of the module structure */
 MODULE file_mod = {
@@ -66,11 +70,6 @@ static u_long CurrSector, CurrCnt;
 
 static int file_open( const char *name )
 {
-#ifdef USE_BOOTP
-	/* strip off "local:" prefix, if any */
-	if (strncmp( name, "local:", 6 ) == 0)
-		name += 6;
-#endif
 	if (!(Vector = FindVector( name )))
 		return( -1 );
 	CurrVecElt = Vector+1;
