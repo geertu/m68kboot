@@ -7,10 +7,18 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: crt0.S,v 1.4 1998-02-25 10:34:55 rnhodek Exp $
+ * $Id: crt0.S,v 1.5 1998-02-26 10:19:03 rnhodek Exp $
  * 
  * $Log: crt0.S,v $
- * Revision 1.4  1998-02-25 10:34:55  rnhodek
+ * Revision 1.5  1998-02-26 10:19:03  rnhodek
+ * Don't trap Line-A vector with exc_general, it's used by the VDI :-)
+ * Let BP_ENV point to space after the basepage; removed dummy_env.
+ * For now, don't restore the vector table so that we can debug errors
+ * after the loader exited.
+ * exc_general: vector number in stack frame is already offset, no need
+ * to << 2.
+ *
+ * Revision 1.4  1998/02/25 10:34:55  rnhodek
  * Add missing '#' before constant STACK_SIZE.
  * Also include TOSPRGHDR_SIZE in _PgmSize.
  * Also dump 4 stack longs before current SP.
@@ -92,8 +100,6 @@
 /* Dummy argument array and environment */
 
 	.data
-dummy_env:
-	.byte	0,0
 dummy_environ:
 	.long	0
 arg_array:
@@ -177,7 +183,6 @@ end_reloc:
 	movl	#exc_general,0x1c
 	movl	#exc_general,0x20
 	movl	#exc_general,0x24
-	movl	#exc_general,0x28
 	movl	#exc_general,0x2c
 	movl	#exc_general,0x34
 	movl	#exc_general,0x38
@@ -243,7 +248,11 @@ end_reloc:
 	movl	#1,a5@(BP_FLAGS)	/* set fastload flag, but not fastram
 					 * flags (better use ST-RAM for
 					 * DMAread!) */
-	movl	#dummy_env,a5@(BP_ENV)
+	lea	a5@(256),a0		/* set up an empty environment in the
+					 * space after the basepage (1280
+					 * bytes free there) */
+	movl	a0,a5@(BP_ENV)
+	clrw	a0@
 	movl	#-1,a5@(BP_DEVX+0)	/* init standard handles to CON: */
 	movw	#-1,a5@(BP_DEVX+4)
 	
@@ -284,7 +293,7 @@ end_reloc:
 	trap	#1        /* Mfree(_base), free the loader's TPA */
 	addql	#6,sp
 
-#ifdef DEBUG_EXCEPTIONS
+#ifdef DEBUG_EXCEPTIONS_NOTDEF
 	/* restore old vectors */
 	lea	0x8,a1
 	lea	save_vecs,a0
@@ -459,12 +468,10 @@ exc_buserr:
 
 exc_general:
 	movml	d0-d7/a0-a6,save_regs
-	movq	#0,d0
 	movw	sp@(6),d0
 	andw	#0xfff,d0
-	lsll	#2,d0
 	movl	#exc_names,a0
-	movl	a0@(d0:l),a0
+	movl	a0@(d0:w),a0
 	jbsr	puts
 	movl	sp@(2),d0
 	jbsr	putnum
@@ -571,8 +578,6 @@ str_priv:
 	.asciz	"\r\nPRIVILEDGE VIOLATION at PC="
 str_trace:
 	.asciz	"\r\nTRACE at PC="
-str_linea:
-	.asciz	"\r\nLINE A at PC="
 str_linef:
 	.asciz	"\r\nLINE F at PC="
 str_copro:
@@ -621,9 +626,9 @@ exc_names:
 	.long	str_trapcc
 	.long	str_priv
 	.long	str_trace
-	.long	str_linea
+	.long	crnl		/* line a */
 	.long	str_linef
-	.long	crnl
+	.long	crnl		/* reserved */
 	.long	str_copro
 	.long	str_format
 	.long	str_unint
