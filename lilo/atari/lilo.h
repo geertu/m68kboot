@@ -6,10 +6,13 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo.h,v 1.3 1997-08-23 23:11:08 rnhodek Exp $
+ * $Id: lilo.h,v 1.4 1998-02-23 10:23:22 rnhodek Exp $
  * 
  * $Log: lilo.h,v $
- * Revision 1.3  1997-08-23 23:11:08  rnhodek
+ * Revision 1.4  1998-02-23 10:23:22  rnhodek
+ * Move #endif to end of file...
+ *
+ * Revision 1.3  1997/08/23 23:11:08  rnhodek
  * New parameter 'set_bootdev' to parse_device
  *
  * Revision 1.2  1997/08/23 20:36:19  rnhodek
@@ -28,8 +31,6 @@
 #include "lilo_common.h"
 #include "config.h"
 
-#endif  /* _lilo_h */
-
 enum flopok {
 	NO_FLOPPY, CUR_FLOPPY, ANY_FLOPPY
 };
@@ -44,3 +45,4 @@ int main( int argc, char *argv[] );
 
 /************************* End of Prototypes **************************/
 
+#endif  /* _lilo_h */
