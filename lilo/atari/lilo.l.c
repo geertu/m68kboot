@@ -7,10 +7,13 @@
  * License.  See the file COPYING in the main directory of this archive
  * for more details.
  * 
- * $Id: lilo.l.c,v 1.13 1998-07-15 08:26:46 schwab Exp $
+ * $Id: lilo.l.c,v 1.14 1999-01-18 10:00:54 schwab Exp $
  * 
  * $Log: lilo.l.c,v $
- * Revision 1.13  1998-07-15 08:26:46  schwab
+ * Revision 1.14  1999-01-18 10:00:54  schwab
+ * (parse_device): Support new scsi disk major numbering.
+ *
+ * Revision 1.13  1998/07/15 08:26:46  schwab
  * Don't declare WriteLoader here.
  *
  * Revision 1.12  1998/04/06 01:40:59  dorchain
@@ -284,7 +287,13 @@ void parse_device( char *device, int *devnum, unsigned long *start,
 
 	/* for SCSI and ACSI devices, use (or try) GET_IDLUN ioctl to get
 	 * device ID */
-	if (major == SCSI_DISK_MAJOR || major == ACSI_MAJOR) {
+	if (major == ACSI_MAJOR ||
+#ifdef SCSI_DISK0_MAJOR
+	    SCSI_DISK_MAJOR(major)
+#else
+	    major == SCSI_DISK_MAJOR
+#endif
+	    ) {
 		*devnum = 8 + get_SCSI_id( device, major );
 		if (*devnum == 7)
 			/* SCSI_IOCTL_GET_IDLUN wasn't supported by ACSI device */
