@@ -7,10 +7,14 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.4 1997-07-16 13:29:11 rnhodek Exp $
+# $Id: Makefile,v 1.5 1997-08-12 15:26:55 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.4  1997-07-16 13:29:11  rnhodek
+# Revision 1.5  1997-08-12 15:26:55  rnhodek
+# Import of Amiga and newly written Atari lilo sources, with many mods
+# to separate out common parts.
+#
+# Revision 1.4  1997/07/16 13:29:11  rnhodek
 # Add targets to make .i and .s files; remove those files on make clean
 #
 # Revision 1.3  1997/07/16 10:32:54  rnhodek
@@ -32,37 +36,78 @@ include $(TOPDIR)/common/Makefile
 
 VPATH = $(MACH):.:../common/$(MACH):../common
 
-AMIGA_OBJS = amiga/lilo.o $(AMIGA_COBJS)
-ATARI_OBJS = atari/lilo.o $(ATARI_COBJS)
+AMIGA_OBJS = $(AMIGA_COBJS)
+ATARI_OBJS = $(ATARI_COBJS)
+
+LOADER_COBJS = parsetags.o
+LILO_COBJS   = lilo.o lilo_util.o writetags.o conf.tab.o lex.conf.o
+
+AMIGA_LINUX_OBJS = $(addprefix amiga/,$(LILO_COBJS))
+ATARI_LINUX_OBJS = $(addprefix atari/,$(LILO_COBJS))
 
 SUBDEF = -DIN_LILO
 
+YACC = bison -d # --debug
+LEX = flex
+AWK = gawk
+
+AMIGA_HOSTAS = $(AMIGA_HOSTCC) -D__ASSEMBLY__
+ATARI_HOSTAS = $(ATARI_HOSTCC) -D__ASSEMBLY__
+M68K_CC = m68k-linux-gcc
+M68K_AS = $(M68K_CC) -D__ASSEMBLY__
 
 all: $(MACH)
 
-amiga: amiga/lilo
+amiga: amiga/loader amiga/lilo
 
-amiga/lilo: $(AMIGA_OBJS)
-	$(AMIGA_COMPILE) -o $@ -fl libnix -s $^ -lnix
+amiga/lilo: $(AMIGA_LINUX_OBJS)
+	$(CC) -o $@ $^
 
-atari: atari/lilo
+atari: atari/loader atari/lilo
 
-atari/lilo: $(ATARI_OBJS)
-	$(ATARI_COMPILE) -o $@ $^
+atari/lilo: $(ATARI_LINUX_OBJS)
+	$(CC) -o $@ $^
 
 clean:
-	rm -f $(AMIGA_OBJS) $(ATARI_OBJS) {amiga,atari}/*.[is] \
-          {.,amiga,atari}/#*# {.,amiga,atari}/core
+	rm -f $(AMIGA_OBJS) $(ATARI_OBJS) {amiga,atari}/*.[iso] \
+          {.,amiga,atari}/#*# {.,amiga,atari}/core atari/*.{b,img}
+	rm -f atari/{loader,loader.tos}
+	rm -f {amiga,atari}/conf.{y,tab.*}
+	rm -f {amiga,atari}/lex.*
+	rm -f {amiga,atari}/{tagdef.[ch],tagnames.c}
 
 distclean: clean
 	rm -f {amiga,atari}/.depend
 	rm -f amiga/lilo atari/lilo
 
-dep: clean-depend $(addprefix depend-,$($(UPCASE_MACH)_OBJS))
-
 clean-depend: force
 	rm -f $(MACH)/.depend
 
+
+$(MACH)/conf.tab.l.c: $(MACH)/conf.y
+	$(YACC) -pconf -o $@ $<
+
+$(MACH)/conf.y: conf.y $(MACH)/mach-parsefuncs.c $(MACH)/mach-rules.y \
+                       parser_common.h $(MACH)/parser.h
+	$(LINUX_COMPILE) -P -C -E - <$< | sed s/^@/#/ >$@
+
+$(MACH)/lex.conf.l.c: conf.l parser_common.h $(MACH)/parser.h
+	$(LEX) -Pconf -o$@ $<
+
+$(MACH)/tagdef.c $(MACH)/tagdef.h $(MACH)/tagnames.c: tags.def $(MACH)/tags.def tags.awk
+	(cat tags.def $(MACH)/tags.def) | \
+      $(AWK) -f tags.awk header=$(MACH)/tagdef.h c_file=$(MACH)/tagdef.c \
+             tagnames_file=$(MACH)/tagnames.c
+
+# include machine-specific rules
+ifdef MACH
+include $(MACH)/Makefile
+endif
+
+dep: $(MACH)/tagdef.c $(MACH)/tagdef.h $(MACH)/tagnames.c \
+	 clean-depend $(addprefix depend-,$($(UPCASE_MACH)_OBJS)) \
+	 $(addprefix depend-,$(LOADER_OBJS)) \
+	 $(addprefix depend-,$($(UPCASE_MACH)_LINUX_OBJS))
 
 ifeq ($(wildcard $(MACH)/.depend),$(MACH)/.depend)
 include $(MACH)/.depend

@@ -1,0 +1,57 @@
+#
+# $Id: tags.def,v 1.1 1997-08-12 15:27:13 rnhodek Exp $
+#
+# $Log: tags.def,v $
+# Revision 1.1  1997-08-12 15:27:13  rnhodek
+# Import of Amiga and newly written Atari lilo sources, with many mods
+# to separate out common parts.
+#
+#
+#
+# Global Boot Options
+#
+#  tag name	type	size		field name	comment
+BO G_TMPMNT	int	MAX_TMPMNT	TmpMnt		tmp. GEMDOS drive mount
+BO G_EXECPROG str	MAX_EXECPROG	ExecProg	programs to execute
+BO SERIAL	int	-		Serial		Serial port to use
+BO SERIALPARAM	str	-		SerialParam	Parameters of serial prt
+BO SERIALBAUD	int	-		SerialBaud	Baud rate for serial port
+BO SERIALFLOW	int	-		SerialFlow	Flow control for serial port
+BO NOBING	int	-		NoBing		No sound at prompt
+BO VIDEORES	int	-		VideoRes	Video resolution for menu
+BO MCH_COOKIE	int	-		MCH_cookie	Force value of _MCH cookie
+BO CPU_COOKIE	int	-		CPU_cookie	Force value of _CPU cookie
+BO FPU_COOKIE	int	-		FPU_cookie	Force value of _FPU cookie
+BO DELAY	int	-		Delay		Seconds to wait for mod key
+BO NOGUI	int	-		NoGUI		No GUI menu, use console
+
+#
+# Definition of a Entity to Boot
+#
+#  tag name	type	size		field name	comment
+BR OS_TYPE	int	-		OSType		Operating System Type
+BR TMPMNT	int	MAX_TMPMNT	TmpMnt		tmp. GEMDOS drive mount
+BR EXECPROG	str	MAX_EXECPROG	ExecProg	GEMDOS program to execute
+BR IGNORE_TT_RAM int	-		IgnoreTTRam	Ignore TT-RAM
+BR LOAD_TO_ST_RAM int	-		LoadToSTRam	Load kernel to ST-RAM
+BR FORCE_ST_RAM	int	-		ForceSTRam	Force ST-RAM size
+BR FORCE_TT_RAM	int	-		ForceTTRam	Force TT-RAM size
+BR EXTRAMEM_START int	-		ExtraMemStart	add. memory block (start)
+BR EXTRAMEM_SIZE int	-		ExtraMemSize	add. memory block (size)
+BR TOS_DRIVER	str	-		TOSDriver	name of TOS hd driver
+BR BOOT_DRIVE	int	-		BootDrv		boot drive for GEMDOS
+BR BOOT_DEVICE	int	-		BootDev		device of boot sector
+BR BOOT_SECTOR	int	-		BootSec		sector# of boot sector
+
+#
+# Temporary Mount Definition
+#
+#          struct tag   tagno	loader anchor	Config.	name
+TM section TagTmpMnt	4000	MountPointList	Mounts	Temp. Mounts
+#  tag name	type	size		field name	comment
+TM -		link	-		next
+TM TMP_MOUNT	int	-		drive		drive number (0=A:, 1=B:, ...)
+TM TMP_MOUNT_END -	-		-		
+TM TMPMNT_DEV	int	-		device		BIOS device number
+TM TMPMNT_START	int	-		start_sec	Abs. start sector on disk
+TM TMPMNT_RW	int	-		rw		mount read-write?

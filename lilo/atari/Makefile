@@ -1,0 +1,45 @@
+#
+# Atari Makefile for lilo
+#
+# Copyright (c) 1997 by Roman Hodek <Roman.Hodek@informatik.uni-erlangen.de>
+#
+# This file is subject to the terms and conditions of the GNU General Public
+# License.  See the file "COPYING" in the main directory of this archive
+# for more details.
+#
+# $Id: Makefile,v 1.1 1997-08-12 15:27:07 rnhodek Exp $
+#
+# $Log: Makefile,v $
+# Revision 1.1  1997-08-12 15:27:07  rnhodek
+# Import of Amiga and newly written Atari lilo sources, with many mods
+# to separate out common parts.
+#
+#
+
+.SUFFIXES:	.img .b
+
+LOADER_OBJS = $(addprefix atari/,crt0.o bootmain.o tmpmnt.o menu.o monitor.o \
+                                 icon.o $(LOADER_COBJS))
+
+atari/loader: atari/rootsect.b atari/loader.tos
+	@# 1 sector from roosect.b, 1 empty sector (for mapping of booter.tos)
+	@# rest is booter.tos
+	cd atari; (cat rootsect.b; dd if=/dev/zero bs=512 count=1; cat loader.tos) >loader
+
+atari/loader.tos: $(LOADER_OBJS) $(ATARI_COBJS)
+	@# discard all symbols and locals
+	$(ATARI_COMPILE) -s -nostdlib -Wl,-x -o $@ $^ -lmint -lgem
+
+# rootsect.S compiled by Linux gcc
+rootsect.o: rootsect.S
+	$(M68K_AS) -c $< -o $@
+
+.o.img:
+	$(M68K_CC) -nostdlib -o $@ $^
+	@# avoid lots of x bits being set...
+	chmod -x $@
+
+.img.b:
+	objcopy --output-target=binary --strip-all -R .data -R .bss $< $@
+	@# avoid lots of x bits being set...
+	chmod -x $@

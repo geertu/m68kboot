@@ -1,0 +1,57 @@
+#
+#   Amiga Linux/m68k Loader
+#
+#   Sample Configuration File
+#
+
+header
+    bootdev "/dev/hda1"
+#   altdev "scsi.device" 1
+    default "linux"
+    auto false
+    timeout 20
+    aux false
+    baud 9600
+    password "amiga"
+    debug false
+endheader
+
+bootrec "amiga"
+    type amiga
+endrec
+
+bootrec "linux"
+    type linux
+    image "/boot/vmlinux"
+    args "root=/dev/hdb1"
+endrec
+
+bootrec "single"
+    image "/boot/vmlinux"
+    args "root=/dev/hdb1 single"
+    password "single"
+endrec
+
+bootrec "emergency"
+    image "/boot/vmlinux"
+    args "root=/dev/hdb1 -b"
+    password "emergency"
+endrec
+
+bootrec "ramdisk"
+    image "/boot/vmlinux"
+    ramdisk "/boot/filesys-ELF-2.0.x.gz"
+    args "root=/dev/ram"
+    password "ramdisk"
+endrec
+
+bootrec "test1"
+    image "/usr/src/linux/vmlinux"
+endrec
+
+bootrec "test2"
+    image "/usr/src/linux/vmlinux"
+    args "root=/dev/hdb1"
+endrec
+
+file "/boot/filesys-ELF-2.0.x"

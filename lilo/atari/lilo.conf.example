@@ -1,0 +1,73 @@
+#
+#   Atari Linux/m68k Loader
+#
+#   Sample Configuration File
+#
+
+header
+    bootdev "/dev/hda1"
+    default "linux"
+	resolution tt-mid
+	no-bing
+    auto false
+    timeout 20
+	serial Modem2 9600 7E1.5 xon
+    password "atari"
+	machine TT
+	cpu 68030
+	fpu 68881
+	mount "/dev/sda1" on C:
+	mount "/dev/sda3" on D:
+	exec "C:\\AUTO\\NVDI.PRG"
+	exec "C:\\AUTO\\SELECTR.PRG"
+endheader
+
+bootrec "TOS"
+	partition "/dev/sda1"
+	driver "HUSHI.SYS"
+	boot-drive D:
+endrec
+
+bootrec "linux"
+    image "/boot/vmlinux"
+    args "root=/dev/sda10"
+endrec
+
+bootrec "single"
+    image "/boot/vmlinux"
+    args "root=/dev/sda10 single"
+    password "single"
+endrec
+
+bootrec "emergency"
+    image "/boot/vmlinux"
+    args "root=/dev/sda10 -b"
+    password "emergency"
+endrec
+
+bootrec "ramdisk"
+    image "/boot/vmlinux"
+    ramdisk "/boot/filesys-ELF-2.0.x.gz"
+    args "root=/dev/ram"
+    password "ramdisk"
+endrec
+
+bootrec "test1"
+    image "/usr/src/linux/vmlinux"
+endrec
+
+bootrec "test2"
+    image "/usr/src/linux/vmlinux"
+    args "root=/dev/sdb10"
+	mount "/dev/sda1" on C:
+	exec "C:\\AUTO\\GEMENV.PRG"
+	ignore-tt-ram
+	load-to-st-ram
+	extra-mem 16M at 0x02000000
+endrec
+
+bootrec "asv"
+	partition "/dev/sda2"
+endrec
+
+file "/boot/filesys-ELF-2.0.x"

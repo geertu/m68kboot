@@ -17,10 +17,14 @@
 ** License.  See the file COPYING in the main directory of this archive
 ** for more details.
 **
-** $Id: bootstrap.h,v 1.5 1997-08-10 19:22:54 rnhodek Exp $
+** $Id: bootstrap.h,v 1.6 1997-08-12 15:26:54 rnhodek Exp $
 ** 
 ** $Log: bootstrap.h,v $
-** Revision 1.5  1997-08-10 19:22:54  rnhodek
+** Revision 1.6  1997-08-12 15:26:54  rnhodek
+** Import of Amiga and newly written Atari lilo sources, with many mods
+** to separate out common parts.
+**
+** Revision 1.5  1997/08/10 19:22:54  rnhodek
 ** Moved AmigaOS inline funcs to extr header inline-funcs.h; the functions
 ** can't be compiled under Linux
 **
@@ -44,7 +48,6 @@
 
 #ifndef _bootstrap_h
 #define _bootstrap_h
-
 
 #include "linuxboot.h"
 #include "inline-funcs.h"

@@ -7,20 +7,19 @@
  *  License.  See the file COPYING in the main directory of this archive
  *  for more details.
  *  
- *  $Id: inline-funcs.h,v 1.1 1997-08-10 19:58:14 rnhodek Exp $
+ *  $Id: inline-funcs.h,v 1.2 1997-08-12 15:26:55 rnhodek Exp $
  * 
  *  $Log: inline-funcs.h,v $
- *  Revision 1.1  1997-08-10 19:58:14  rnhodek
- *  Moved bootstrap/amiga/inline-funcs.h to common/amiga
- *
- *  Revision 1.1  1997/08/10 19:22:54  rnhodek
- *  Moved AmigaOS inline funcs to extr header inline-funcs.h; the functions
- *  can't be compiled under Linux
+ *  Revision 1.2  1997-08-12 15:26:55  rnhodek
+ *  Import of Amiga and newly written Atari lilo sources, with many mods
+ *  to separate out common parts.
  *
  */
 
 #ifndef _inline_funcs_h
 #define _inline_funcs_h
+
+#include "linuxboot.h"
 
     /*
      *	Amiga Shared Library/Device Functions
@@ -201,6 +200,7 @@ static __inline struct ConfigDev *FindConfigDev(struct ConfigDev *oldConfigDev,
 
 
 extern const struct GfxBase *GfxBase;
+struct View;
 
 #define LVOLoadView		(-0xde)
 #define LVOSetChipRev		(-0x378)

@@ -21,10 +21,14 @@
  *  License.  See the file COPYING in the main directory of this archive
  *  for more details.
  * 
- * $Id: linuxboot.h,v 1.5 1997-08-10 19:22:57 rnhodek Exp $
+ * $Id: linuxboot.h,v 1.6 1997-08-12 15:26:55 rnhodek Exp $
  * 
  * $Log: linuxboot.h,v $
- * Revision 1.5  1997-08-10 19:22:57  rnhodek
+ * Revision 1.6  1997-08-12 15:26:55  rnhodek
+ * Import of Amiga and newly written Atari lilo sources, with many mods
+ * to separate out common parts.
+ *
+ * Revision 1.5  1997/08/10 19:22:57  rnhodek
  * Moved AmigaOS inline funcs to extr header inline-funcs.h; the functions
  * can't be compiled under Linux
  *
@@ -256,8 +260,6 @@ struct GfxBase {
 
 #define SETCHIPREV_BEST	(0xffffffff)
 #define HIRES		(0x8000)
-
-struct View;
 
 
 #endif  /* _linuxboot_h */

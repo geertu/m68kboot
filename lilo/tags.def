@@ -1,0 +1,50 @@
+#
+# $Id: tags.def,v 1.1 1997-08-12 15:26:58 rnhodek Exp $
+#
+# $Log: tags.def,v $
+# Revision 1.1  1997-08-12 15:26:58  rnhodek
+# Import of Amiga and newly written Atari lilo sources, with many mods
+# to separate out common parts.
+#
+#
+#
+# Global Boot Options
+#
+#          struct tag   tagno	loader anchor	Config.	name
+BO section BootOptions	1000	BootOptions	Options	Boot Options
+#  tag name	type	size		field name	comment
+BO HEADER	-	-		-		Start of Header
+BO HEADER_END	-	-		-		End of Header
+BO DEFAULT	str	-		Default		Default Boot Image
+BO AUTO		int	-		Auto		Automatic Boot Flag
+BO TIME_OUT	int	-		TimeOut		Time Out Value
+BO MASTER_PASSWORD str	-		MasterPassword	Master Password
+BO DEBUG	int	-		Debug		Debug Flag
+BO PROMPT	str	-		Prompt		Boot Prompt
+
+#
+# Definition of a Entity to Boot
+#
+#          struct tag   tagno	loader anchor	Config.	name
+BR section BootRecord	2000	BootRecords	Records	Boot Records
+#  tag name	type	size		field name	comment
+BR -		link	-		Next
+BR BOOT_RECORD	str	-		Label
+BR BOOT_RECORD_END -	-		-
+BR ALIAS	str	-		Alias		Alias Label Name
+BR KERNEL	str	-		Kernel		Kernel Image
+BR ARGUMENTS	str	-		Args		Boot Arguments
+BR PASSWORD	str	-		Password	Password
+BR RAMDISK	str	-		Ramdisk		Ramdisk Image
+
+#
+# Definition for a File
+#
+#          struct tag   tagno	loader anchor	Config.	name
+FI section FileDef	3000	Files		Files	File Definitions
+#  tag name	type	size		field name	comment
+FI -		link	-		Next
+FI FILE_DEF	str	-		Path
+FI FILE_DEF_END	-	-		-
+FI VECTOR	#struct-vecent-* -	Vector		File Vector
+

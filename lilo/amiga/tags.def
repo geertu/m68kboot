@@ -1,0 +1,32 @@
+#
+# $Id: tags.def,v 1.1 1997-08-12 15:27:07 rnhodek Exp $
+#
+# $Log: tags.def,v $
+# Revision 1.1  1997-08-12 15:27:07  rnhodek
+# Import of Amiga and newly written Atari lilo sources, with many mods
+# to separate out common parts.
+#
+#
+#
+# Global Boot Options
+#
+#  tag name	type	size		field name	comment
+BO AUX		int	-		Aux		Auxiliary Console
+BO BAUD		int	-		Baud		Baud for Auxiliary Console
+BO KICKRANGE	#u_short-* -		KickRange	Valid Kickstart Version Range
+BO G_CHIP_RAM_SIZE int	-		ChipSize	Chip RAM Size
+BO G_FAST_RAM_CHUNK int	NUM_MEMINFO	FastChunks	Fast RAM Chunk
+BO G_MODEL	int	-		Model		Amiga Model
+BO G_PROCESSOR	int	-		Processor	Processor (CPU/FPU/MMU) type
+BO VIDEO	str	-		Video		Video type and options
+BO SERIAL	str	-		Serial		Serial type and options
+
+#
+# Definition of a Entity to Boot
+#
+#  tag name	type	size		field name	comment
+BR OS_TYPE	int	-		OSType		Operating System Type
+BR CHIP_RAM_SIZE int	-		ChipSize	Chip RAM Size
+BR FAST_RAM_CHUNK int	NUM_MEMINFO	FastChunks	Fast RAM Chunk
+BR MODEL	int	-		Model		Amiga Model
+BR PROCESSOR	int	-		Processor	Processor (CPU/FPU/MMU) type
