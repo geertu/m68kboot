@@ -3,20 +3,113 @@
 lilo \- Installer for m68k boot loader
 .SH SYNOPSIS
 .B lilo
-ARGS MISSING!
+.RB [ -h | \-\-help ]
+.RB [ -V | \-\-version ]
+.RB [ -v | \-\-verbose ]
+.RB [ -b | \-\-backup ]
+.RB [ -u | \-\-uninstall ]
+.RB [ -w | \-\-root 
+.I prefix
+]
+.RB [ -r | \-\-restore\-from
+.I file
+]
+.RB [ -s | \-\-save\-to
+.I file
+]
+.RB [ -d | \-\-device
+.I device
+]
+.RB [ -C | \-\-config-file
+.I file
+]
+.RB [ -f | \-\-force ]
+.RB [ -t | \-\-dostype
+.I id
+]
+.RB [ -c | \-\-checksum ]
+.RB [ -x | \-\-create-reset ]
 .SH DESCRIPTION
-MISSING!
+\fBLilo\fR is used to install a boot block to a partition. That boot
+block can boot Linux (and other operating systems) without booting the
+native operating system of your machine first.
+.PP
+This manpage just describes the options of \fBlilo\fR. For more
+information on how Lilo works in general, and about its configuration,
+see the extensive documentation in \fI/usr/doc/m68kboot\fR. The Lilo
+documentation is available is various formats (plain text, dvi, info,
+PostScript, HTML).
 .SH OPTIONS
-MISSING!
+.TP
+.B \-h, \-\-help
+Display usage information.
+.TP
+.B \-V, \-\-version
+Display the Lilo version.
+.TP
+.B \-v, \-\-verbose
+Enable verbose mode and output what currently is done.
+.TP
+.B \-b, \-\-backup
+Force making a backup of the boot block, even if a backup already
+exists.
+.TP
+.B \-u, \-\-uninstall
+Uninstall Lilo by restoring the backup boot block.
+.TP
+.BI "\-w " "prefix, " "\-\-root " prefix
+Use \fIprefix\fR as prefix to all path names, except for devices. This
+is useful when creating boot floppies or for debugging.
+.TP
+.BI "\-r " "file, " "\-\-restore\-from " file
+Restore the boot block from \fIfile\fR.
+.TP
+.BI "\-s " "file, " "\-\-save\-to " file
+Save the boot block to \fIfile\fR first.
+.TP
+.BI "\-d " "device, " "\-\-device " device
+Override the installation device specified in \fI/etc/lilo.conf\fR as
+option \fBbootdev\fR.
+.TP
+.BI "\-C " "file, " "\-\-config\-file " file
+Use \fIfile\fR instead of \fI/etc/lilo.conf\fR as configuration file.
+.TP
+.B \-f, \-\-force
+(Available only on Amiga)
+Force installation on a partition with an unknown boot block.
+.TP
+.BI "\-t " "id, " "\-\-dostype " id
+(Available only on Amiga)
+Specify the \fBDosType\fR for the boot block.Valid DosTypes are: BOOU,
+DOS0, DOS1, DOS2, DOS3, DOS4, DOS5,muFS, muF0, muF1, muF2, muF3, muF4,
+and muF5. The default is the original DosType of the partition on
+which Lilo is to be installed, or BOOU for partitions with an unknown
+boot block (for those, \-\-force has to be specified, too).
+.TP
+.B \-c, \-\-checksum
+(Available only on Amiga)
+Fix the boot block checksum.
+.TP
+.B \-x, \-\-create\-reset
+(Available only on Amiga)
+Write a boot block that reboots the computer if you boot from it. This
+option is useful if you have a hard disk that spins up too slowly to
+be detected after a cold reboot and that needs a manual reset, while
+you also have a faster disk.
 .SH FILES
 .TP
 .I /etc/lilo.conf
+Main configuration file.
 .TP
-.I /boot/loader
+.I /boot/loader.machine
+Template for the loader.
 .TP
 .I /boot/loader.patched
+The actual loader, a filled-in version of the template.
+.TP
+.I /boot/map
+This file is read by the loader and it contains the boot configuration
+and vectors for the referenced files.
 .SH AUTHORS
 Geert Uytterhoeven <Geert.Uytterhoeven@cs.kuleuven.ac.be>,
-Roman Hodek <Roman.Hodek@informatik.uni-erlangen.de>,
-Andreas Schwab <schwab@issan.informatik.uni-dortmund.de>,
-Arjan Knor, Robert de Vries
+Roman Hodek <Roman.Hodek@informatik.uni-erlangen.de>
