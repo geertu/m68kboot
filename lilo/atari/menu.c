@@ -7,10 +7,14 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: menu.c,v 1.7 1998-03-02 13:12:24 rnhodek Exp $
+ * $Id: menu.c,v 1.8 1998-03-04 09:20:16 rnhodek Exp $
  * 
  * $Log: menu.c,v $
- * Revision 1.7  1998-03-02 13:12:24  rnhodek
+ * Revision 1.8  1998-03-04 09:20:16  rnhodek
+ * goto_last_line: Must use VDI function as long as workstation is open,
+ * VT52 escapes don't work.
+ *
+ * Revision 1.7  1998/03/02 13:12:24  rnhodek
  * #ifdef out many parts if NO_GUI is defined.
  * Rename NoGUI to DontUseGUI.
  * Remove unused line() function.
@@ -482,8 +486,18 @@ void goto_last_line( void )
 {
 	int i;
 
-	for( i = 0; i < 160; ++i )
-		Cconws( "\033B" );
+#ifndef NO_GUI
+	if (workstation_open) {
+		for( i = 0; i < 160; ++i )
+			v_curdown( grh );
+	}
+	else {
+#endif
+		for( i = 0; i < 160; ++i )
+			Cconws( "\033B" );
+#ifndef NO_GUI
+	}
+#endif
 }
 
 #ifndef NO_GUI
