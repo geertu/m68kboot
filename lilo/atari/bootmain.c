@@ -7,10 +7,14 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: bootmain.c,v 1.15 1998-03-16 10:45:18 schwab Exp $
+ * $Id: bootmain.c,v 1.16 1998-03-16 11:11:30 rnhodek Exp $
  * 
  * $Log: bootmain.c,v $
- * Revision 1.15  1998-03-16 10:45:18  schwab
+ * Revision 1.16  1998-03-16 11:11:30  rnhodek
+ * Remove Dsetdrv() from boot_tos(), it has no effect anyway (due to Pterm).
+ * Instead, check if _bootdev exists and pick another one if not.
+ *
+ * Revision 1.15  1998/03/16 10:45:18  schwab
  * Do auto boot wait loop as do..while.
  * Rename putenv to Putenv to avoid name clash with lib.
  *
@@ -487,12 +491,16 @@ void boot_tos( const struct BootRecord *rec )
 	/* set _bootdev variable, defines the drive from where AUTO folder progs
 	 * and accessories are loaded */
 	_bootdev = rec->BootDrv ? *rec->BootDrv : 2; /* use C: as default */
-	if (_drvbits & (1 << _bootdev))
-		Dsetdrv( _bootdev );
-	else
+	if (!(_drvbits & (1 << _bootdev))) {
 		cprintf( "Warning: Can't set current drive to %c:, "
 				 "drive not available\n", _bootdev + 'A' );
-
+		/* GEMDOS doesn't like it if Dsetdrv is called for a non-existant
+		 * drive, so choose some other one. If C: exists, use that, otherwise
+		 * A:. */
+		_bootdev = (_drvbits & (1 << 2)) ? 2 : 0;
+		cprintf( "Using %c: as boot drive.\n", _bootdev + 'A' );
+	}
+	
 	/* we can now safely jump back to ROM code, since the hd driver should
 	 * have changed hdv_rw, which terminates the boot-try loop */
 	ExitAction = 1;
