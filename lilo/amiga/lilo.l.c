@@ -13,10 +13,14 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: lilo.l.c,v 1.6 1998-04-06 01:40:57 dorchain Exp $
+ * $Id: lilo.l.c,v 1.7 1999-01-18 10:02:10 schwab Exp $
  * 
  * $Log: lilo.l.c,v $
- * Revision 1.6  1998-04-06 01:40:57  dorchain
+ * Revision 1.7  1999-01-18 10:02:10  schwab
+ * (CheckVectorDevice): Support new scsi disk major
+ * numbering.
+ *
+ * Revision 1.6  1998/04/06 01:40:57  dorchain
  * make loader linux-elf.
  * made amiga bootblock working again
  * compiled, but not tested bootstrap
@@ -325,7 +329,11 @@ void CheckVectorDevice( const char *name, dev_t device, struct vecent *vector )
 		    Die("File `%s' must reside on physical IDE device `%s'\n",
 			name, Device);
 		break;
+#ifdef SCSI_DISK0_MAJOR
+	    case SCSI_DISK0_MAJOR:
+#else
 	    case SCSI_DISK_MAJOR:
+#endif
 		if ((MINOR(device) & 0xf0) != (MINOR(BootDevice) & 0xf0))
 		    Die("File `%s' must reside on physical SCSI device `%s'\n",
 			name, Device);
@@ -356,7 +364,11 @@ void CheckVectorDevice( const char *name, dev_t device, struct vecent *vector )
 			"`%s:%ld'\n",
 			name, Config.AltDeviceName, *Config.AltDeviceUnit);
 		break;
+#ifdef SCSI_DISK0_MAJOR
+	    case SCSI_DISK0_MAJOR:
+#else
 	    case SCSI_DISK_MAJOR:
+#endif
 		if ((MINOR(device) & 0xf0) != (MINOR(altdev) & 0xf0))
 		    Die("File `%s' must reside on physical SCSI device "
 			"`%s:%ld'\n",
