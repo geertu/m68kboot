@@ -7,10 +7,15 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: monitor.c,v 1.5 1998-02-26 10:25:12 rnhodek Exp $
+ * $Id: monitor.c,v 1.6 1998-03-02 13:56:47 rnhodek Exp $
  * 
  * $Log: monitor.c,v $
- * Revision 1.5  1998-02-26 10:25:12  rnhodek
+ * Revision 1.6  1998-03-02 13:56:47  rnhodek
+ * Add #ifdefs for NO_MONITOR
+ * Don't call graf_init/deinit() if DontUseGUI is set.
+ * New optional second arg to 'exec' (workdir).
+ *
+ * Revision 1.5  1998/02/26 10:25:12  rnhodek
  * New sub-command 'mounts' of 'list'.
  * Args to isprefix() were swapped, and a "== 0" test was left from
  * previous strcmp usage.
@@ -32,6 +37,9 @@
  *
  * 
  */
+
+#include "loader_config.h"
+#ifndef NO_MONITOR
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -125,7 +133,7 @@ static const struct command commands[] = {
 	{ "umount", do_umount,
 	  " [<drv>]              Unmount one (all) TOS drives" },
 	{ "exec", do_exec,
-	  " <path>                 Execute a TOS program" },
+	  " <path> [<workdir>]     Execute a TOS program" },
 	{ "boot", do_boot,
 	  " <partit> [<driver>]    Boot bootsector or TOS (with driver)" }
 };
@@ -133,14 +141,16 @@ static const struct command commands[] = {
 
 void boot_monitor( void )
 {
-	graf_deinit();
+	if (!DontUseGUI)
+		graf_deinit();
 	cprintf( "\fEntering LILO boot monitor.\n" );
 	CurrRec = NULL;
 	
 	while( monitor_command() )
 		;
 
-	graf_init( NULL );
+	if (!DontUseGUI)
+		graf_init( NULL );
 }
 
 
@@ -299,6 +309,8 @@ static void list_files( int argc, const char *argv[] )
 			cprintf( "%ld bytes", file->Vector[0].start );
 		else if (strncmp( file->Path, "bootp:", 6 ) != 0)
 			cprintf( "not available" );
+		else
+			cprintf( "remote" );
 		cprintf( ")\n" );
     }
 }
@@ -705,13 +717,14 @@ static void do_exec( int argc, const char *argv[] )
 		cprintf( "Need program to execute\n" );
 		return;
 	}
-	else if (argc > 1) {
+	else if (argc > 2) {
 		cprintf( "Write arguments to command into first arg (with quotes)\n" );
+		cprintf( "(Second arg is workdir!)\n" );
 		return;
 	}
 
-	rv = exec_tos_program( argv[0], NULL );
-	cprintf( "Return value %d\n", rv );
+	rv = exec_tos_program( argv[0], argc == 2 ? argv[1] : NULL );
+	cprintf( "Return value: %d\n", rv );
 }
 
 
@@ -818,6 +831,7 @@ static int isprefix( const char *s1, const char *s2 )
     return( 1 );
 }
 
+#endif /* NO_MONITOR */
 
 /* Local Variables: */
 /* tab-width: 4     */
