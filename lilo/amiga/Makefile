@@ -8,10 +8,13 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.3 1998-04-06 01:40:56 dorchain Exp $
+# $Id: Makefile,v 1.4 1998-04-09 08:07:15 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.3  1998-04-06 01:40:56  dorchain
+# Revision 1.4  1998-04-09 08:07:15  rnhodek
+# Define ELF_LOADER for Amiga loader sources.
+#
+# Revision 1.3  1998/04/06 01:40:56  dorchain
 # make loader linux-elf.
 # made amiga bootblock working again
 # compiled, but not tested bootstrap
@@ -26,8 +29,10 @@
 #
 #
 
+# This overrides the standard rule for .c file (native compiler) to
+# use the Linux compiler. On Amiga, the loader is built as ELF.
 amiga/%.o: %.c
-	$(LINUX_COMPILE) -c $< -o $@ -fpic
+	$(LINUX_COMPILE) -DELF_LOADER -c $< -o $@ -fpic
 
 LD = ld
 LLDFLAGS = -Ttext 0
