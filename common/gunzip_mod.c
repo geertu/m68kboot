@@ -1,0 +1,317 @@
+/*
+ * gunzip_mod.c -- Decompressing module for Atari bootstrap
+ *
+ * Copyright (c) 1997 by Roman Hodek <Roman.Hodek@informatik.uni-erlangen.de>
+ *
+ * This file is subject to the terms and conditions of the GNU General Public
+ * License.  See the file COPYING in the main directory of this archive
+ * for more details.
+ * 
+ * $Id: gunzip_mod.c,v 1.1 1997-07-15 09:45:37 rnhodek Exp $
+ * 
+ * $Log: gunzip_mod.c,v $
+ * Revision 1.1  1997-07-15 09:45:37  rnhodek
+ * Initial revision
+ *
+ * 
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#include "bootp.h"
+#include "stream.h"
+
+
+/*
+ * gzip declarations
+ */
+
+#define OF(args)  args
+
+#define memzero(s, n)     memset ((s), 0, (n))
+
+typedef unsigned char  uch;
+typedef unsigned short ush;
+typedef unsigned long  ulg;
+
+#define INBUFSIZ	(32*1024)	/* input buffer size; for optimum performance
+								 * the same or a multiple of other buffer
+								 * sizes, and file_mod uses 32k */
+#define WSIZE		(32*1024)	/* window size--must be a power of two, and */
+								/* at least 32K for zip's deflate method */
+#define CHANGING_WINDOW			/* this tell inflate.c that 'window' can
+								 * change in flush_window(), and that the
+								 * previous window (needed to copy data) is
+								 * preserved in 'previous_window' */
+
+/***************************** Prototypes *****************************/
+
+static int gunzip_open( const char *name );
+static long gunzip_fillbuf( void *buf );
+static int gunzip_close( void );
+static int call_gunzip( void );
+static void gzip_mark( void **ptr );
+static void gzip_release( void **ptr );
+static int fill_inbuf( void );
+static void flush_window( void );
+static void error( char *x );
+
+/************************* End of Prototypes **************************/
+
+
+
+MODULE gunzip_mod = {
+	"gunzip",					/* name */
+	WSIZE,						/* max. 512 bytes per TFTP packet */
+	gunzip_open,
+	gunzip_fillbuf,
+	NULL,						/* cannot skip */
+	gunzip_close,
+	MOD_REST_INIT
+};
+
+/* special stack for gunzip() function */
+static char *gunzip_stack;
+/* some globals for storing values between stack switches */
+static long gunzip_sp, gunzip_jumpback, main_sp, main_fp;
+/* size of stack for gunzip(); 4k should be more than enough. (I guess 2k
+ * would suffice also, but I don't want to track down stack overflows...) */
+#define GUNZIP_STACK_SIZE	(4*1024)
+
+static uch *inbuf;
+static uch *window;
+static uch *previous_window;
+
+static unsigned insize = 0;  /* valid bytes in inbuf */
+static unsigned inptr = 0;   /* index of next byte to be processed in inbuf */
+static unsigned outcnt = 0;  /* bytes in output buffer */
+static int exit_code = 0;
+static long bytes_out = 0;
+
+#define get_byte()  (inptr < insize ? inbuf[inptr++] : fill_inbuf())
+		
+/* Diagnostic functions (stubbed out) */
+#define Assert(cond,msg)
+#define Trace(x)
+#define Tracev(x)
+#define Tracevv(x)
+#define Tracec(c,x)
+#define Tracecv(c,x)
+
+#define STATIC static
+
+FILE *xfile;
+
+static int gunzip_open( const char *name )
+{
+	int rv;
+	char myname[strlen(name)+4];
+	unsigned char buf[2];
+	
+	/* try opening downstream channel, first with name passed, then with ".gz"
+	 * appended */
+	strcpy( myname, name );
+	if (sopen( myname ) >= 0)
+		goto got_it_open;
+	strcat( myname, ".gz" );
+	if (sopen( myname ) >= 0) 
+		goto got_it_open;
+	if (strcmp( name, "vmlinux" ) == 0) {
+		/* if name is "vmlinux", also try "vmlinuz" */
+		strcpy( myname, "vmlinuz" );
+		if (sopen( myname ) >= 0)
+			goto got_it_open;
+	}
+	return( -1 );
+	
+  got_it_open:
+	/* check if data is gzipped */
+	rv = sread( buf, 2 );
+	sseek( 0, SEEK_SET );
+	if (rv < 2) {
+		fprintf( stderr, "File shorter than 2 bytes, can't test for gzip\n" );
+		return( -1 );
+	}
+    if (buf[0] != 037 || (buf[1] != 0213 && buf[1] != 0236))
+		/* not compressed, remove this module from the stream */
+		return( 1 );
+
+	if (!(gunzip_stack = malloc( GUNZIP_STACK_SIZE ))) {
+		fprintf( stderr, "Out of memory for gunzip stack!\n" );
+		return( -1 );
+	}
+	gunzip_sp = 0;
+
+	if (!(inbuf = malloc( INBUFSIZ ))) {
+		fprintf( stderr, "Out of memory for gunzip input buffer!\n" );
+		return( -1 );
+	}
+
+	printf( "Decompressing %s\n", myname );
+xfile = fopen( "x", "wb" );
+	return( 0 );
+}
+
+static __inline__ unsigned long getsp( void )
+{
+	ulg ret;
+	__asm__ __volatile__
+		( "movl	%/sp,%0" : "=r" (ret) : );
+	return( ret );
+}
+
+static long gunzip_fillbuf( void *buf )
+{
+	previous_window = window;
+	window = buf;
+	return( call_gunzip() );
+}
+
+static int gunzip_close( void )
+{
+	free( gunzip_stack );
+	free( inbuf );
+	sclose();
+fclose(xfile);
+	return( 0 );
+}
+
+#include "inflate.c"
+
+static void gzip_mark( void **ptr )
+{
+}
+
+static void gzip_release( void **ptr )
+{
+}
+
+/* This function does most of the magic for implementing a second stack for
+ * gunzip(). This is necessary because lib/inflate.c only provides a callback
+ * (flush_window()) that can store data away. But we need to actually return
+ * from out fillbuf method to implement the streaming. (Otherwise, the whole
+ * file would have to be uncompressed and buffered as a whole.)
+ *
+ * The solution to this problem is a second stack on which gunzip() runs. If
+ * flush_window() is called, it saves state and then switches back to the main
+ * stack, from which we can return to our caller. For resuming at the point
+ * where it left off, we simply restore the gunzip stack again. A second
+ * return value in d1 distinguishes returns from inside flush_window() and
+ * "normal" returns from gunzip() itself. The latter either indicate EOF or
+ * error.
+ */
+static int call_gunzip( void )
+{
+	int rv = 0;
+	
+	/* avoid warnings about unused variables (appear only in asm) */
+	(void)&main_sp;
+	(void)&main_fp;
+	(void)&gunzip_jumpback;
+	(void)gunzip;
+	
+	if (!gunzip_sp) {
+		register int asm_rv __asm__ ("d0");
+		/* gunzip() wasn't called before: set up its stack and call the main
+		 * function */
+		makecrc();
+		__asm__ __volatile__ (
+			"movl	%/sp,_main_sp\n\t"	/* save current sp */
+			"movl	%/a6,_main_fp\n\t"	/* and fp */
+			"movl	%1,%/sp\n\t"		/* move to new stack */
+			"jbsr	_gunzip\n\t"		/* call the function */
+		"_return_from_flush:\n\t" 		/* point of coming back */
+			"movl	_main_sp,%/sp\n\t"	/* restore main sp */
+			"movl	_main_fp,%/a6" 		/* and fp */
+			: "=d" (asm_rv)
+			: "g" (gunzip_stack+GUNZIP_STACK_SIZE-sizeof(int))
+			: "d1", "d2", "d3", "d4", "d5", "d6", "d7", "a0", "a1", "a2", "a3",
+			  "a4", "a5", "memory" /* all regs possibly clobbered */
+			);
+		rv = asm_rv;
+	}
+	else {
+		/* gunzip() is already active, jump to where it left off */
+		__asm__ __volatile__ (
+			"movl	%/sp,_main_sp\n\t"	/* save current sp */
+			"movl	%/a6,_main_fp\n\t"	/* and fp */
+			"movl	_gunzip_jumpback,%/a0\n\t"
+			"jmp	%/a0@"
+			: /* no outputs */
+			: /* no inputs */
+			: "d0", "d1", "a0", "a1", "memory" /* clobbered regs */
+			);
+	}
+	return( rv );		/* 0 for EOF, -1 for error, > 0 if from flush_window */
+}
+
+/* This is used in flush_window() to return into call_gunzip() */
+#define RETURN_TO_MAIN_STACK()												\
+	__asm__ __volatile__ (													\
+		"movml	%/d2-%/d7/%/a2-%/a6,%/sp@-\n\t"	/* save call-saved regs */	\
+		"movl	%/sp,_gunzip_sp\n\t" 			/* save current sp */		\
+		"movl	#1f,_gunzip_jumpback\n\t" 		/* save return address */	\
+		"movl	_outcnt,%/d0\n\t"				/* return value */			\
+		"jmp	_return_from_flush\n" 			/* and return... */			\
+	"1:\tmovl	_gunzip_sp,%/sp\n\t" 			/* restore sp */			\
+		"movml	%/sp@+,%/d2-%/d7/%/a2-%/a6"		/* restore registers */		\
+		: /* no outputs */													\
+		: /* no inputs */													\
+		: "d0", "d1", "a0", "a1", "memory" /* clobbered regs */				\
+		)
+
+/*
+ * Fill the input buffer. This is called only when the buffer is empty
+ * and at least one byte is really needed.
+ */
+static int fill_inbuf( void )
+{
+    if (exit_code)
+		return( -1 );
+
+    insize = sread( inbuf, INBUFSIZ );
+    if (insize <= 0)
+		return( -1 );
+
+    inptr = 1;
+    return( inbuf[0] );
+}
+
+/*
+ * Write the output window window[0..outcnt-1] and update crc and bytes_out.
+ * (Used for the decompressed data only.)
+ */
+static void flush_window( void )
+{
+    ulg c = crc;         /* temporary variable */
+    unsigned n;
+    uch *in, ch;
+    
+    in = window;
+    for( n = 0; n < outcnt; n++ ) {
+	    ch = *in++;
+	    c = crc_32_tab[((int)c ^ ch) & 0xff] ^ (c >> 8);
+    }
+    crc = c;
+	bytes_out += (ulg)outcnt;
+fwrite( window, outcnt, 1, xfile );
+
+	/* return to call_gunzip(), next call to it resumes here */
+	RETURN_TO_MAIN_STACK();
+	
+	outcnt = 0;
+}
+
+static void error( char *x )
+{
+	fflush(stdout);
+    fprintf( stderr, "\n%s\n", x);
+    exit_code = 1;
+}
+
+/* Local Variables: */
+/* tab-width: 4     */
+/* End:             */
