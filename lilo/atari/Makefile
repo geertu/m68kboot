@@ -7,10 +7,14 @@
 # License.  See the file "COPYING" in the main directory of this archive
 # for more details.
 #
-# $Id: Makefile,v 1.3 1998-02-24 11:14:11 rnhodek Exp $
+# $Id: Makefile,v 1.4 1998-02-27 10:18:08 rnhodek Exp $
 #
 # $Log: Makefile,v $
-# Revision 1.3  1998-02-24 11:14:11  rnhodek
+# Revision 1.4  1998-02-27 10:18:08  rnhodek
+# Redirect dd's output to /dev/null.
+# Add strace_tos.o to object list.
+#
+# Revision 1.3  1998/02/24 11:14:11  rnhodek
 # When building loader.map also omit ___gcc_compiled_c symbols
 #
 # Revision 1.2  1998/02/23 10:16:21  rnhodek
@@ -26,12 +30,14 @@
 .SUFFIXES:	.img .b
 
 LOADER_OBJS = $(addprefix atari/,crt0.o bootmain.o tmpmnt.o menu.o monitor.o \
-                                 icon.o $(LOADER_COBJS))
+                                 strace_tos.o icon.o $(LOADER_COBJS))
 
 atari/loader: atari/rootsect.b atari/loader.tos
 	@# 1 sector from roosect.b, 1 empty sector (for mapping of booter.tos)
 	@# rest is booter.tos
-	cd atari; (cat rootsect.b; dd if=/dev/zero bs=512 count=1; cat loader.tos) >loader
+	cd atari; (cat rootsect.b; \
+	           dd if=/dev/zero bs=512 count=1 2>/dev/null; \
+	           cat loader.tos) >loader
 
 atari/loader.tos: $(LOADER_OBJS) $(ATARI_COBJS)
 	@# discard all symbols and locals
