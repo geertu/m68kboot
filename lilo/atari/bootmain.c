@@ -7,10 +7,14 @@
  * published by the Free Software Foundation: either version 2 or
  * (at your option) any later version.
  * 
- * $Id: bootmain.c,v 1.7 1998-02-26 11:17:08 rnhodek Exp $
+ * $Id: bootmain.c,v 1.8 1998-02-27 10:19:03 rnhodek Exp $
  * 
  * $Log: bootmain.c,v $
- * Revision 1.7  1998-02-26 11:17:08  rnhodek
+ * Revision 1.8  1998-02-27 10:19:03  rnhodek
+ * Include call to experimental strace_tos (for debugging).
+ * Removed #ifdef DEBUG_RW_SECTORS.
+ *
+ * Revision 1.7  1998/02/26 11:17:08  rnhodek
  * Print CR-NL after 'd' of LILO...booted.
  *
  * Revision 1.6  1998/02/26 10:15:57  rnhodek
@@ -24,7 +28,7 @@
  * Move umount() call after the menu, so that a VDI driver still can
  * access files during menu display.
  * Handle empty command line (means default OS).
- * In boot_tos(), the driver name must be prefixed with "C:\", otherwise
+ * In boot_tos(), the driver name must be prefixed with "C:\\", otherwise
  * it is searched for on the current drive (which is A:).
  * In cache_ctrl(0), also need to catch Line-F vector, since first '040
  * insn is cpush, which has a 0xfxxx encoding.
@@ -72,6 +76,7 @@
 #include "parsetags.h"
 #include "tmpmnt.h"
 #include "sysvars.h"
+#include "strace_tos.h"
 #include "minmax.h"
 
 const struct FileVectorData MapVectorData = {
@@ -137,7 +142,6 @@ static void cache_ctrl( int on_flag );
 static char *firstword( char **str );
 
 /************************* End of Prototypes **************************/
-
 
 
 int main( int argc, char *argv[] )
@@ -546,6 +550,7 @@ int exec_tos_program( const char *prog, const char *workdir )
 	args[0] = arglen;
 	args[arglen+1] = 0;
 
+	strace_on( TR_ALL );
 	if (workdir) {
 		old_drv = Dgetdrv();
 		Dgetpath( old_path, 0 );
@@ -567,6 +572,7 @@ int exec_tos_program( const char *prog, const char *workdir )
 		Dsetdrv( old_drv );
 		Dsetpath( old_path );
 	}
+	strace_off();
 	
 	if (err < 0) {
 		/* if negative as 32bit number, it was a GEMDOS error */
@@ -888,10 +894,8 @@ long ReadSectors( char *buf, unsigned int _device, unsigned int sector,
 {
 	int device = _device;
 	
-#ifdef DEBUG_RW_SECTORS
 	bios_printf( "ReadSectors( dev=%d, sector=%u, cnt=%u, buf=%08lx )\n",
 				 device, sector, cnt, (unsigned long)buf );
-#endif
 	if (device < 0) {
 		device = -device - 2;
 		if (device < 0) device = CurrentFloppy;
@@ -904,10 +908,8 @@ long ReadSectors( char *buf, unsigned int _device, unsigned int sector,
 long WriteSectors( char *buf, int device, unsigned int sector,
 				   unsigned int cnt )
 {
-#ifdef DEBUG_RW_SECTORS
 	bios_printf( "WriteSectors( dev=%d, sector=%u, cnt=%u, buf=%08lx )\n",
 				 device, sector, cnt, (unsigned long)buf );
-#endif
 	if (device < 0) {
 		device = -device - 2;
 		if (device < 0) device = CurrentFloppy;
