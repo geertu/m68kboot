@@ -6,10 +6,15 @@
  *  This file is subject to the terms and conditions of the GNU General Public
  *  License.  See the file COPYING for more details.
  * 
- * $Id: writetags.l.c,v 1.5 1998-02-24 11:13:38 rnhodek Exp $
+ * $Id: writetags.l.c,v 1.6 1998-02-26 10:09:48 rnhodek Exp $
  * 
  * $Log: writetags.l.c,v $
- * Revision 1.5  1998-02-24 11:13:38  rnhodek
+ * Revision 1.6  1998-02-26 10:09:48  rnhodek
+ * Implement new TAGTYPE_CARRAY; plain ARRAY didn't work correctly for
+ * string arrays.
+ * If filename has a "bootp:" prefix, don't create a TAG_VECTOR for it.
+ *
+ * Revision 1.5  1998/02/24 11:13:38  rnhodek
  * In WriteTags(), print filename passed as argument instead of constant.
  * In WriteZeroTag(), don't modify file position, otherwise TAG_LILO is
  * overwritten.
@@ -132,14 +137,21 @@ static void WriteTagSection( int fd, TAGSECT *ts, void *rec )
 			struct FileDef *file = (struct FileDef *)rec;
 			const char *path = CreateFileName(file->Path);
 			int vecsize, numblocks;
-			vecsize = 0;
-			if ((file->Vector = CreateVector(path, &numblocks)))
-				vecsize = (numblocks+1)*sizeof(struct vecent);
-			else
-				printf("Warning: file `%s' doesn't exist\n", path);
-			if (Verbose && file->Vector)
-				printf("    %s (%ld bytes)\n", path, file->Vector[0].start);
-			WriteTagData( fd, p->Tag, file->Vector, vecsize );
+#ifdef USE_BOOTP
+			/* don't create a TAG_VECTOR for remote files */
+			if (strncmp( path, "bootp:", 6 ) != 0) {
+#endif
+				vecsize = 0;
+				if ((file->Vector = CreateVector(path, &numblocks)))
+					vecsize = (numblocks+1)*sizeof(struct vecent);
+				else
+					printf("Warning: file `%s' doesn't exist\n", path);
+				if (Verbose && file->Vector)
+					printf("    %s (%ld bytes)\n", path,file->Vector[0].start);
+				WriteTagData( fd, p->Tag, file->Vector, vecsize );
+#ifdef USE_BOOTP
+			}
+#endif
 		}
 		else switch( p->Type ) {
 		  case TAGTYPE_INT:
@@ -157,6 +169,13 @@ static void WriteTagSection( int fd, TAGSECT *ts, void *rec )
 				q = *(const char **)(rec + p->Offset + i*sizeof(u_long));
 				if (q)
 					WriteTagData( fd, p->Tag, q, sizeof(u_long) );
+			}
+			break;
+		  case TAGTYPE_CARRAY:
+			for( i = 0; i < p->Extra; ++i ) {
+				q = *(const char **)(rec + p->Offset + i*sizeof(char*));
+				if (q)
+					WriteTagString( fd, p->Tag, q );
 			}
 			break;
 		}
